@@ -1,0 +1,9 @@
+# 172.16.17.51:9200
+elasticsearch:
+    schema: http
+    host: 192.168.40.220
+    port: 9200
+log:
+    path: logs
+    name: traceinit.log
+    level: DEBUG
