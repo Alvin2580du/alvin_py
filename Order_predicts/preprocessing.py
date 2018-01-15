@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import numpy as np
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 
 def time_conv(x):
@@ -13,7 +14,7 @@ def time_conv(x):
 
 
 def fun1():
-    data = pd.read_csv("Order_predicts/datasets/trainingset/orderHistory_train.csv", encoding='utf-8')
+    data = pd.read_csv("Order_predicts/datasets/train/orderHistory_train.csv", encoding='utf-8')
     data_pos = data[data['orderType'].isin(['1'])]
     data_neg = data[data['orderType'].isin(['0'])]
     print((data_neg.shape, data_pos.shape))
@@ -68,9 +69,9 @@ def split_data_v1():
         os.makedirs(pos_root)
     if not os.path.exists(neg_root):
         os.makedirs(neg_root)
-    profile = pd.read_csv("Order_predicts/datasets/trainingset/userProfile_train.csv")
-    action = pd.read_csv("Order_predicts/datasets/trainingset/action_train.csv")
-    orderHistory = pd.read_csv("Order_predicts/datasets/trainingset/orderHistory_train.csv",
+    profile = pd.read_csv("Order_predicts/datasets/train/userProfile_train.csv")
+    action = pd.read_csv("Order_predicts/datasets/train/action_train.csv")
+    orderHistory = pd.read_csv("Order_predicts/datasets/train/orderHistory_train.csv",
                                usecols=['userid', 'orderTime', 'orderType'])
     data_pos = orderHistory[orderHistory['orderType'].isin(['1'])]['userid'].values
     data_neg = orderHistory[orderHistory['orderType'].isin(['0'])]['userid'].values
@@ -93,6 +94,56 @@ def split_data_v1():
                 df.loc[i, 'age'] = age if isinstance(age, str) else "未知"
                 df.loc[i, 'province'] = province if isinstance(province, str) else "未知"
                 df.to_csv("Order_predicts/datasets/results/pos/{}.csv".format(ids), index=None)
+
+
+def split_data_v2(step='train'):
+    pos_root = 'Order_predicts/datasets/results/{}/pos/'.format(step)
+    neg_root = 'Order_predicts/datasets/results/{}/neg/'.format(step)
+    if not os.path.exists(pos_root):
+        os.makedirs(pos_root)
+    if not os.path.exists(neg_root):
+        os.makedirs(neg_root)
+    action = pd.read_csv("Order_predicts/datasets/{}/action_{}.csv".format(step, step))
+    orderHistory = pd.read_csv("Order_predicts/datasets/{}/orderHistory_{}.csv".format(step, step),
+                               usecols=['userid', 'orderTime', 'orderType'])
+    data_pos = orderHistory[orderHistory['orderType'].isin(['1'])]['userid'].values
+    pos_ids = []
+    for posid in tqdm(data_pos):
+        pos_features = {}
+        pos_action_type = action[action['userid'].isin([posid])]['actionType']
+        pos_action_time = action[action['userid'].isin([posid])]['actionTime']
+        pos_features['id'] = posid
+        pos_features['type'] = pos_action_type
+        pos_features['time'] = pos_action_time
+        df_pos_action = pd.DataFrame(pos_features)
+        df_pos_action.to_csv("Order_predicts/datasets/results/{}/pos/{}.csv".format(step, posid), index=None)
+        if posid not in pos_ids:
+            pos_ids.append(posid)
+    df = pd.DataFrame(pos_ids)
+    df.to_csv('Order_predicts/datasets/results/posids.csv', index=None)
+
+
+def get_neg_action_by_id(step='train'):
+    ids = pd.read_csv('Order_predicts/datasets/results/posids.csv').values.tolist()
+    ids = [j for i in ids for j in i]
+    action = pd.read_csv("Order_predicts/datasets/{}/action_{}.csv".format(step, step))
+    action_neg = action[~action.userid.isin(ids)]
+    # action_neg.to_csv("Order_predicts/datasets/train/action_neg.csv", index=None)
+    action_neg_grouped = action_neg.groupby(action_neg['userid'])
+
+    for i, j in tqdm(action_neg_grouped):
+        j.to_csv("Order_predicts/datasets/results/{}/neg/{}.csv".format(step, i), index=None)
+
+
+def get_neg_history_by_id(step='train'):
+    ids = pd.read_csv('Order_predicts/datasets/results/posids.csv').values.tolist()
+    ids = [j for i in ids for j in i]
+    History = pd.read_csv("Order_predicts/datasets/{}/orderHistory_{}.csv".format(step, step))
+    History_neg = History[History.userid.isin(ids)]
+
+    History_neg_grouped = History_neg.groupby(History_neg['userid'])
+    for i, j in tqdm(History_neg_grouped):
+        j.to_csv("Order_predicts/datasets/results/{}/History_pos/{}.csv".format(step, i), index=None)
 
 
 def compute_time_feature(time_list):
@@ -185,8 +236,8 @@ def get_features(step='train'):
 
 
 def fun_yc():
-    da1 = pd.read_csv("./datasets/other/pos_features.csv", dtype=np.float32)
-    da2 = pd.read_csv("./datasets/other/neg_features.csv", dtype=np.float32)
+    da1 = pd.read_csv("Order_predicts/datasets/other/pos_features.csv", dtype=np.float32)
+    da2 = pd.read_csv("Order_predicts/datasets/other/neg_features.csv", dtype=np.float32)
     y1 = da1['10_have_order']
     y2 = da2['10_have_order']
     y = pd.concat([y1, y2])
@@ -196,7 +247,7 @@ def fun_yc():
     del da2['0_id']
     x = pd.concat([da1, da2])
     x['label'] = y
-    x.to_csv("./datasets/other/train.csv", index=None)
+    x.to_csv("Order_predicts/datasets/other/train.csv", index=None)
 
 
 def clean_dataset(df):
@@ -204,3 +255,51 @@ def clean_dataset(df):
     df.dropna(inplace=True)
     indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
     return df[indices_to_keep].astype(np.float64)
+
+
+def plot_data():
+    data = pd.read_csv("Order_predicts/datasets/results/train/pos/100000001023.csv", usecols=['type']).values.tolist()
+    plt.figure()
+    plt.plot(data)
+    plt.show()
+
+
+def fun3():
+    types = []
+    for file in os.listdir("Order_predicts/datasets/results/train/pos"):
+        data_dir = os.path.join("Order_predicts/datasets/results/train/pos", file)
+        data = pd.read_csv(data_dir, usecols=['type']).values.tolist()
+        for x in data:
+            types.append(x[0])
+
+    c = Counter(types)
+    c_sum = sum(c.values())
+    for x, y in c.most_common(10):
+        print(x, y, y / c_sum)
+        """
+        5 45859 0.29460436969607423
+        1 34878 0.22406095218516925
+        6 27804 0.1786166269441036
+        3 16709 0.10734085813584474
+        4 10935 0.07024790733828848
+        2 8538 0.05484925769129466
+        8 4630 0.02974374128726801
+        7 3664 0.02353802766232181
+        9 2646 0.01699825905963524
+        
+        ====================
+        5 188205 0.3508067221878425
+        1 150944 0.28135368281353684
+        6 88711 0.16535381701870672
+        3 31920 0.059497625314077374
+        8 17331 0.032304302766863253
+        2 16795 0.03130521983552411
+        4 16167 0.030134652520447648
+        7 15251 0.02842726452584568
+        9 11168 0.020816713017155895
+
+
+        """
+
+
+get_neg_history_by_id()
