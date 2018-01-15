@@ -28,13 +28,19 @@ def fun1():
 
 
 def split_data():
+    pos_root = 'Order_predicts/datasets/results/pos/'
+    neg_root = 'Order_predicts/datasets/results/neg/'
+    if not os.path.exists(pos_root):
+        os.makedirs(pos_root)
+    if not os.path.exists(neg_root):
+        os.makedirs(neg_root)
     action = pd.read_csv("Order_predicts/datasets/trainingset/action_train.csv")
     orderHistory = pd.read_csv("Order_predicts/datasets/trainingset/orderHistory_train.csv",
                                usecols=['userid', 'orderTime', 'orderType'])
     data_pos = orderHistory[orderHistory['orderType'].isin(['1'])]['userid'].values
     data_neg = orderHistory[orderHistory['orderType'].isin(['0'])]['userid'].values
 
-    for posid in data_pos:
+    for posid in tqdm(data_pos):
         pos_features = {}
         pos_action_type = action[action['userid'].isin([posid])]['actionType']
         pos_action_time = action[action['userid'].isin([posid])]['actionTime']
@@ -44,7 +50,7 @@ def split_data():
         df_pos_action = pd.DataFrame(pos_features)
         df_pos_action.to_csv("Order_predicts/datasets/results/pos/{}.csv".format(posid), index=None)
 
-    for negid in data_neg:
+    for negid in tqdm(data_neg):
         neg_actions = {}
         pos_action_type = action[action['userid'].isin([negid])]['actionType']
         pos_action_time = action[action['userid'].isin([negid])]['actionTime']
@@ -53,6 +59,40 @@ def split_data():
         neg_actions['time'] = pos_action_time
         neg_actions = pd.DataFrame(neg_actions)
         neg_actions.to_csv("Order_predicts/datasets/results/neg/{}.csv".format(negid), index=None)
+
+
+def split_data_v1():
+    pos_root = 'Order_predicts/datasets/results/pos/'
+    neg_root = 'Order_predicts/datasets/results/neg/'
+    if not os.path.exists(pos_root):
+        os.makedirs(pos_root)
+    if not os.path.exists(neg_root):
+        os.makedirs(neg_root)
+    profile = pd.read_csv("Order_predicts/datasets/trainingset/userProfile_train.csv")
+    action = pd.read_csv("Order_predicts/datasets/trainingset/action_train.csv")
+    orderHistory = pd.read_csv("Order_predicts/datasets/trainingset/orderHistory_train.csv",
+                               usecols=['userid', 'orderTime', 'orderType'])
+    data_pos = orderHistory[orderHistory['orderType'].isin(['1'])]['userid'].values
+    data_neg = orderHistory[orderHistory['orderType'].isin(['0'])]['userid'].values
+    for d in [data_pos, data_neg]:
+        for ids in tqdm(d):
+            g = profile[profile['userid'].isin([ids])]['gender'].values.tolist()[0]
+            age = profile[profile['userid'].isin([ids])]['age'].values.tolist()[0]
+            province = profile[profile['userid'].isin([ids])]['province'].values.tolist()[0]
+
+            pos_action_type = action[action['userid'].isin([ids])]['actionType'].values.tolist()
+            pos_action_time = action[action['userid'].isin([ids])]['actionTime'].values.tolist()
+            length = len(pos_action_time)
+
+            df = pd.DataFrame()
+            for i in range(length):
+                df.loc[i, 'id'] = "{}".format(ids)
+                df.loc[i, 'type'] = pos_action_type[i]
+                df.loc[i, 'time'] = pos_action_time[i]
+                df.loc[i, 'gender'] = g if isinstance(g, str) else "未知"
+                df.loc[i, 'age'] = age if isinstance(age, str) else "未知"
+                df.loc[i, 'province'] = province if isinstance(province, str) else "未知"
+                df.to_csv("Order_predicts/datasets/results/pos/{}.csv".format(ids), index=None)
 
 
 def compute_time_feature(time_list):
@@ -95,6 +135,11 @@ def compute_type_feature(test_da):
 def get_features():
     pos_root = 'Order_predicts/datasets/results/pos/'
     neg_root = 'Order_predicts/datasets/results/neg/'
+    if not os.path.exists(pos_root):
+        os.makedirs(pos_root)
+    if not os.path.exists(neg_root):
+        os.makedirs(neg_root)
+
     for root in [pos_root, neg_root]:
         base_name = root.split("/")[-2]
         res = []
@@ -132,3 +177,4 @@ def get_features():
         df.to_csv("Order_predicts/datasets/results/{}_features.csv".format(base_name), index=None)
 
 
+split_data()
