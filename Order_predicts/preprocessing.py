@@ -27,15 +27,15 @@ def fun1():
         print(x, y)
 
 
-def split_data():
-    pos_root = 'Order_predicts/datasets/results/pos/'
-    neg_root = 'Order_predicts/datasets/results/neg/'
+def split_data(step='train'):
+    pos_root = 'Order_predicts/datasets/results/{}/pos/'.format(step)
+    neg_root = 'Order_predicts/datasets/results/{}/neg/'.format(step)
     if not os.path.exists(pos_root):
         os.makedirs(pos_root)
     if not os.path.exists(neg_root):
         os.makedirs(neg_root)
-    action = pd.read_csv("Order_predicts/datasets/trainingset/action_train.csv")
-    orderHistory = pd.read_csv("Order_predicts/datasets/trainingset/orderHistory_train.csv",
+    action = pd.read_csv("Order_predicts/datasets/{}/action_{}.csv".format(step, step))
+    orderHistory = pd.read_csv("Order_predicts/datasets/{}/orderHistory_{}.csv".format(step, step),
                                usecols=['userid', 'orderTime', 'orderType'])
     data_pos = orderHistory[orderHistory['orderType'].isin(['1'])]['userid'].values
     data_neg = orderHistory[orderHistory['orderType'].isin(['0'])]['userid'].values
@@ -48,7 +48,7 @@ def split_data():
         pos_features['type'] = pos_action_type
         pos_features['time'] = pos_action_time
         df_pos_action = pd.DataFrame(pos_features)
-        df_pos_action.to_csv("Order_predicts/datasets/results/pos/{}.csv".format(posid), index=None)
+        df_pos_action.to_csv("Order_predicts/datasets/results/{}/pos/{}.csv".format(step, posid), index=None)
 
     for negid in tqdm(data_neg):
         neg_actions = {}
@@ -58,7 +58,7 @@ def split_data():
         neg_actions['type'] = pos_action_type
         neg_actions['time'] = pos_action_time
         neg_actions = pd.DataFrame(neg_actions)
-        neg_actions.to_csv("Order_predicts/datasets/results/neg/{}.csv".format(negid), index=None)
+        neg_actions.to_csv("Order_predicts/datasets/results/{}/neg/{}.csv".format(step, negid), index=None)
 
 
 def split_data_v1():
@@ -132,9 +132,9 @@ def compute_type_feature(test_da):
     return rates
 
 
-def get_features():
-    pos_root = 'Order_predicts/datasets/results/pos/'
-    neg_root = 'Order_predicts/datasets/results/neg/'
+def get_features(step='train'):
+    pos_root = 'Order_predicts/datasets/results/{}/pos/'.format(step)
+    neg_root = 'Order_predicts/datasets/results/{}/neg/'.format(step)
     if not os.path.exists(pos_root):
         os.makedirs(pos_root)
     if not os.path.exists(neg_root):
@@ -152,6 +152,10 @@ def get_features():
             atype = data['type'].values
             mean, std, cha, x1, x2, x3, x4, lastthreemean, lastthreestd = compute_time_feature(atime)
             rates = compute_type_feature(atype)
+            if step == 'train':
+                rows['label'] = 1 if base_name == 'pos' else 0
+            else:
+                rows['label'] = 0
             rows['0_id'] = aid
             rows['1_atmean'] = mean
             rows['2_atstd'] = std
@@ -174,7 +178,10 @@ def get_features():
             rows['19_rate9'] = rates[9] if 9 in rates else 0
             res.append(rows)
         df = pd.DataFrame(res)
-        df.to_csv("Order_predicts/datasets/results/{}_features.csv".format(base_name), index=None)
+        save_name = "Order_predicts/datasets/results/{}/{}_features.csv".format(step, base_name)
+        if step == 'test':
+            del df['label']
+        df.to_csv(save_name, index=None)
 
 
-split_data()
+get_features(step='test')
