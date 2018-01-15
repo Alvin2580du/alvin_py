@@ -166,7 +166,7 @@ def get_features(step='train'):
             rows['7_t4'] = x4
             rows['8_lastmean'] = lastthreemean
             rows['9_laststd'] = lastthreestd
-            rows['10_have_order'] = 1 if base_name == 'pos' else 0
+            # rows['10_have_order'] = 1 if base_name == 'pos' else 0
             rows['11_rate1'] = rates[1] if 1 in rates else 0
             rows['12_rate2'] = rates[2] if 2 in rates else 0
             rows['13_rate3'] = rates[3] if 3 in rates else 0
@@ -184,4 +184,23 @@ def get_features(step='train'):
         df.to_csv(save_name, index=None)
 
 
-get_features(step='test')
+def fun_yc():
+    da1 = pd.read_csv("./datasets/other/pos_features.csv", dtype=np.float32)
+    da2 = pd.read_csv("./datasets/other/neg_features.csv", dtype=np.float32)
+    y1 = da1['10_have_order']
+    y2 = da2['10_have_order']
+    y = pd.concat([y1, y2])
+    del da1['10_have_order']
+    del da2['10_have_order']
+    del da1['0_id']
+    del da2['0_id']
+    x = pd.concat([da1, da2])
+    x['label'] = y
+    x.to_csv("./datasets/other/train.csv", index=None)
+
+
+def clean_dataset(df):
+    assert isinstance(df, pd.DataFrame), "df needs to be a pd.DataFrame"
+    df.dropna(inplace=True)
+    indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
+    return df[indices_to_keep].astype(np.float64)
