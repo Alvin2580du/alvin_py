@@ -299,8 +299,6 @@ def fun3():
         4 16167 0.030134652520447648
         7 15251 0.02842726452584568
         9 11168 0.020816713017155895
-
-
         """
 
 
@@ -317,7 +315,6 @@ def get_dumm():
             df_grouped = df1.groupby(by='time')
             res = []
             for i, j in df_grouped:
-
                 j2df = pd.get_dummies(j, columns=['type'])
                 rows = {}
                 rows['0_t1'] = j2df['type_1'].sum() if 'type_1' in j2df.columns else 0
@@ -337,5 +334,11 @@ def get_dumm():
             df.to_csv("/home/duyp/ddddd/{}/{}.csv".format(step, file), index=None)
 
 
-get_neg_action_by_id(step='train')
+def order_future():
+    data = pd.read_csv("Order_predicts/datasets/train/orderFuture_train.csv")
+    uid_1 = data[data['orderType'].isin(['1'])]['userid']
+    uid_0 = data[data['orderType'].isin(['0'])]['userid']
+
+
+order_future()
 
