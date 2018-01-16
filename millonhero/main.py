@@ -1,11 +1,34 @@
 import urllib.request
-from PIL import Image
 from aip import AipOcr
 import urllib.request, time, _thread, urllib.parse
+import os
+import re
+import cv2
+
 """
 来源: https://github.com/wuditken/MillionHeroes.git
 
 """
+
+os.system("adb shell /system/bin/screencap -p /sdcard/screenshot.png")
+os.system("adb pull /sdcard/screenshot.png screenshot.png")
+
+img = cv2.imread("screenshot.png")
+crop_img = img[500:1500, 60:1000]
+cv2.imwrite("crop_test1.png", crop_img)
+
+
+def is_chinese(uchar):
+    if u'\u4e00' <= uchar <= u'\u9fa5':
+        return True
+    else:
+        return False
+
+
+def get_file_content(filePath):
+    with open(filePath, 'rb') as fp:
+        return fp.read()
+
 
 class Ai:
     def biggest(self, a, b, c):  # 获取出现次数最多的答案
@@ -34,16 +57,25 @@ class Ai:
         opener.addheaders = [headers]
         date = opener.open(url).read()
 
+        res = ""
         if "zhidao.baidu.com" in url:
             str1 = date.decode('gbk').encode('utf-8').decode('utf-8')
+            for x in str1:
+                if is_chinese(x):
+                    res += x
         else:
             str1 = str(date, "utf-8")
+            for x in str1:
+                if is_chinese(x):
+                    res += x
 
         self.count += 1
-        print(" debug : {}".format(str1))
-        self.a += str1.count(self.answer[0].replace('A', ''))
-        self.b += str1.count(self.answer[1].replace('B', ''))
-        self.c += str1.count(self.answer[2].replace('C', ''))
+        A = self.answer[0].replace('A', '')
+        B = self.answer[1].replace('B', '')
+        C = self.answer[2].replace('C', '')
+        self.a += len(re.compile(A).findall(res))
+        self.b += len(re.compile(B).findall(res))
+        self.c += len(re.compile(C).findall(res))
 
     def threhtml(self, url):  # 开线程获得网页
         _thread.start_new_thread(self.gethtml, (url,))
@@ -62,19 +94,16 @@ class Ai:
         self.threhtml("https://wenda.so.com/search/?q=" + urllib.parse.quote(self.issue))
 
         while 1:
-            if (self.count == 4):  # 这里是59行代码，如果你自己增加搜索接口(4改5)
+            if self.count == 4:  # 这里是59行代码，如果你自己增加搜索接口(4改5)
                 break
 
-        dict = {self.a: 'A', self.b: 'B', self.c: 'C'}
-
-        listselect = [self.a, self.b, self.c]
+        dicts = {self.a: 'A', self.b: 'B', self.c: 'C'}
         print('---------------------------------')
         print(' 选项    出现次数  ')
-        print('  A：     ' + str(self.a))
-        print('  B：     ' + str(self.b))
-        print('  C：     ' + str(self.c))
+        print("A : {}  B: {},  C: {}".format(self.a, self.b, self.c))
+
         print('---------------------------------')
-        print('  推荐答案：' + dict[self.biggest(self.a, self.b, self.c)])
+        print('  推荐答案：{} '.format(dicts[max([self.a, self.b, self.c])]))
         print('---------------------------------')
         print()
 
@@ -82,32 +111,13 @@ class Ai:
         print('搜索用时：' + str(end - self.start) + '秒')
 
 
-def get_image_from_phone():
-    im = Image.open(r"./screenshot.png")
-
-    img_size = im.size
-    w = im.size[0]
-    h = im.size[1]
-    print("xx:{}".format(img_size))
-
-    region = im.crop((70, 200, w - 70, 1200))  # 裁剪的区域
-    region.save(r"./crop_test1.png")
-
-
-""" 读取图片 """
-
-
-def get_file_content(filePath):
-    with open(filePath, 'rb') as fp:
-        return fp.read()
-
-
 APP_ID = '10699696'
 API_KEY = 'UL8RHjCpLrrXP47Tm2jZaTgv'
 SECRET_KEY = 'Sqhs08u1c8CqY8hVaDvXr7dadScNMBoP'
 client = AipOcr(APP_ID, API_KEY, SECRET_KEY)
 
-image = get_file_content("orc_test.png")
+image = get_file_content("crop_test1.png")
+
 respon = client.basicGeneral(image)
 titles = respon['words_result']
 issue = ''
@@ -129,6 +139,7 @@ else:
     issue = issue[2:]
 
 print("问题: {}".format(issue))
+
 print("{}, {}, {}".format(answer[0], answer[1], answer[2]))
 
 keyword = issue
