@@ -2,7 +2,10 @@ import urllib.request
 from PIL import Image
 from aip import AipOcr
 import urllib.request, time, _thread, urllib.parse
+"""
+来源: https://github.com/wuditken/MillionHeroes.git
 
+"""
 
 class Ai:
     def biggest(self, a, b, c):  # 获取出现次数最多的答案
