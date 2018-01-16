@@ -9,13 +9,15 @@ import matplotlib.pyplot as plt
 
 def time_conv(x):
     timeArray = time.localtime(x)
-    otherStyleTime = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
+    otherStyleTime = time.strftime("%Y-%m-%d", timeArray)
     return otherStyleTime
 
 
 def fun1():
     data = pd.read_csv("Order_predicts/datasets/train/orderHistory_train.csv", encoding='utf-8')
-    data_pos = data[data['orderType'].isin(['1'])]
+    data_pos = data[data['orderType'].isin(['1'])]['userid']
+    # data_pos.to_csv("Order_predicts/datasets/results/posids.csv", index=None)
+
     data_neg = data[data['orderType'].isin(['0'])]
     print((data_neg.shape, data_pos.shape))
     pos_city = data_pos['city']
@@ -135,15 +137,15 @@ def get_neg_action_by_id(step='train'):
         j.to_csv("Order_predicts/datasets/results/{}/neg/{}.csv".format(step, i), index=None)
 
 
-def get_neg_history_by_id(step='train'):
+def get_history_by_id(step='train'):
     ids = pd.read_csv('Order_predicts/datasets/results/posids.csv').values.tolist()
     ids = [j for i in ids for j in i]
     History = pd.read_csv("Order_predicts/datasets/{}/orderHistory_{}.csv".format(step, step))
-    History_neg = History[History.userid.isin(ids)]
+    History_neg = History[~History.userid.isin(ids)]
 
     History_neg_grouped = History_neg.groupby(History_neg['userid'])
     for i, j in tqdm(History_neg_grouped):
-        j.to_csv("Order_predicts/datasets/results/{}/History_pos/{}.csv".format(step, i), index=None)
+        j.to_csv("Order_predicts/datasets/results/{}/History_neg/{}.csv".format(step, i), index=None)
 
 
 def compute_time_feature(time_list):
@@ -302,4 +304,38 @@ def fun3():
         """
 
 
-get_neg_history_by_id()
+def get_dumm():
+    roots = ["Order_predicts/datasets/results/train/pos/", "Order_predicts/datasets/results/train/neg/"]
+    for root in roots:
+        step = root.split("/")[-2]
+        for file in os.listdir(root):
+            file_name = os.path.join(root, file)
+
+            data = pd.read_csv(file_name)
+            df1 = data.copy()
+            df1['time'] = data['time'].apply(time_conv)
+            df_grouped = df1.groupby(by='time')
+            res = []
+            for i, j in df_grouped:
+
+                j2df = pd.get_dummies(j, columns=['type'])
+                rows = {}
+                rows['0_t1'] = j2df['type_1'].sum() if 'type_1' in j2df.columns else 0
+                rows['1_t2'] = j2df['type_2'].sum() if 'type_2' in j2df.columns else 0
+                rows['2_t3'] = j2df['type_3'].sum() if 'type_3' in j2df.columns else 0
+                rows['3_t4'] = j2df['type_4'].sum() if 'type_4' in j2df.columns else 0
+                rows['4_t5'] = j2df['type_5'].sum() if 'type_5' in j2df.columns else 0
+                rows['5_t6'] = j2df['type_6'].sum() if 'type_6' in j2df.columns else 0
+                rows['6_t7'] = j2df['type_7'].sum() if 'type_7' in j2df.columns else 0
+                rows['7_t8'] = j2df['type_8'].sum() if 'type_8' in j2df.columns else 0
+                rows['8_t9'] = j2df['type_9'].sum() if 'type_9' in j2df.columns else 0
+                rows['9_time'] = i
+                rows['10_id'] = j2df['id']
+                res.append(rows)
+
+            df = pd.DataFrame(res)
+            df.to_csv("/home/duyp/ddddd/{}/{}.csv".format(step, file), index=None)
+
+
+get_neg_action_by_id(step='train')
+
