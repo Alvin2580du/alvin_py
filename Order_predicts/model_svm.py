@@ -27,6 +27,24 @@ def clean_dataset(df):
     indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
     return df[indices_to_keep].astype(np.float64)
 
+data = pd.read_csv("./datasets/other/train_1.csv")
+data1 = clean_dataset(data)
+print(data1.shape)
+
+data2 = shuffle(data1)
+y = data2['10_have_order']
+print(y.shape)
+
+train_y, test_y = y[:int(len(y)*0.8), ], y[int(len(y)*0.8):, ]
+print(train_y.shape, test_y.shape)
+
+del data2['10_have_order']
+del data2['0_id']
+train_x = data2.ix[:int(len(data2)*0.8), ]
+print(train_x.shape)
+test_x = data2.ix[int(len(data2)*0.8):, ]
+X_new = SelectKBest(chi2, k=10).fit_transform(train_x, train_y)
+print(X_new.shape)
 
 def train():
     data = pd.read_csv("./datasets/other/train_clean.csv")
