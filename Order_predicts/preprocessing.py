@@ -7,6 +7,9 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 
+# 日频, 周频, 月频
+
+
 def time_conv(x):
     timeArray = time.localtime(x)
     otherStyleTime = time.strftime("%Y-%m-%d", timeArray)
@@ -185,9 +188,51 @@ def compute_type_feature(test_da):
     return rates
 
 
+def fun_yc():
+    da1 = pd.read_csv("Order_predicts/datasets/other/pos_features.csv", dtype=np.float32)
+    da2 = pd.read_csv("Order_predicts/datasets/other/neg_features.csv", dtype=np.float32)
+    y1 = da1['10_have_order']
+    y2 = da2['10_have_order']
+    y = pd.concat([y1, y2])
+    del da1['10_have_order']
+    del da2['10_have_order']
+    del da1['0_id']
+    del da2['0_id']
+    x = pd.concat([da1, da2])
+    x['label'] = y
+    x.to_csv("Order_predicts/datasets/other/train.csv", index=None)
+
+
+def clean_dataset(df):
+    assert isinstance(df, pd.DataFrame), "df needs to be a pd.DataFrame"
+    df.dropna(inplace=True)
+    indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
+    return df[indices_to_keep].astype(np.float64)
+
+
+def fun3():
+    types = []
+    for file in os.listdir("Order_predicts/datasets/results/train/pos"):
+        data_dir = os.path.join("Order_predicts/datasets/results/train/pos", file)
+        data = pd.read_csv(data_dir, usecols=['type']).values.tolist()
+        for x in data:
+            types.append(x[0])
+
+    c = Counter(types)
+    c_sum = sum(c.values())
+    for x, y in c.most_common(10):
+        print(x, y, y / c_sum)
+
+
+def order_future():
+    data = pd.read_csv("Order_predicts/datasets/train/orderFuture_train.csv")
+    uid_1 = data[data['orderType'].isin(['1'])]['userid']
+    uid_0 = data[data['orderType'].isin(['0'])]['userid']
+
+
 def get_features(step='train'):
-    pos_root = 'Order_predicts/datasets/results/{}/pos/'.format(step)
-    neg_root = 'Order_predicts/datasets/results/{}/neg/'.format(step)
+    pos_root = 'Order_predicts/datasets/results/{}/action_pos/'.format(step)
+    neg_root = 'Order_predicts/datasets/results/{}/action_neg/'.format(step)
     if not os.path.exists(pos_root):
         os.makedirs(pos_root)
     if not os.path.exists(neg_root):
@@ -197,10 +242,25 @@ def get_features(step='train'):
         base_name = root.split("/")[-2]
         res = []
         for file in tqdm(os.listdir(root)):
+
             rows = {}
             aid = file.split(".")[0]
             file_name = os.path.join(root, file)
             data = pd.read_csv(file_name)
+
+            df_grouped = data.groupby(by='time')
+            res = []
+            for i, j in df_grouped:
+                j2df = pd.get_dummies(j, columns=['type'])
+                rows['0_t1'] = j2df['type_1'].sum() if 'type_1' in j2df.columns else 0
+                rows['1_t2'] = j2df['type_2'].sum() if 'type_2' in j2df.columns else 0
+                rows['2_t3'] = j2df['type_3'].sum() if 'type_3' in j2df.columns else 0
+                rows['3_t4'] = j2df['type_4'].sum() if 'type_4' in j2df.columns else 0
+                rows['4_t5'] = j2df['type_5'].sum() if 'type_5' in j2df.columns else 0
+                rows['5_t6'] = j2df['type_6'].sum() if 'type_6' in j2df.columns else 0
+                rows['6_t7'] = j2df['type_7'].sum() if 'type_7' in j2df.columns else 0
+                rows['7_t8'] = j2df['type_8'].sum() if 'type_8' in j2df.columns else 0
+                rows['8_t9'] = j2df['type_9'].sum() if 'type_9' in j2df.columns else 0
             atime = data['time'].values
             atype = data['type'].values
             mean, std, cha, x1, x2, x3, x4, lastthreemean, lastthreestd = compute_time_feature(atime)
@@ -237,108 +297,4 @@ def get_features(step='train'):
         df.to_csv(save_name, index=None)
 
 
-def fun_yc():
-    da1 = pd.read_csv("Order_predicts/datasets/other/pos_features.csv", dtype=np.float32)
-    da2 = pd.read_csv("Order_predicts/datasets/other/neg_features.csv", dtype=np.float32)
-    y1 = da1['10_have_order']
-    y2 = da2['10_have_order']
-    y = pd.concat([y1, y2])
-    del da1['10_have_order']
-    del da2['10_have_order']
-    del da1['0_id']
-    del da2['0_id']
-    x = pd.concat([da1, da2])
-    x['label'] = y
-    x.to_csv("Order_predicts/datasets/other/train.csv", index=None)
-
-
-def clean_dataset(df):
-    assert isinstance(df, pd.DataFrame), "df needs to be a pd.DataFrame"
-    df.dropna(inplace=True)
-    indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
-    return df[indices_to_keep].astype(np.float64)
-
-
-def plot_data():
-    data = pd.read_csv("Order_predicts/datasets/results/train/pos/100000001023.csv", usecols=['type']).values.tolist()
-    plt.figure()
-    plt.plot(data)
-    plt.show()
-
-
-def fun3():
-    types = []
-    for file in os.listdir("Order_predicts/datasets/results/train/pos"):
-        data_dir = os.path.join("Order_predicts/datasets/results/train/pos", file)
-        data = pd.read_csv(data_dir, usecols=['type']).values.tolist()
-        for x in data:
-            types.append(x[0])
-
-    c = Counter(types)
-    c_sum = sum(c.values())
-    for x, y in c.most_common(10):
-        print(x, y, y / c_sum)
-        """
-        5 45859 0.29460436969607423
-        1 34878 0.22406095218516925
-        6 27804 0.1786166269441036
-        3 16709 0.10734085813584474
-        4 10935 0.07024790733828848
-        2 8538 0.05484925769129466
-        8 4630 0.02974374128726801
-        7 3664 0.02353802766232181
-        9 2646 0.01699825905963524
-        
-        ====================
-        5 188205 0.3508067221878425
-        1 150944 0.28135368281353684
-        6 88711 0.16535381701870672
-        3 31920 0.059497625314077374
-        8 17331 0.032304302766863253
-        2 16795 0.03130521983552411
-        4 16167 0.030134652520447648
-        7 15251 0.02842726452584568
-        9 11168 0.020816713017155895
-        """
-
-
-def get_dumm():
-    roots = ["Order_predicts/datasets/results/train/pos/", "Order_predicts/datasets/results/train/neg/"]
-    for root in roots:
-        step = root.split("/")[-2]
-        for file in os.listdir(root):
-            file_name = os.path.join(root, file)
-
-            data = pd.read_csv(file_name)
-            df1 = data.copy()
-            df1['time'] = data['time'].apply(time_conv)
-            df_grouped = df1.groupby(by='time')
-            res = []
-            for i, j in df_grouped:
-                j2df = pd.get_dummies(j, columns=['type'])
-                rows = {}
-                rows['0_t1'] = j2df['type_1'].sum() if 'type_1' in j2df.columns else 0
-                rows['1_t2'] = j2df['type_2'].sum() if 'type_2' in j2df.columns else 0
-                rows['2_t3'] = j2df['type_3'].sum() if 'type_3' in j2df.columns else 0
-                rows['3_t4'] = j2df['type_4'].sum() if 'type_4' in j2df.columns else 0
-                rows['4_t5'] = j2df['type_5'].sum() if 'type_5' in j2df.columns else 0
-                rows['5_t6'] = j2df['type_6'].sum() if 'type_6' in j2df.columns else 0
-                rows['6_t7'] = j2df['type_7'].sum() if 'type_7' in j2df.columns else 0
-                rows['7_t8'] = j2df['type_8'].sum() if 'type_8' in j2df.columns else 0
-                rows['8_t9'] = j2df['type_9'].sum() if 'type_9' in j2df.columns else 0
-                rows['9_time'] = i
-                rows['10_id'] = j2df['id']
-                res.append(rows)
-
-            df = pd.DataFrame(res)
-            df.to_csv("/home/duyp/ddddd/{}/{}.csv".format(step, file), index=None)
-
-
-def order_future():
-    data = pd.read_csv("Order_predicts/datasets/train/orderFuture_train.csv")
-    uid_1 = data[data['orderType'].isin(['1'])]['userid']
-    uid_0 = data[data['orderType'].isin(['0'])]['userid']
-
-
-order_future()
-
+get_features(step='train')
