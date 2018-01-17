@@ -1,20 +1,24 @@
 import urllib.request
 from aip import AipOcr
-import urllib.request, time, _thread, urllib.parse
+import urllib.request
+import time
 import os
 import re
 import cv2
+import urllib.parse
 
 """
 来源: https://github.com/wuditken/MillionHeroes.git
 
 """
 
+start = time.time()
+
 os.system("adb shell /system/bin/screencap -p /sdcard/screenshot.png")
 os.system("adb pull /sdcard/screenshot.png screenshot.png")
 
 img = cv2.imread("screenshot.png")
-crop_img = img[500:1500, 60:1000]
+crop_img = img[200:1200, 90:1000]
 cv2.imwrite("crop_test1.png", crop_img)
 
 
@@ -30,85 +34,55 @@ def get_file_content(filePath):
         return fp.read()
 
 
-class Ai:
-    def biggest(self, a, b, c):  # 获取出现次数最多的答案
-        if a > b:
-            maxnum = a
-        else:
-            maxnum = b
-        if c > maxnum:
-            maxnum = c
-        return maxnum
+def search_answer(issue, answer):
+    url1 = "https://zhidao.baidu.com/search?lm=0&rn=10&pn=0&fr=search&ie=gbk&word=" + urllib.parse.quote(issue,
+                                                                                                         encoding='gbk')
+    url2 = "https://iask.sina.com.cn/search?searchWord=" + urllib.parse.quote(issue)
 
-    def __init__(self, issue, answer):  # 注意前后各两个下划线
-        self.start = time.time()
-        self.issue = issue
-        self.answer = answer
-        self.a = 0
-        self.b = 0
-        self.c = 0
-        self.count = 0
+    count = 0
+    res = ""
 
-    def gethtml(self, url):
-        headers = ('User-Agent',
-                   'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11')
+    url = url2
+    headers = ('User-Agent',
+               'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 '
+               'Safari/537.11')
 
-        opener = urllib.request.build_opener()
-        opener.addheaders = [headers]
-        date = opener.open(url).read()
+    opener = urllib.request.build_opener()
+    opener.addheaders = [headers]
+    date = opener.open(url).read()
 
-        res = ""
-        if "zhidao.baidu.com" in url:
-            str1 = date.decode('gbk').encode('utf-8').decode('utf-8')
-            for x in str1:
-                if is_chinese(x):
-                    res += x
-        else:
-            str1 = str(date, "utf-8")
-            for x in str1:
-                if is_chinese(x):
-                    res += x
+    if "zhidao.baidu.com" in url:
+        str1 = date.decode('gbk').encode('utf-8').decode('utf-8')
+        for x in str1:
+            if is_chinese(x):
+                res += x
+    else:
+        str1 = str(date, "utf-8")
+        for x in str1:
+            if is_chinese(x):
+                res += x
 
-        self.count += 1
-        A = self.answer[0].replace('A', '')
-        B = self.answer[1].replace('B', '')
-        C = self.answer[2].replace('C', '')
-        self.a += len(re.compile(A).findall(res))
-        self.b += len(re.compile(B).findall(res))
-        self.c += len(re.compile(C).findall(res))
+    count += 1
+    A = answer[0].replace('A', '')
+    B = answer[1].replace('B', '')
+    C = answer[2].replace('C', '')
+    a = len(re.compile(A).findall(res))
+    b = len(re.compile(B).findall(res))
+    c = len(re.compile(C).findall(res))
 
-    def threhtml(self, url):  # 开线程获得网页
-        _thread.start_new_thread(self.gethtml, (url,))
+    print("搜索结果：\n {}".format(res))
+    dicts = {a: 'A', b: 'B', c: 'C'}
+    print('---------------------------------')
+    print(' 选项    出现次数  ')
+    print("A : {}  B: {},  C: {}".format(a, b, c))
 
-    def search(self):
-        # 可以自己添加搜索接口  self.threhtml(网址) 并在59行代码加一个数
-        self.threhtml(
-            "https://zhidao.baidu.com/search?lm=0&rn=10&pn=0&fr=search&ie=gbk&word=" + urllib.parse.quote(self.issue,
-                                                                                                          encoding='gbk'))
+    print('---------------------------------')
+    print('  推荐答案：{} '.format(dicts[max([a, b, c])]))
+    print('---------------------------------')
+    print()
 
-        self.threhtml("http://wenwen.sogou.com/s/?w=" + urllib.parse.quote(self.issue) + "&ch=ww.header.ssda")
-
-        self.threhtml(
-            "https://iask.sina.com.cn/search?searchWord=" + urllib.parse.quote(self.issue) + "&record=1")
-
-        self.threhtml("https://wenda.so.com/search/?q=" + urllib.parse.quote(self.issue))
-
-        while 1:
-            if self.count == 4:  # 这里是59行代码，如果你自己增加搜索接口(4改5)
-                break
-
-        dicts = {self.a: 'A', self.b: 'B', self.c: 'C'}
-        print('---------------------------------')
-        print(' 选项    出现次数  ')
-        print("A : {}  B: {},  C: {}".format(self.a, self.b, self.c))
-
-        print('---------------------------------')
-        print('  推荐答案：{} '.format(dicts[max([self.a, self.b, self.c])]))
-        print('---------------------------------')
-        print()
-
-        end = time.time()
-        print('搜索用时：' + str(end - self.start) + '秒')
+    end = time.time()
+    print('搜索用时：' + str(end - start) + '秒')
 
 
 APP_ID = '10699696'
@@ -139,9 +113,7 @@ else:
     issue = issue[2:]
 
 print("问题: {}".format(issue))
+print("- " * 20)
+print("A: {} \n B: {} \n C: {}".format(answer[0], answer[1], answer[2]))
 
-print("{}, {}, {}".format(answer[0], answer[1], answer[2]))
-
-keyword = issue
-ai = Ai(issue, answer)
-ai.search()
+search_answer(issue, answer)
