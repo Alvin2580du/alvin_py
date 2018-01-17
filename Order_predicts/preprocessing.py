@@ -240,7 +240,7 @@ def get_action_features(step='train'):
 
     for root in [pos_root, neg_root]:
         base_name = root.split("/")[-2]
-        res = []
+        actions = []
         for file in tqdm(os.listdir(root)):
             rows = {}
             if step == 'train':
@@ -256,7 +256,7 @@ def get_action_features(step='train'):
             rates = compute_type_feature(atype)
 
             df_grouped = data.groupby(by='time')
-            res = []
+            single_actions = []
             for i, j in df_grouped:
                 j2df = pd.get_dummies(j, columns=['type'])
                 rows['2_t1'] = j2df['type_1'].sum() if 'type_1' in j2df.columns else 0
@@ -286,8 +286,8 @@ def get_action_features(step='train'):
             rows['26_rate7'] = rates[7] if 7 in rates else 0
             rows['27_rate8'] = rates[8] if 8 in rates else 0
             rows['28_rate9'] = rates[9] if 9 in rates else 0
-            res.append(rows)
-        df = pd.DataFrame(res)
+            single_actions.append(rows)
+        df = pd.DataFrame(actions)
         save_name = "Order_predicts/datasets/results/{}/{}_features.csv".format(step, base_name)
         if step == 'test':
             del df['label']
