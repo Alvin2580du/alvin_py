@@ -230,7 +230,7 @@ def order_future():
     uid_0 = data[data['orderType'].isin(['0'])]['userid']
 
 
-def get_features(step='train'):
+def get_action_features(step='train'):
     pos_root = 'Order_predicts/datasets/results/{}/action_pos/'.format(step)
     neg_root = 'Order_predicts/datasets/results/{}/action_neg/'.format(step)
     if not os.path.exists(pos_root):
@@ -242,53 +242,50 @@ def get_features(step='train'):
         base_name = root.split("/")[-2]
         res = []
         for file in tqdm(os.listdir(root)):
-
             rows = {}
+            if step == 'train':
+                rows['0_label'] = 1 if base_name == 'action_pos' else 0
+            else:
+                rows['0_label'] = 0
             aid = file.split(".")[0]
-            file_name = os.path.join(root, file)
-            data = pd.read_csv(file_name)
+            rows['1_id'] = aid
+            data = pd.read_csv(os.path.join(root, file))
+            atime = data['time'].values
+            atype = data['type'].values
+            mean, std, cha, x1, x2, x3, x4, lastthreemean, lastthreestd = compute_time_feature(atime)
+            rates = compute_type_feature(atype)
 
             df_grouped = data.groupby(by='time')
             res = []
             for i, j in df_grouped:
                 j2df = pd.get_dummies(j, columns=['type'])
-                rows['0_t1'] = j2df['type_1'].sum() if 'type_1' in j2df.columns else 0
-                rows['1_t2'] = j2df['type_2'].sum() if 'type_2' in j2df.columns else 0
-                rows['2_t3'] = j2df['type_3'].sum() if 'type_3' in j2df.columns else 0
-                rows['3_t4'] = j2df['type_4'].sum() if 'type_4' in j2df.columns else 0
-                rows['4_t5'] = j2df['type_5'].sum() if 'type_5' in j2df.columns else 0
-                rows['5_t6'] = j2df['type_6'].sum() if 'type_6' in j2df.columns else 0
-                rows['6_t7'] = j2df['type_7'].sum() if 'type_7' in j2df.columns else 0
-                rows['7_t8'] = j2df['type_8'].sum() if 'type_8' in j2df.columns else 0
-                rows['8_t9'] = j2df['type_9'].sum() if 'type_9' in j2df.columns else 0
-            atime = data['time'].values
-            atype = data['type'].values
-            mean, std, cha, x1, x2, x3, x4, lastthreemean, lastthreestd = compute_time_feature(atime)
-            rates = compute_type_feature(atype)
-            if step == 'train':
-                rows['label'] = 1 if base_name == 'pos' else 0
-            else:
-                rows['label'] = 0
-            rows['0_id'] = aid
-            rows['1_atmean'] = mean
-            rows['2_atstd'] = std
-            rows['3_atcha'] = cha
-            rows['4_tlast'] = x1
-            rows['5_t2'] = x2
-            rows['6_t3'] = x3
-            rows['7_t4'] = x4
-            rows['8_lastmean'] = lastthreemean
-            rows['9_laststd'] = lastthreestd
-            # rows['10_have_order'] = 1 if base_name == 'pos' else 0
-            rows['11_rate1'] = rates[1] if 1 in rates else 0
-            rows['12_rate2'] = rates[2] if 2 in rates else 0
-            rows['13_rate3'] = rates[3] if 3 in rates else 0
-            rows['14_rate4'] = rates[4] if 4 in rates else 0
-            rows['15_rate5'] = rates[5] if 5 in rates else 0
-            rows['16_rate6'] = rates[6] if 6 in rates else 0
-            rows['17_rate7'] = rates[7] if 7 in rates else 0
-            rows['18_rate8'] = rates[8] if 8 in rates else 0
-            rows['19_rate9'] = rates[9] if 9 in rates else 0
+                rows['2_t1'] = j2df['type_1'].sum() if 'type_1' in j2df.columns else 0
+                rows['3_t2'] = j2df['type_2'].sum() if 'type_2' in j2df.columns else 0
+                rows['4_t3'] = j2df['type_3'].sum() if 'type_3' in j2df.columns else 0
+                rows['5_t4'] = j2df['type_4'].sum() if 'type_4' in j2df.columns else 0
+                rows['6_t5'] = j2df['type_5'].sum() if 'type_5' in j2df.columns else 0
+                rows['7_t6'] = j2df['type_6'].sum() if 'type_6' in j2df.columns else 0
+                rows['8_t7'] = j2df['type_7'].sum() if 'type_7' in j2df.columns else 0
+                rows['9_t8'] = j2df['type_8'].sum() if 'type_8' in j2df.columns else 0
+                rows['10_t9'] = j2df['type_9'].sum() if 'type_9' in j2df.columns else 0
+            rows['11_atmean'] = mean
+            rows['12_atstd'] = std
+            rows['13_atcha'] = cha
+            rows['14_tlast'] = x1
+            rows['15_t2'] = x2
+            rows['16_t3'] = x3
+            rows['17_t4'] = x4
+            rows['18_lastmean'] = lastthreemean
+            rows['19_laststd'] = lastthreestd
+            rows['20_rate1'] = rates[1] if 1 in rates else 0
+            rows['21_rate2'] = rates[2] if 2 in rates else 0
+            rows['22_rate3'] = rates[3] if 3 in rates else 0
+            rows['23_rate4'] = rates[4] if 4 in rates else 0
+            rows['24_rate5'] = rates[5] if 5 in rates else 0
+            rows['25_rate6'] = rates[6] if 6 in rates else 0
+            rows['26_rate7'] = rates[7] if 7 in rates else 0
+            rows['27_rate8'] = rates[8] if 8 in rates else 0
+            rows['28_rate9'] = rates[9] if 9 in rates else 0
             res.append(rows)
         df = pd.DataFrame(res)
         save_name = "Order_predicts/datasets/results/{}/{}_features.csv".format(step, base_name)
@@ -297,4 +294,4 @@ def get_features(step='train'):
         df.to_csv(save_name, index=None)
 
 
-get_features(step='train')
+get_action_features(step='train')
