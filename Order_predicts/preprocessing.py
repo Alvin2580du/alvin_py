@@ -5,6 +5,7 @@ from collections import OrderedDict
 
 from pyduyp.utils.utils import time2day, time2mouth, get_week
 from pyduyp.utils.utils import compute_time_feature, compute_type_feature
+from pyduyp.utils.utils import get_freq_of_day_and_month, get_week_freq, get_type_freq
 
 
 def get_pos_action_by_id(step='train'):
@@ -116,24 +117,25 @@ def get_action_features(step='train'):
             rows['1_id'] = aid
             data = pd.read_csv(os.path.join(root, file))
             atime = data['actionTime'].values if 'actionTime' in data.columns else [0]
-            atype = data['actionType'].values if 'actionType' in data.columns else [0]
+            data_copy = data.copy()
+            data_copy['time2days'] = data['actionTime'].apply(time2day)
+            data_copy['time2mouth'] = data['actionTime'].apply(time2mouth)
+            data_copy['time_week'] = data['actionTime'].apply(get_week)
+            data_copy_grouped_day = data_copy.groupby(by='time2days')
+            data_copy_grouped_month = data_copy.groupby(by='time2mouth')
+
             mean, std, cha, x1, x2, x3, x4, lastthreemean, lastthreestd = compute_time_feature(atime)
-            rates = compute_type_feature(atype)
+            type_freq, types_sum = get_type_freq(data)  # 每个操作的总数，打开app的次数
 
-            df_grouped = data.groupby(by='actionTime')
-
-            for i, j in df_grouped:
-                j2df = pd.get_dummies(j, columns=['actionType'])
-
-                rows['2_t1'] = j2df['actionType_1'].sum() if 'actionType_1' in j2df.columns else 0
-                rows['3_t2'] = j2df['actionType_2'].sum() if 'actionType_2' in j2df.columns else 0
-                rows['4_t3'] = j2df['actionType_3'].sum() if 'actionType_3' in j2df.columns else 0
-                rows['5_t4'] = j2df['actionType_4'].sum() if 'actionType_4' in j2df.columns else 0
-                rows['6_t5'] = j2df['actionType_5'].sum() if 'actionType_5' in j2df.columns else 0
-                rows['7_t6'] = j2df['actionType_6'].sum() if 'actionType_6' in j2df.columns else 0
-                rows['8_t7'] = j2df['actionType_7'].sum() if 'actionType_7' in j2df.columns else 0
-                rows['9_t8'] = j2df['actionType_8'].sum() if 'actionType_8' in j2df.columns else 0
-                rows['10_t9'] = j2df['actionType_9'].sum() if 'actionType_9' in j2df.columns else 0
+            rows['2_t1'] = type_freq['2_t1']
+            rows['3_t2'] = type_freq['3_t2']
+            rows['4_t3'] = type_freq['4_t3']
+            rows['5_t4'] = type_freq['5_t4']
+            rows['6_t5'] = type_freq['6_t5']
+            rows['7_t6'] = type_freq['7_t6']
+            rows['8_t7'] = type_freq['8_t7']
+            rows['9_t8'] = type_freq['9_t8']
+            rows['10_t9'] = type_freq['10_t9']
             rows['11_atmean'] = mean
             rows['12_atstd'] = std
             rows['13_atcha'] = cha
@@ -143,30 +145,11 @@ def get_action_features(step='train'):
             rows['17_t4'] = x4
             rows['18_lastmean'] = lastthreemean
             rows['19_laststd'] = lastthreestd
-            rows['20_rate1'] = rates[1] if 1 in rates else 0
-            rows['21_rate2'] = rates[2] if 2 in rates else 0
-            rows['22_rate3'] = rates[3] if 3 in rates else 0
-            rows['23_rate4'] = rates[4] if 4 in rates else 0
-            rows['24_rate5'] = rates[5] if 5 in rates else 0
-            rows['25_rate6'] = rates[6] if 6 in rates else 0
-            rows['26_rate7'] = rates[7] if 7 in rates else 0
-            rows['27_rate8'] = rates[8] if 8 in rates else 0
-            rows['28_rate9'] = rates[9] if 9 in rates else 0
-
-            data_copy = data.copy()
-
-            data_copy['time2days'] = data['actionTime'].apply(time2day)
-            data_copy['time2mouth'] = data['actionTime'].apply(time2mouth)
-
-            data_copy['time_week'] = data['actionTime'].apply(get_week)
-            data_copy_grouped_day = data_copy.groupby(by='time2days')
-            data_copy_grouped_month = data_copy.groupby(by='time2days')
-
-            for d, j in data_copy_grouped_day:
-                rows['29_dayrate'] = len(j)
-            for m, j in data_copy_grouped_month:
-                rows['30_monthrate'] = len(j)
-
+            rows['20_rate1'] = type_freq['2_t1']/types_sum  # 打开app的比例
+            rows['21_rate9'] = type_freq['2_t9']/types_sum  # 下单的比例
+            rows['22_dayrate'] = get_freq_of_day_and_month(data_copy_grouped_day)  # 日均
+            rows['23_monthrate'] = get_freq_of_day_and_month(data_copy_grouped_month)  # 月均
+            rows['24_weekrate'] = get_week_freq(data_copy['time_week'].values)  # 周均
             actions.append(rows)
 
         df = pd.DataFrame(actions)
