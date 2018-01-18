@@ -1,113 +1,20 @@
 from collections import Counter
-import time
 import pandas as pd
 import os
 import numpy as np
 from tqdm import tqdm
-import matplotlib.pyplot as plt
+
+from pyduyp.utils.utils import time2day, time2mouth, get_week
+from pyduyp.utils.utils import clean_dataset
+from pyduyp.utils.utils import compute_time_feature, compute_type_feature
 
 
-# 日频, 周频, 月频
-
-
-def time_conv(x):
-    timeArray = time.localtime(x)
-    otherStyleTime = time.strftime("%Y-%m-%d", timeArray)
-    return otherStyleTime
-
-
-def fun1():
-    data = pd.read_csv("Order_predicts/datasets/train/orderHistory_train.csv", encoding='utf-8')
-    data_pos = data[data['orderType'].isin(['1'])]['userid']
-    # data_pos.to_csv("Order_predicts/datasets/results/posids.csv", index=None)
-
-    data_neg = data[data['orderType'].isin(['0'])]
-    print((data_neg.shape, data_pos.shape))
-    pos_city = data_pos['city']
-    neg_city = data_neg['city']
-
-    for x, y in Counter(pos_city.values).most_common(20):
-        print(x, y)
-    print("= " * 50)
-    for x, y in Counter(neg_city.values).most_common(20):
-        print(x, y)
-
-
-def split_data(step='train'):
-    pos_root = 'Order_predicts/datasets/results/{}/pos/'.format(step)
-    neg_root = 'Order_predicts/datasets/results/{}/neg/'.format(step)
+def get_pos_action_by_id(step='train'):
+    # 根据历史订单,获得精品订单的用户id,并在行为表中分离出其行为数据
+    pos_root = 'Order_predicts/datasets/results/{}/action_pos/'.format(step)
     if not os.path.exists(pos_root):
         os.makedirs(pos_root)
-    if not os.path.exists(neg_root):
-        os.makedirs(neg_root)
-    action = pd.read_csv("Order_predicts/datasets/{}/action_{}.csv".format(step, step))
-    orderHistory = pd.read_csv("Order_predicts/datasets/{}/orderHistory_{}.csv".format(step, step),
-                               usecols=['userid', 'orderTime', 'orderType'])
-    data_pos = orderHistory[orderHistory['orderType'].isin(['1'])]['userid'].values
-    data_neg = orderHistory[orderHistory['orderType'].isin(['0'])]['userid'].values
 
-    for posid in tqdm(data_pos):
-        pos_features = {}
-        pos_action_type = action[action['userid'].isin([posid])]['actionType']
-        pos_action_time = action[action['userid'].isin([posid])]['actionTime']
-        pos_features['id'] = posid
-        pos_features['type'] = pos_action_type
-        pos_features['time'] = pos_action_time
-        df_pos_action = pd.DataFrame(pos_features)
-        df_pos_action.to_csv("Order_predicts/datasets/results/{}/pos/{}.csv".format(step, posid), index=None)
-
-    for negid in tqdm(data_neg):
-        neg_actions = {}
-        pos_action_type = action[action['userid'].isin([negid])]['actionType']
-        pos_action_time = action[action['userid'].isin([negid])]['actionTime']
-        neg_actions['id'] = negid
-        neg_actions['type'] = pos_action_type
-        neg_actions['time'] = pos_action_time
-        neg_actions = pd.DataFrame(neg_actions)
-        neg_actions.to_csv("Order_predicts/datasets/results/{}/neg/{}.csv".format(step, negid), index=None)
-
-
-def split_data_v1():
-    pos_root = 'Order_predicts/datasets/results/pos/'
-    neg_root = 'Order_predicts/datasets/results/neg/'
-    if not os.path.exists(pos_root):
-        os.makedirs(pos_root)
-    if not os.path.exists(neg_root):
-        os.makedirs(neg_root)
-    profile = pd.read_csv("Order_predicts/datasets/train/userProfile_train.csv")
-    action = pd.read_csv("Order_predicts/datasets/train/action_train.csv")
-    orderHistory = pd.read_csv("Order_predicts/datasets/train/orderHistory_train.csv",
-                               usecols=['userid', 'orderTime', 'orderType'])
-    data_pos = orderHistory[orderHistory['orderType'].isin(['1'])]['userid'].values
-    data_neg = orderHistory[orderHistory['orderType'].isin(['0'])]['userid'].values
-    for d in [data_pos, data_neg]:
-        for ids in tqdm(d):
-            g = profile[profile['userid'].isin([ids])]['gender'].values.tolist()[0]
-            age = profile[profile['userid'].isin([ids])]['age'].values.tolist()[0]
-            province = profile[profile['userid'].isin([ids])]['province'].values.tolist()[0]
-
-            pos_action_type = action[action['userid'].isin([ids])]['actionType'].values.tolist()
-            pos_action_time = action[action['userid'].isin([ids])]['actionTime'].values.tolist()
-            length = len(pos_action_time)
-
-            df = pd.DataFrame()
-            for i in range(length):
-                df.loc[i, 'id'] = "{}".format(ids)
-                df.loc[i, 'type'] = pos_action_type[i]
-                df.loc[i, 'time'] = pos_action_time[i]
-                df.loc[i, 'gender'] = g if isinstance(g, str) else "未知"
-                df.loc[i, 'age'] = age if isinstance(age, str) else "未知"
-                df.loc[i, 'province'] = province if isinstance(province, str) else "未知"
-                df.to_csv("Order_predicts/datasets/results/pos/{}.csv".format(ids), index=None)
-
-
-def split_data_v2(step='train'):
-    pos_root = 'Order_predicts/datasets/results/{}/pos/'.format(step)
-    neg_root = 'Order_predicts/datasets/results/{}/neg/'.format(step)
-    if not os.path.exists(pos_root):
-        os.makedirs(pos_root)
-    if not os.path.exists(neg_root):
-        os.makedirs(neg_root)
     action = pd.read_csv("Order_predicts/datasets/{}/action_{}.csv".format(step, step))
     orderHistory = pd.read_csv("Order_predicts/datasets/{}/orderHistory_{}.csv".format(step, step),
                                usecols=['userid', 'orderTime', 'orderType'])
@@ -117,11 +24,11 @@ def split_data_v2(step='train'):
         pos_features = {}
         pos_action_type = action[action['userid'].isin([posid])]['actionType']
         pos_action_time = action[action['userid'].isin([posid])]['actionTime']
-        pos_features['id'] = posid
-        pos_features['type'] = pos_action_type
-        pos_features['time'] = pos_action_time
+        pos_features['userid'] = posid
+        pos_features['actionType'] = pos_action_type
+        pos_features['actionTime'] = pos_action_time
         df_pos_action = pd.DataFrame(pos_features)
-        df_pos_action.to_csv("Order_predicts/datasets/results/{}/pos/{}.csv".format(step, posid), index=None)
+        df_pos_action.to_csv("Order_predicts/datasets/results/{}/action_pos/{}.csv".format(step, posid), index=None)
         if posid not in pos_ids:
             pos_ids.append(posid)
     df = pd.DataFrame(pos_ids)
@@ -129,6 +36,17 @@ def split_data_v2(step='train'):
 
 
 def get_neg_action_by_id(step='train'):
+    # 根据上一步得到的精品订单的用户id,得到不是精品订单用户的行为数据
+    neg_root = 'Order_predicts/datasets/results/{}/action_neg/'.format(step)
+    if not os.path.exists(neg_root):
+        os.makedirs(neg_root)
+    pos_root = 'Order_predicts/datasets/results/{}/action_pos/'.format(step)
+    neg_root = 'Order_predicts/datasets/results/{}/action_neg/'.format(step)
+    if not os.path.exists(pos_root):
+        os.makedirs(pos_root)
+    if not os.path.exists(neg_root):
+        os.makedirs(neg_root)
+
     ids = pd.read_csv('Order_predicts/datasets/results/posids.csv').values.tolist()
     ids = [j for i in ids for j in i]
     action = pd.read_csv("Order_predicts/datasets/{}/action_{}.csv".format(step, step))
@@ -137,10 +55,11 @@ def get_neg_action_by_id(step='train'):
     action_neg_grouped = action_neg.groupby(action_neg['userid'])
 
     for i, j in tqdm(action_neg_grouped):
-        j.to_csv("Order_predicts/datasets/results/{}/neg/{}.csv".format(step, i), index=None)
+        j.to_csv("Order_predicts/datasets/results/{}/action_neg/{}.csv".format(step, i), index=None)
 
 
 def get_history_by_id(step='train'):
+    # 　根据id获取历史订单数据
     ids = pd.read_csv('Order_predicts/datasets/results/posids.csv').values.tolist()
     ids = [j for i in ids for j in i]
     History = pd.read_csv("Order_predicts/datasets/{}/orderHistory_{}.csv".format(step, step))
@@ -149,85 +68,6 @@ def get_history_by_id(step='train'):
     History_neg_grouped = History_neg.groupby(History_neg['userid'])
     for i, j in tqdm(History_neg_grouped):
         j.to_csv("Order_predicts/datasets/results/{}/History_neg/{}.csv".format(step, i), index=None)
-
-
-def compute_time_feature(time_list):
-    timelist2sort = sorted(time_list)
-    tmax = np.max(timelist2sort)
-    tmin = np.min(timelist2sort)
-    new = timelist2sort - tmin
-    mean = np.mean(new)
-    std = np.std(new)
-
-    cha = np.inf
-    cha_list = []
-    length = len(timelist2sort)
-    for i in range(length):
-        if i + 1 < length:
-            t = np.abs(int(timelist2sort[i]) - int(timelist2sort[i + 1]))
-            cha_list.append(t)
-            if t < cha:
-                cha = t
-    if len(cha_list) > 4:
-        x1, x2, x3, x4 = cha_list[-1], cha_list[-2], cha_list[-3], cha_list[-4]
-        lastthreemean = np.mean([x1, x2, x3])
-        lastthreestd = np.std([x1, x2, x3])
-    else:
-        x1, x2, x3, x4 = 0, 0, 0, 0
-        lastthreemean, lastthreestd = 0, 0
-    return mean, std, cha, x1, x2, x3, x4, lastthreemean, lastthreestd
-
-
-def compute_type_feature(test_da):
-    c = Counter(test_da)
-    values_sum = sum(c.values())
-    rates = {}
-    for x, y in c.items():
-        rate = y / values_sum
-        rates[x] = rate
-    return rates
-
-
-def fun_yc():
-    da1 = pd.read_csv("Order_predicts/datasets/other/pos_features.csv", dtype=np.float32)
-    da2 = pd.read_csv("Order_predicts/datasets/other/neg_features.csv", dtype=np.float32)
-    y1 = da1['10_have_order']
-    y2 = da2['10_have_order']
-    y = pd.concat([y1, y2])
-    del da1['10_have_order']
-    del da2['10_have_order']
-    del da1['0_id']
-    del da2['0_id']
-    x = pd.concat([da1, da2])
-    x['label'] = y
-    x.to_csv("Order_predicts/datasets/other/train.csv", index=None)
-
-
-def clean_dataset(df):
-    assert isinstance(df, pd.DataFrame), "df needs to be a pd.DataFrame"
-    df.dropna(inplace=True)
-    indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
-    return df[indices_to_keep].astype(np.float64)
-
-
-def fun3():
-    types = []
-    for file in os.listdir("Order_predicts/datasets/results/train/pos"):
-        data_dir = os.path.join("Order_predicts/datasets/results/train/pos", file)
-        data = pd.read_csv(data_dir, usecols=['type']).values.tolist()
-        for x in data:
-            types.append(x[0])
-
-    c = Counter(types)
-    c_sum = sum(c.values())
-    for x, y in c.most_common(10):
-        print(x, y, y / c_sum)
-
-
-def order_future():
-    data = pd.read_csv("Order_predicts/datasets/train/orderFuture_train.csv")
-    uid_1 = data[data['orderType'].isin(['1'])]['userid']
-    uid_0 = data[data['orderType'].isin(['0'])]['userid']
 
 
 def get_action_features(step='train'):
@@ -250,13 +90,13 @@ def get_action_features(step='train'):
             aid = file.split(".")[0]
             rows['1_id'] = aid
             data = pd.read_csv(os.path.join(root, file))
-            atime = data['time'].values
-            atype = data['type'].values
+            atime = data['time'].values if 'time' in data.columns else [0]
+            atype = data['type'].values if 'type' in data.columns else [0]
             mean, std, cha, x1, x2, x3, x4, lastthreemean, lastthreestd = compute_time_feature(atime)
             rates = compute_type_feature(atype)
 
             df_grouped = data.groupby(by='time')
-            single_actions = []
+
             for i, j in df_grouped:
                 j2df = pd.get_dummies(j, columns=['type'])
                 rows['2_t1'] = j2df['type_1'].sum() if 'type_1' in j2df.columns else 0
@@ -286,7 +126,23 @@ def get_action_features(step='train'):
             rows['26_rate7'] = rates[7] if 7 in rates else 0
             rows['27_rate8'] = rates[8] if 8 in rates else 0
             rows['28_rate9'] = rates[9] if 9 in rates else 0
-            single_actions.append(rows)
+
+            data_copy = data.copy()
+
+            data_copy['time2days'] = data['time'].apply(time2day)
+            data_copy['time2mouth'] = data['time'].apply(time2mouth)
+
+            data_copy['time_week'] = data['time'].apply(get_week)
+            data_copy_grouped_day = data_copy.groupby(by='time2days')
+            data_copy_grouped_month = data_copy.groupby(by='time2days')
+
+            for d, j in data_copy_grouped_day:
+                rows['29_dayrate'] = len(j)
+            for m, j in data_copy_grouped_month:
+                rows['30_monthrate'] = len(j)
+
+            actions.append(rows)
+
         df = pd.DataFrame(actions)
         save_name = "Order_predicts/datasets/results/{}/{}_features.csv".format(step, base_name)
         if step == 'test':
@@ -294,4 +150,18 @@ def get_action_features(step='train'):
         df.to_csv(save_name, index=None)
 
 
-get_action_features(step='train')
+if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) < 2:
+        exit(1)
+
+    method = sys.argv[1]
+    if method == 'first':
+        get_pos_action_by_id()
+    if method == 'second':
+        get_neg_action_by_id()
+    if method == 'third':
+        get_history_by_id()
+    if method == 'final':
+        get_action_features()
