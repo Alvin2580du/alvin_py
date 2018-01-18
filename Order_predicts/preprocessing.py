@@ -109,8 +109,13 @@ def get_action_features(step='train'):
         os.makedirs(pos_root)
     if not os.path.exists(neg_root):
         os.makedirs(neg_root)
-
+    have_orderids = pd.read_csv("Order_predicts/datasets/train/orderHistory_train.csv", usecols=['userid']).values
+    have_orderids2list = [j for i in have_orderids.tolist() for j in i]
+    all_usersids = pd.read_csv("Order_predicts/datasets/train/userProfile_train.csv", usecols=['userid']).values
+    all_usersids2list = [j for i in all_usersids.tolist() for j in i]
     for root in [pos_root, neg_root]:
+        if 'pos' in root:
+            continue
         base_name = root.split("/")[-2]
         history_path = "Order_predicts/datasets/results/{}/history_{}".format(step, base_name.split('_')[-1])
 
@@ -150,17 +155,17 @@ def get_action_features(step='train'):
                     historyinterval = [0, 0, 0, 0, 0]
             else:
                 historyinterval = [0, 0, 0, 0, 0]
-
-            p = userprofile[userprofile['userid'].isin([aid])]['province'].values[0]
-
+            # 用户信息
+            p = userprofile[userprofile['userid'].isin([aid])]['province'].values[0] if aid in all_usersids2list else -1
             rows['province'] = provincedicts[p] if p in provincedicts else 0
-            a = userprofile[userprofile['userid'].isin([aid])]['age'].values[0]
+            a = userprofile[userprofile['userid'].isin([aid])]['age'].values[0] if aid in all_usersids2list else -1
             rows['age'] = agesdicts[a] if a in agesdicts else 0
-            city = history[history['userid'].isin([aid])]['city'].values[0]
+            # 订单信息
+            city = history[history['userid'].isin([aid])]['city'].values[0] if aid in have_orderids2list else -1
             rows['city'] = citysdict[city] if city in citysdict else 0
-            country = history[history['userid'].isin([aid])]['country'].values[0]
+            country = history[history['userid'].isin([aid])]['country'].values[0] if aid in have_orderids2list else -1
             rows['country'] = countrydicts[country] if country in countrydicts else 0
-            continent = history[history['userid'].isin([aid])]['continent'].values[0]
+            continent = history[history['userid'].isin([aid])]['continent'].values[0] if aid in have_orderids2list else -1
             rows['continent'] = continentdicts[continent] if continent in continentdicts else 0
 
             rows['2_t1'] = type_freq['2_t1']  # 类型1－9点击总数
@@ -205,6 +210,7 @@ def get_action_features(step='train'):
             actions.append(rows)
 
         df = pd.DataFrame(actions)
+        df = df.replace(np.inf, 100)
         df = df.round(7)
         df = df.round({'0_label': 0, '1_id': 0})
         save_name = "Order_predicts/datasets/results/{}/{}_features.csv".format(step, base_name)
