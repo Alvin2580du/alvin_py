@@ -317,7 +317,10 @@ def get_week_freq(week):
             if week[i + 1] < week[i]:
                 weeks.append(k)
                 k = 0
-    return sum(weeks) / len(weeks)
+    if len(weeks) > 0:
+        return sum(weeks) / len(weeks)
+    else:
+        return 0
 
 
 def get_type_freq(df):
