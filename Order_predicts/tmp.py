@@ -142,14 +142,16 @@ def fun2():
     types = data['actionType'].values
     print(types)
 
-
-userprofile = pd.read_csv("./datasets/train/userProfile_train.csv", usecols=['province']).values
+# city,country,continent
+userprofile = pd.read_csv("./datasets/train/userProfile_train.csv", usecols=['age']).values
 userprofile2list = userprofile.tolist()
 res = [j for i in userprofile2list for j in i]
 from collections import Counter
 fre = Counter(res)
 sumfre = sum(fre.values())
-for x, y in fre.most_common(100):
-    if x
-    out = "{}:{:0.6f}".format(x, y/sumfre)
-    print(out)
+out = {}
+for x, y in fre.most_common(1000):
+    if isinstance(x, str):
+        out[x] = "{:0.6f}".format(y/sumfre)
+
+print(out)
