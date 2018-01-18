@@ -4,8 +4,10 @@ from tqdm import tqdm
 from collections import OrderedDict
 
 from pyduyp.utils.utils import time2day, time2mouth, get_week
-from pyduyp.utils.utils import compute_time_feature, compute_type_feature
+from pyduyp.utils.utils import compute_time_feature
 from pyduyp.utils.utils import get_freq_of_day_and_month, get_week_freq, get_type_freq
+from pyduyp.logger.log import log
+log.info("Start runing ...")
 
 
 def get_pos_action_by_id(step='train'):
