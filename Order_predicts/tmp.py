@@ -126,3 +126,30 @@ def order_future():
     data = pd.read_csv("Order_predicts/datasets/train/orderFuture_train.csv")
     uid_1 = data[data['orderType'].isin(['1'])]['userid']
     uid_0 = data[data['orderType'].isin(['0'])]['userid']
+
+
+def get_freq_of_day_and_month(df):
+    res = []
+    for d, j in df:
+        res.append(len(j))
+    return sum(res) / len(res)
+
+
+def fun2():
+    from pyduyp.utils.utils import time2day, time2mouth, get_type_freq
+    from collections import OrderedDict
+    data = pd.read_csv('./datasets/results/train/action_pos/100000001023.csv')
+    types = data['actionType'].values
+    print(types)
+
+
+userprofile = pd.read_csv("./datasets/train/userProfile_train.csv", usecols=['province']).values
+userprofile2list = userprofile.tolist()
+res = [j for i in userprofile2list for j in i]
+from collections import Counter
+fre = Counter(res)
+sumfre = sum(fre.values())
+for x, y in fre.most_common(100):
+    if x
+    out = "{}:{:0.6f}".format(x, y/sumfre)
+    print(out)
