@@ -135,24 +135,25 @@ def get_action_features(step='train'):
             rows['8_t7'] = type_freq['8_t7']
             rows['9_t8'] = type_freq['9_t8']
             rows['10_t9'] = type_freq['10_t9']
-            rows['11_atmean'] = mean
-            rows['12_atstd'] = std
-            rows['13_atcha'] = cha
-            rows['14_tlast'] = x1
-            rows['15_t2'] = x2
-            rows['16_t3'] = x3
-            rows['17_t4'] = x4
-            rows['18_lastmean'] = lastthreemean
-            rows['19_laststd'] = lastthreestd
-            rows['20_rate1'] = type_freq['2_t1']/types_sum  # 打开app的比例
-            rows['21_rate9'] = type_freq['2_t9']/types_sum  # 下单的比例
+            rows['11_rate1'] = type_freq['2_t1']/types_sum  # 打开app的比例
+            rows['12_rate9'] = type_freq['10_t9']/types_sum  # 下单的比例
+
+            rows['13_atmean'] = mean
+            rows['14_atstd'] = std
+            rows['15_atcha'] = cha
+            rows['16_tlast'] = x1
+            rows['17_t2'] = x2
+            rows['18_t3'] = x3
+            rows['19_t4'] = x4
+            rows['20_lastmean'] = lastthreemean
+            rows['21_laststd'] = lastthreestd
             rows['22_dayrate'] = get_freq_of_day_and_month(data_copy_grouped_day)  # 日均
             rows['23_monthrate'] = get_freq_of_day_and_month(data_copy_grouped_month)  # 月均
             rows['24_weekrate'] = get_week_freq(data_copy['time_week'].values)  # 周均
             actions.append(rows)
 
         df = pd.DataFrame(actions)
-        df = df.round(6)
+        df = df.round(7)
         df = df.round({'0_label': 0, '1_id': 0})
         save_name = "Order_predicts/datasets/results/{}/{}_features.csv".format(step, base_name)
         if step == 'test':
