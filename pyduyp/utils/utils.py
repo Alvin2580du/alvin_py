@@ -4,11 +4,12 @@ import re
 from xpinyin import Pinyin
 import pandas as pd
 import os
-# import datetime
 import Levenshtein
 import numpy as np
 from pyduyp.logger.log import log
 from datetime import datetime
+from collections import Counter
+
 P = Pinyin()
 
 
@@ -258,3 +259,42 @@ def time2mouth(x):
 
 def get_week(x):
     return datetime.fromtimestamp(x).isoweekday()
+
+
+def compute_time_feature(time_list):
+    # 时间处理方法
+    timelist2sort = sorted(time_list)
+    tmax = np.max(timelist2sort)
+    tmin = np.min(timelist2sort)
+    new = timelist2sort - tmin
+    mean = np.mean(new)
+    std = np.std(new)
+
+    cha = np.inf
+    cha_list = []
+    length = len(timelist2sort)
+    for i in range(length):
+        if i + 1 < length:
+            t = np.abs(int(timelist2sort[i]) - int(timelist2sort[i + 1]))
+            cha_list.append(t)
+            if t < cha:
+                cha = t
+    if len(cha_list) > 4:
+        x1, x2, x3, x4 = cha_list[-1], cha_list[-2], cha_list[-3], cha_list[-4]
+        lastthreemean = np.mean([x1, x2, x3])
+        lastthreestd = np.std([x1, x2, x3])
+    else:
+        x1, x2, x3, x4 = 0, 0, 0, 0
+        lastthreemean, lastthreestd = 0, 0
+    return mean, std, cha, x1, x2, x3, x4, lastthreemean, lastthreestd
+
+
+def compute_type_feature(test_da):
+    # 类型处理方法
+    c = Counter(test_da)
+    values_sum = sum(c.values())
+    rates = {}
+    for x, y in c.items():
+        rate = y / values_sum
+        rates[x] = rate
+    return rates
