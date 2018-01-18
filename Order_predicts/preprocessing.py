@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 from tqdm import tqdm
+from collections import OrderedDict
 
 from pyduyp.utils.utils import time2day, time2mouth, get_week
 from pyduyp.utils.utils import compute_time_feature, compute_type_feature
@@ -106,7 +107,7 @@ def get_action_features(step='train'):
         base_name = root.split("/")[-2]
         actions = []
         for file in tqdm(os.listdir(root)):
-            rows = {}
+            rows = OrderedDict()
             if step == 'train':
                 rows['0_label'] = 1 if base_name == 'action_pos' else 0
             else:
@@ -123,15 +124,16 @@ def get_action_features(step='train'):
 
             for i, j in df_grouped:
                 j2df = pd.get_dummies(j, columns=['actionType'])
-                rows['2_t1'] = j2df['type_1'].sum() if 'type_1' in j2df.columns else 0
-                rows['3_t2'] = j2df['type_2'].sum() if 'type_2' in j2df.columns else 0
-                rows['4_t3'] = j2df['type_3'].sum() if 'type_3' in j2df.columns else 0
-                rows['5_t4'] = j2df['type_4'].sum() if 'type_4' in j2df.columns else 0
-                rows['6_t5'] = j2df['type_5'].sum() if 'type_5' in j2df.columns else 0
-                rows['7_t6'] = j2df['type_6'].sum() if 'type_6' in j2df.columns else 0
-                rows['8_t7'] = j2df['type_7'].sum() if 'type_7' in j2df.columns else 0
-                rows['9_t8'] = j2df['type_8'].sum() if 'type_8' in j2df.columns else 0
-                rows['10_t9'] = j2df['type_9'].sum() if 'type_9' in j2df.columns else 0
+
+                rows['2_t1'] = j2df['actionType_1'].sum() if 'actionType_1' in j2df.columns else 0
+                rows['3_t2'] = j2df['actionType_2'].sum() if 'actionType_2' in j2df.columns else 0
+                rows['4_t3'] = j2df['actionType_3'].sum() if 'actionType_3' in j2df.columns else 0
+                rows['5_t4'] = j2df['actionType_4'].sum() if 'actionType_4' in j2df.columns else 0
+                rows['6_t5'] = j2df['actionType_5'].sum() if 'actionType_5' in j2df.columns else 0
+                rows['7_t6'] = j2df['actionType_6'].sum() if 'actionType_6' in j2df.columns else 0
+                rows['8_t7'] = j2df['actionType_7'].sum() if 'actionType_7' in j2df.columns else 0
+                rows['9_t8'] = j2df['actionType_8'].sum() if 'actionType_8' in j2df.columns else 0
+                rows['10_t9'] = j2df['actionType_9'].sum() if 'actionType_9' in j2df.columns else 0
             rows['11_atmean'] = mean
             rows['12_atstd'] = std
             rows['13_atcha'] = cha
