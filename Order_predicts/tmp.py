@@ -162,7 +162,7 @@ def fun4():
 def fun5():
     data = pd.read_csv("./datasets/test/orderFuture_test.csv")
     length = len(data)
-    rand = np.random.normal(size=1000000).tolist()
+    rand = np.random.random_sample(size=1000000).tolist()
 
     res = []
     for x in rand:
@@ -173,6 +173,7 @@ def fun5():
 
     data_new = data.copy()
     data_new['orderType'] = pd.Series(res)
+    data_new = data_new.round(6)
     data_new.to_csv("./datasets/results.csv", index=None, columns=['userid', 'orderType'])
 
 
