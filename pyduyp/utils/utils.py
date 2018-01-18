@@ -8,7 +8,7 @@ import Levenshtein
 import numpy as np
 from pyduyp.logger.log import log
 from datetime import datetime
-from collections import Counter
+from collections import Counter, OrderedDict
 
 P = Pinyin()
 
@@ -298,3 +298,49 @@ def compute_type_feature(test_da):
         rate = y / values_sum
         rates[x] = rate
     return rates
+
+
+def get_freq_of_day_and_month(df):
+    res = []
+    for d, j in df:
+        res.append(len(j))
+    return sum(res) / len(res)
+
+
+def get_week_freq(week):
+    length = len(week)
+    weeks = []
+    k = 0
+    for i in range(length):
+        k += 1
+        if i + 1 < length:
+            if week[i + 1] < week[i]:
+                weeks.append(k)
+                k = 0
+    return sum(weeks) / len(weeks)
+
+
+def get_type_freq(df):
+    df_grouped = df.groupby(by='actionTime')
+    res = []
+    out = OrderedDict()
+    for i, j in df_grouped:
+        rows = OrderedDict()
+        j2df = pd.get_dummies(j, columns=['actionType'])
+        rows['2_t1'] = j2df['actionType_1'].sum() if 'actionType_1' in j2df.columns else 0
+        rows['3_t2'] = j2df['actionType_2'].sum() if 'actionType_2' in j2df.columns else 0
+        rows['4_t3'] = j2df['actionType_3'].sum() if 'actionType_3' in j2df.columns else 0
+        rows['5_t4'] = j2df['actionType_4'].sum() if 'actionType_4' in j2df.columns else 0
+        rows['6_t5'] = j2df['actionType_5'].sum() if 'actionType_5' in j2df.columns else 0
+        rows['7_t6'] = j2df['actionType_6'].sum() if 'actionType_6' in j2df.columns else 0
+        rows['8_t7'] = j2df['actionType_7'].sum() if 'actionType_7' in j2df.columns else 0
+        rows['9_t8'] = j2df['actionType_8'].sum() if 'actionType_8' in j2df.columns else 0
+        rows['10_t9'] = j2df['actionType_9'].sum() if 'actionType_9' in j2df.columns else 0
+        res.append(rows)
+    df = pd.DataFrame(res)
+    sum_type = 0
+    for x in df.columns:
+        t_sum = sum(df['{}'.format(x)])
+        out[x] = t_sum
+        sum_type += t_sum
+    return out, sum_type
