@@ -7,6 +7,7 @@ from scipy.stats import mode
 from pyduyp.utils.utils import time2day, time2mouth, time2week
 from pyduyp.utils.utils import compute_interval_of_day
 from pyduyp.utils.utils import get_freq_of_day_and_month, get_week_freq, get_type_freq
+from pyduyp.utils.utils import com_mode
 from pyduyp.logger.log import log
 
 log.info("Start runing ...")
@@ -122,7 +123,10 @@ def get_action_features(step='train'):
             data_copy_grouped_month = data_copy.groupby(by='time2mouth')
 
             time_counts = compute_interval_of_day(data_copy)
-
+            if len(time_counts) > 4:
+                last_times = time_counts[-4:-1]
+            else:
+                last_times = [0, 0, 0]
             type_freq, types_sum = get_type_freq(data)  # 每个操作的总数，　总次数
             rows = OrderedDict()
 
@@ -146,19 +150,19 @@ def get_action_features(step='train'):
             rows['13_atmean'] = np.mean(time_counts)  # 时间均值
             rows['14_atstd'] = np.std((time_counts))  # 时间标准差
             rows['15_atmedian'] = np.median(time_counts)  # 时间中位数
-            rows['16_tmode'] = mode(time_counts)  # 时间众数
+            rows['16_tmode'] = com_mode(time_counts)  # 时间众数
             rows['17_atptp'] = np.max(time_counts) - np.min(time_counts) if len(time_counts) > 0 else 0  # 时间极差
             rows['18_atvar'] = np.var(time_counts)  # 时间方差
             rows['19_xishu'] = np.mean(time_counts) / np.std(time_counts) if len(time_counts) > 0 else 0  # 时间变异系数
-            rows['20_lastmean'] = np.mean(time_counts[-1:-4])  # 最后三天间隔的均值
-            rows['21_laststd'] = np.std(time_counts[-1:-4])  # 最后三天间隔的标准差
+            rows['20_lastmean'] = np.mean(last_times)  # 最后三天间隔的均值
+            rows['21_laststd'] = np.std(last_times)  # 最后三天间隔的标准差
             rows['22_dayrate'] = get_freq_of_day_and_month(data_copy_grouped_day)  # 日均
             rows['23_monthrate'] = get_freq_of_day_and_month(data_copy_grouped_month)  # 月均
             rows['24_weekrate'] = get_week_freq(data_copy['time2week'].values)  # 周均
             rows['25_atmean'] = np.mean(data_types)  # 类型均值
             rows['26_atstd'] = np.std((data_types))  # 类型标准差
             rows['27_atmedian'] = np.median(data_types)  # 类型中位数
-            rows['28_tmode'] = mode(data_types)  # 类型众数
+            rows['28_tmode'] = com_mode(data_types)  # 类型众数
             rows['29_atptp'] = np.max(data_types) - np.min(data_types) if len(data_types) > 0 else 0  # 类型极差
             rows['30_atvar'] = np.var(data_types)  # 类型方差
             rows['31_xishu'] = np.mean(data_types) / np.std(data_types) if len(data_types) > 0 else 0  # 类型变异系数
@@ -179,7 +183,7 @@ def get_action_features(step='train'):
         if step == 'test':
             del df['0_label']
         df.to_csv(save_name, index=None)
-
+        exit(1)
 
 if __name__ == "__main__":
     import sys
