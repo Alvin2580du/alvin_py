@@ -108,13 +108,6 @@ def get_action_features(step='train'):
         base_name = root.split("/")[-2]
         actions = []
         for file in tqdm(os.listdir(root)):
-            rows = OrderedDict()
-            if step == 'train':
-                rows['0_label'] = 1 if base_name == 'action_pos' else 0
-            else:
-                rows['0_label'] = 0
-            aid = file.split(".")[0]
-            rows['1_id'] = aid
             data = pd.read_csv(os.path.join(root, file))
             atime = data['actionTime'].values if 'actionTime' in data.columns else [0]
             data_copy = data.copy()
@@ -123,10 +116,16 @@ def get_action_features(step='train'):
             data_copy['time_week'] = data['actionTime'].apply(get_week)
             data_copy_grouped_day = data_copy.groupby(by='time2days')
             data_copy_grouped_month = data_copy.groupby(by='time2mouth')
-
             mean, std, cha, x1, x2, x3, x4, lastthreemean, lastthreestd = compute_time_feature(atime)
-            type_freq, types_sum = get_type_freq(data)  # 每个操作的总数，打开app的次数
+            type_freq, types_sum = get_type_freq(data)  # 每个操作的总数，　总次数
+            rows = OrderedDict()
 
+            if step == 'train':
+                rows['0_label'] = 1 if base_name == 'action_pos' else 0
+            else:
+                rows['0_label'] = 0
+            aid = file.split(".")[0]
+            rows['1_id'] = aid
             rows['2_t1'] = type_freq['2_t1']
             rows['3_t2'] = type_freq['3_t2']
             rows['4_t3'] = type_freq['4_t3']
