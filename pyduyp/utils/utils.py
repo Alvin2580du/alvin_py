@@ -367,3 +367,10 @@ def compute_interval_of_day(df):
             interval.append(cha.days)
 
     return interval
+
+
+def com_mode(arr):
+    if len(arr) > 0:
+        return np.argmax(np.bincount(arr))
+    else:
+        return -1
