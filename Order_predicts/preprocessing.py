@@ -8,6 +8,7 @@ from pyduyp.utils.utils import compute_interval_of_day
 from pyduyp.utils.utils import get_freq_of_day_and_month, get_week_freq, get_type_freq
 from pyduyp.utils.utils import com_mode
 from pyduyp.logger.log import log
+from pyduyp.utils.large_datastruts import citysdict, continentdicts, countrydicts, provincedicts, agesdicts
 
 log.info("Start runing ...")
 
@@ -115,6 +116,13 @@ def get_action_features(step='train'):
 
         actions = []
         for file in tqdm(os.listdir(root)):
+            rows = OrderedDict()
+            aid = file.split(".")[0]
+            rows['id'] = aid
+            if step == 'train':
+                rows['label'] = 1 if base_name == 'action_pos' else 0
+            else:
+                rows['label'] = 0
             data = pd.read_csv(os.path.join(root, file))
             data_types = data['actionType'].values.tolist()
             data_copy = data.copy()
@@ -130,25 +138,31 @@ def get_action_features(step='train'):
             else:
                 last_times = [0, 0, 0]
             type_freq, types_sum = get_type_freq(data)  # 每个操作的总数，　总次数
-            rows = OrderedDict()
 
-            if step == 'train':
-                rows['0_label'] = 1 if base_name == 'action_pos' else 0
-            else:
-                rows['0_label'] = 0
-            aid = file.split(".")[0]
-            # TODO 根据ｉd 提取历史订单和基本信息数据
             if os.path.isfile(os.path.join(history_path, file)):
                 history = pd.read_csv(os.path.join(history_path, file))
                 historydata_copy = history.copy()
                 historydata_copy['time2days'] = data['actionTime'].apply(time2day)
                 historyinterval = compute_interval_of_day(historydata_copy)
-                if len(historyinterval) > 0:
+                if len(historyinterval) > 1:
                     historyinterval = historyinterval
+                else:
+                    historyinterval = [0, 0, 0, 0, 0]
             else:
                 historyinterval = [0, 0, 0, 0, 0]
-            rows['province'] = userprofile[userprofile['userid'].isin([aid])]['province']
-            rows['1_id'] = aid
+
+            p = userprofile[userprofile['userid'].isin([aid])]['province'].values[0]
+
+            rows['province'] = provincedicts[p] if p in provincedicts else 0
+            a = userprofile[userprofile['userid'].isin([aid])]['age'].values[0]
+            rows['age'] = agesdicts[a] if a in agesdicts else 0
+            city = history[history['userid'].isin([aid])]['city'].values[0]
+            rows['city'] = citysdict[city] if city in citysdict else 0
+            country = history[history['userid'].isin([aid])]['country'].values[0]
+            rows['country'] = countrydicts[country] if country in countrydicts else 0
+            continent = history[history['userid'].isin([aid])]['continent'].values[0]
+            rows['continent'] = continentdicts[continent] if continent in continentdicts else 0
+
             rows['2_t1'] = type_freq['2_t1']  # 类型1－9点击总数
             rows['3_t2'] = type_freq['3_t2']
             rows['4_t3'] = type_freq['4_t3']
