@@ -1,7 +1,5 @@
-from collections import Counter
 import pandas as pd
 import os
-import numpy as np
 from tqdm import tqdm
 
 from pyduyp.utils.utils import time2day, time2mouth, get_week
@@ -55,19 +53,46 @@ def get_neg_action_by_id(step='train'):
     action_neg_grouped = action_neg.groupby(action_neg['userid'])
 
     for i, j in tqdm(action_neg_grouped):
+        if len(j) == 0:
+            continue
         j.to_csv("Order_predicts/datasets/results/{}/action_neg/{}.csv".format(step, i), index=None)
 
 
-def get_history_by_id(step='train'):
+def get_pos_history_by_id(step='train'):
+    # 　根据id获取历史订单数据
+    ids = pd.read_csv('Order_predicts/datasets/results/posids.csv').values.tolist()
+    ids = [j for i in ids for j in i]
+    History = pd.read_csv("Order_predicts/datasets/{}/orderHistory_{}.csv".format(step, step))
+    History_neg = History[History.userid.isin(ids)]
+    History_neg_grouped = History_neg.groupby(History_neg['userid'])
+    for i, j in tqdm(History_neg_grouped):
+        if len(j) == 0:
+            continue
+        j.to_csv("Order_predicts/datasets/results/{}/history_pos/{}.csv".format(step, i), index=None)
+
+
+def get_neg_history_by_id(step='train'):
     # 　根据id获取历史订单数据
     ids = pd.read_csv('Order_predicts/datasets/results/posids.csv').values.tolist()
     ids = [j for i in ids for j in i]
     History = pd.read_csv("Order_predicts/datasets/{}/orderHistory_{}.csv".format(step, step))
     History_neg = History[~History.userid.isin(ids)]
-
     History_neg_grouped = History_neg.groupby(History_neg['userid'])
     for i, j in tqdm(History_neg_grouped):
-        j.to_csv("Order_predicts/datasets/results/{}/History_neg/{}.csv".format(step, i), index=None)
+        if len(j) == 0:
+            continue
+        j.to_csv("Order_predicts/datasets/results/{}/history_neg/{}.csv".format(step, i), index=None)
+
+
+def get_history(step='train'):
+    pos_root = 'Order_predicts/datasets/results/{}/history_pos/'.format(step)
+    if not os.path.exists(pos_root):
+        os.makedirs(pos_root)
+    neg_root = 'Order_predicts/datasets/results/{}/history_neg/'.format(step)
+    if not os.path.exists(neg_root):
+        os.makedirs(neg_root)
+    get_pos_history_by_id(step)
+    get_neg_history_by_id(step)
 
 
 def get_action_features(step='train'):
@@ -162,6 +187,6 @@ if __name__ == "__main__":
     if method == 'second':
         get_neg_action_by_id()
     if method == 'third':
-        get_history_by_id()
+        get_history()
     if method == 'final':
         get_action_features()
