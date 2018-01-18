@@ -142,16 +142,38 @@ def fun2():
     types = data['actionType'].values
     print(types)
 
-# city,country,continent
-userprofile = pd.read_csv("./datasets/train/userProfile_train.csv", usecols=['age']).values
-userprofile2list = userprofile.tolist()
-res = [j for i in userprofile2list for j in i]
-from collections import Counter
-fre = Counter(res)
-sumfre = sum(fre.values())
-out = {}
-for x, y in fre.most_common(1000):
-    if isinstance(x, str):
-        out[x] = "{:0.6f}".format(y/sumfre)
 
-print(out)
+def fun4():
+    # city,country,continent
+    userprofile = pd.read_csv("./datasets/train/userProfile_train.csv", usecols=['age']).values
+    userprofile2list = userprofile.tolist()
+    res = [j for i in userprofile2list for j in i]
+    from collections import Counter
+    fre = Counter(res)
+    sumfre = sum(fre.values())
+    out = {}
+    for x, y in fre.most_common(1000):
+        if isinstance(x, str):
+            out[x] = "{:0.6f}".format(y / sumfre)
+
+    print(out)
+
+
+def fun5():
+    data = pd.read_csv("./datasets/test/orderFuture_test.csv")
+    length = len(data)
+    rand = np.random.normal(size=1000000).tolist()
+
+    res = []
+    for x in rand:
+        if 0 < x < 1:
+            res.append(x)
+        if len(res) > length:
+            break
+
+    data_new = data.copy()
+    data_new['orderType'] = pd.Series(res)
+    data_new.to_csv("./datasets/results.csv", index=None, columns=['userid', 'orderType'])
+
+
+fun5()
