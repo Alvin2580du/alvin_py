@@ -3,7 +3,6 @@ import os
 from tqdm import tqdm
 
 from pyduyp.utils.utils import time2day, time2mouth, get_week
-from pyduyp.utils.utils import clean_dataset
 from pyduyp.utils.utils import compute_time_feature, compute_type_feature
 
 
@@ -115,15 +114,15 @@ def get_action_features(step='train'):
             aid = file.split(".")[0]
             rows['1_id'] = aid
             data = pd.read_csv(os.path.join(root, file))
-            atime = data['time'].values if 'time' in data.columns else [0]
-            atype = data['type'].values if 'type' in data.columns else [0]
+            atime = data['actionTime'].values if 'actionTime' in data.columns else [0]
+            atype = data['actionType'].values if 'actionType' in data.columns else [0]
             mean, std, cha, x1, x2, x3, x4, lastthreemean, lastthreestd = compute_time_feature(atime)
             rates = compute_type_feature(atype)
 
-            df_grouped = data.groupby(by='time')
+            df_grouped = data.groupby(by='actionTime')
 
             for i, j in df_grouped:
-                j2df = pd.get_dummies(j, columns=['type'])
+                j2df = pd.get_dummies(j, columns=['actionType'])
                 rows['2_t1'] = j2df['type_1'].sum() if 'type_1' in j2df.columns else 0
                 rows['3_t2'] = j2df['type_2'].sum() if 'type_2' in j2df.columns else 0
                 rows['4_t3'] = j2df['type_3'].sum() if 'type_3' in j2df.columns else 0
@@ -154,10 +153,10 @@ def get_action_features(step='train'):
 
             data_copy = data.copy()
 
-            data_copy['time2days'] = data['time'].apply(time2day)
-            data_copy['time2mouth'] = data['time'].apply(time2mouth)
+            data_copy['time2days'] = data['actionTime'].apply(time2day)
+            data_copy['time2mouth'] = data['actionTime'].apply(time2mouth)
 
-            data_copy['time_week'] = data['time'].apply(get_week)
+            data_copy['time_week'] = data['actionTime'].apply(get_week)
             data_copy_grouped_day = data_copy.groupby(by='time2days')
             data_copy_grouped_month = data_copy.groupby(by='time2days')
 
