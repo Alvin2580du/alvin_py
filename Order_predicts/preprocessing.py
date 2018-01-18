@@ -170,6 +170,8 @@ def get_action_features(step='train'):
             actions.append(rows)
 
         df = pd.DataFrame(actions)
+        df = df.round(6)
+        df = df.round({'0_label': 0, '1_id': 0})
         save_name = "Order_predicts/datasets/results/{}/{}_features.csv".format(step, base_name)
         if step == 'test':
             del df['label']
