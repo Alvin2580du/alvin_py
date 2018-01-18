@@ -161,6 +161,14 @@ def get_action_features(step='train'):
             rows['29_atptp'] = np.ptp(data_types)  # 类型极差
             rows['30_atvar'] = np.var(data_types)  # 类型方差
             rows['31_xishu'] = np.mean(data_types)/np.std(data_types)  # 类型变异系数
+            rows['32_rate2'] = type_freq['3_t2']/types_sum  # 2的比例
+            rows['33_rate3'] = type_freq['4_t3']/types_sum  # 3的比例
+            rows['34_rate4'] = type_freq['5_t4']/types_sum  # 4的比例
+            rows['35_rate5'] = type_freq['6_t5']/types_sum  # 5的比例
+            rows['36_rate6'] = type_freq['7_t6']/types_sum  # 6的比例
+            rows['37_rate7'] = type_freq['8_t7']/types_sum  # 7的比例
+            rows['38_rate8'] = type_freq['9_t8']/types_sum  # 8的比例
+
             actions.append(rows)
 
         df = pd.DataFrame(actions)
