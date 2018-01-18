@@ -3,7 +3,6 @@ import os
 from tqdm import tqdm
 from collections import OrderedDict
 import numpy as np
-from scipy.stats import mode
 from pyduyp.utils.utils import time2day, time2mouth, time2week
 from pyduyp.utils.utils import compute_interval_of_day
 from pyduyp.utils.utils import get_freq_of_day_and_month, get_week_freq, get_type_freq
@@ -102,6 +101,7 @@ def get_history(step='train'):
 
 
 def get_action_features(step='train'):
+    userprofile = pd.read_csv("Order_predicts/datasets/train/userProfile_{}.csv".format(step))
     pos_root = 'Order_predicts/datasets/results/{}/action_pos/'.format(step)
     neg_root = 'Order_predicts/datasets/results/{}/action_neg/'.format(step)
     if not os.path.exists(pos_root):
@@ -111,6 +111,8 @@ def get_action_features(step='train'):
 
     for root in [pos_root, neg_root]:
         base_name = root.split("/")[-2]
+        history_path = "Order_predicts/datasets/results/{}/history_{}".format(step, base_name.split('_')[-1])
+
         actions = []
         for file in tqdm(os.listdir(root)):
             data = pd.read_csv(os.path.join(root, file))
@@ -135,6 +137,17 @@ def get_action_features(step='train'):
             else:
                 rows['0_label'] = 0
             aid = file.split(".")[0]
+            # TODO 根据ｉd 提取历史订单和基本信息数据
+            if os.path.isfile(os.path.join(history_path, file)):
+                history = pd.read_csv(os.path.join(history_path, file))
+                historydata_copy = history.copy()
+                historydata_copy['time2days'] = data['actionTime'].apply(time2day)
+                historyinterval = compute_interval_of_day(historydata_copy)
+                if len(historyinterval) > 0:
+                    historyinterval = historyinterval
+            else:
+                historyinterval = [0, 0, 0, 0, 0]
+            rows['province'] = userprofile[userprofile['userid'].isin([aid])]['province']
             rows['1_id'] = aid
             rows['2_t1'] = type_freq['2_t1']  # 类型1－9点击总数
             rows['3_t2'] = type_freq['3_t2']
@@ -174,6 +187,7 @@ def get_action_features(step='train'):
             rows['37_rate7'] = type_freq['8_t7'] / types_sum  # 7的比例
             rows['38_rate8'] = type_freq['9_t8'] / types_sum  # 8的比例
 
+            rows['39_htptp'] = np.max(historyinterval) - np.min(historyinterval)  # 历史订单时间极差
             actions.append(rows)
 
         df = pd.DataFrame(actions)
@@ -183,7 +197,7 @@ def get_action_features(step='train'):
         if step == 'test':
             del df['0_label']
         df.to_csv(save_name, index=None)
-        exit(1)
+
 
 if __name__ == "__main__":
     import sys
