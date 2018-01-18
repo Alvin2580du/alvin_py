@@ -2,9 +2,10 @@ import pandas as pd
 import os
 from tqdm import tqdm
 from collections import OrderedDict
-
-from pyduyp.utils.utils import time2day, time2mouth, get_week
-from pyduyp.utils.utils import compute_time_feature
+import numpy as np
+from scipy.stats import mode
+from pyduyp.utils.utils import time2day, time2mouth, time2week
+from pyduyp.utils.utils import compute_interval_of_day
 from pyduyp.utils.utils import get_freq_of_day_and_month, get_week_freq, get_type_freq
 from pyduyp.logger.log import log
 log.info("Start runing ...")
@@ -111,14 +112,16 @@ def get_action_features(step='train'):
         actions = []
         for file in tqdm(os.listdir(root)):
             data = pd.read_csv(os.path.join(root, file))
-            atime = data['actionTime'].values if 'actionTime' in data.columns else [0]
+            atime = data['actionTime'].values
             data_copy = data.copy()
             data_copy['time2days'] = data['actionTime'].apply(time2day)
             data_copy['time2mouth'] = data['actionTime'].apply(time2mouth)
-            data_copy['time_week'] = data['actionTime'].apply(get_week)
+            data_copy['time2week'] = data['actionTime'].apply(time2week)
             data_copy_grouped_day = data_copy.groupby(by='time2days')
             data_copy_grouped_month = data_copy.groupby(by='time2mouth')
-            mean, std, cha, x1, x2, x3, x4, lastthreemean, lastthreestd = compute_time_feature(atime)
+
+            time_counts = compute_interval_of_day(data_copy)
+
             type_freq, types_sum = get_type_freq(data)  # 每个操作的总数，　总次数
             rows = OrderedDict()
 
@@ -139,19 +142,18 @@ def get_action_features(step='train'):
             rows['10_t9'] = type_freq['10_t9']
             rows['11_rate1'] = type_freq['2_t1']/types_sum  # 打开app的比例
             rows['12_rate9'] = type_freq['10_t9']/types_sum  # 下单的比例
-
-            rows['13_atmean'] = mean
-            rows['14_atstd'] = std
-            rows['15_atcha'] = cha
-            rows['16_tlast'] = x1
-            rows['17_t2'] = x2
-            rows['18_t3'] = x3
-            rows['19_t4'] = x4
-            rows['20_lastmean'] = lastthreemean
-            rows['21_laststd'] = lastthreestd
+            rows['13_atmean'] = np.mean(time_counts)
+            rows['14_atstd'] = np.std((time_counts))
+            rows['15_atmedian'] = np.median(time_counts)
+            rows['16_tmode'] = mode(time_counts)
+            rows['17_atptp'] = np.ptp(time_counts)
+            rows['18_atvar'] = np.var(time_counts)
+            rows['19_xishu'] = np.mean(time_counts)/np.std(time_counts)
+            rows['20_lastmean'] = np.mean(time_counts[-1:-4])
+            rows['21_laststd'] = np.std(time_counts[-1:-4])
             rows['22_dayrate'] = get_freq_of_day_and_month(data_copy_grouped_day)  # 日均
             rows['23_monthrate'] = get_freq_of_day_and_month(data_copy_grouped_month)  # 月均
-            rows['24_weekrate'] = get_week_freq(data_copy['time_week'].values)  # 周均
+            rows['24_weekrate'] = get_week_freq(data_copy['time2week'].values)  # 周均
             actions.append(rows)
 
         df = pd.DataFrame(actions)
@@ -159,7 +161,7 @@ def get_action_features(step='train'):
         df = df.round({'0_label': 0, '1_id': 0})
         save_name = "Order_predicts/datasets/results/{}/{}_features.csv".format(step, base_name)
         if step == 'test':
-            del df['label']
+            del df['0_label']
         df.to_csv(save_name, index=None)
 
 
