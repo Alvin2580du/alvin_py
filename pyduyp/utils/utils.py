@@ -257,7 +257,7 @@ def time2mouth(x):
     return time2date.strftime("%Y-%m")
 
 
-def get_week(x):
+def time2week(x):
     return datetime.fromtimestamp(x).isoweekday()
 
 
@@ -347,3 +347,23 @@ def get_type_freq(df):
         out[x] = t_sum
         sum_type += t_sum
     return out, sum_type
+
+
+def compute_interval_of_day(df):
+    assert isinstance(df, pd.DataFrame), "df needs to be a pd.DataFrame"
+
+    day = df['time2days'].values
+    res = []
+    for x in day:
+        if x not in res:
+            res.append(x)
+
+    c = pd.to_datetime(res)
+    length = len(c)
+    interval = []
+    for i in range(length):
+        if i + 1 < length:
+            cha = c[i + 1] - c[i]
+            interval.append(cha.days)
+
+    return interval
