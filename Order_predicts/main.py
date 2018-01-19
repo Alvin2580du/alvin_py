@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 from sklearn.ensemble import RandomForestRegressor
 from sklearn import svm
@@ -13,6 +14,9 @@ from sklearn.cross_validation import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
 from sklearn.ensemble import AdaBoostClassifier
+from sklearn.ensemble import GradientBoostingRegressor
+
+from sklearn.metrics import mean_squared_error
 
 from pyduyp.logger.log import log
 
@@ -126,11 +130,21 @@ def train_models(model_name, epoch=5, batch_size=100):
                 clf_weights = AdaBoostClassifier(base_estimator=None, n_estimators=50, learning_rate=1.,
                                                  algorithm='SAMME.R', random_state=None)
 
+            if model_name == 'gbr':
+                clf_weights = GradientBoostingRegressor(loss='ls', learning_rate=0.1, n_estimators=100,
+                                                        subsample=1.0, criterion='friedman_mse', min_samples_split=2,
+                                                        min_samples_leaf=1, min_weight_fraction_leaf=0.,
+                                                        max_depth=3, min_impurity_decrease=0.,
+                                                        min_impurity_split=None, init=None, random_state=None,
+                                                        max_features=None, alpha=0.9, verbose=0, max_leaf_nodes=None,
+                                                        warm_start=False, presort='auto')
             # build
             clf_weights.fit(train_x, train_y)
-
             i += 1
+
             if i % 5 == 0:
+                mse = mean_squared_error(y_test, clf_weights.predict(X_test))
+                log.info("均方误差：{}".format(mse))
                 avgscores = cross_val_score(clf_weights, train_x, train_y).mean()
                 log.info("训练集得分平均值：　{}".format(avgscores))
                 joblib.dump(clf_weights,
@@ -161,12 +175,21 @@ def modeltest(model_name='svm'):
     del data['age']
 
     data = data.fillna(-1).replace(np.inf, 100)
-    for i in ids:
+    df_push = pd.DataFrame()
+    linenumber = 0
+    for i in tqdm(ids):
         batch_x = data[data['id'].isin([i])]
         del batch_x['id']
-        clf_weights = joblib.load("Order_predicts/datasets/results/models/{}_3_70.model".format(model_name))
-        p = clf_weights.predict(batch_x.values)
-        print(p)
+        clf_weights = joblib.load("Order_predicts/datasets/results/models/{}_1_30.model".format(model_name))
+
+        # p = clf_weights.predict(batch_x.values)
+        prob = clf_weights.predict_proba(batch_x.values)[0]
+        max_prob = np.max(prob)
+        df_push.loc[linenumber, 'userid'] = int(i)
+        df_push.loc[linenumber, 'orderType'] = max_prob
+        linenumber += 1
+
+    df_push.to_csv("Order_predicts/datasets/results_push.csv", index=None)
 
 
 if __name__ == "__main__":
@@ -177,6 +200,6 @@ if __name__ == "__main__":
     method = sys.argv[1]
 
     if method == 'train':
-        train_models(model_name='rf')
+        train_models(model_name='adaboost', epoch=2, batch_size=1000)
     if method == "test":
-        modeltest(model_name='rf')
+        modeltest(model_name='adaboost')
