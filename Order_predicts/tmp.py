@@ -223,5 +223,22 @@ def fun7():
     a, b = pandas_quantile(inputs)
 
 
+def fun8():
+    from sklearn import preprocessing
+    data = pd.read_csv("./datasets/results/train/action_pos_features.csv")
+    print(data.shape)
 
-fun7()
+    del data['id']
+    y = data['label']
+    del data['label']
+    data = data.dropna()
+    print(data.shape)
+    scaler = preprocessing.StandardScaler().fit(data)
+
+    data = scaler.transform(data)
+    df = pd.DataFrame(data)
+    df.to_csv("./datasets/da.csv", index=None)
+
+fun8()
+
+
