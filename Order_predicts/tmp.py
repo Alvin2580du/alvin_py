@@ -176,6 +176,24 @@ def fun5():
     data_new = data_new.round(6)
     data_new.to_csv("./datasets/results.csv", index=None, columns=['userid', 'orderType'])
 
+# userprofile = pd.read_csv("Order_predicts/datasets/{}/userProfile_{}.csv".format(step, step))
+
+# have_orderids = pd.read_csv("Order_predicts/datasets/{}/orderHistory_{}.csv".format(step, step), usecols=['userid']).values
+# have_orderids2list = [j for i in have_orderids.tolist() for j in i]
+# all_usersids = pd.read_csv("Order_predicts/datasets/{}/userProfile_{}.csv".format(step, step), usecols=['userid']).values
+# all_usersids2list = [j for i in all_usersids.tolist() for j in i]
+# 用户信息
+# p = userprofile[userprofile['userid'].isin([aid])]['province'].values[0] if aid in all_usersids2list else -1
+# rows['province'] = provincedicts[p] if p in provincedicts else 0
+# a = userprofile[userprofile['userid'].isin([aid])]['age'].values[0] if aid in all_usersids2list else -1
+# rows['age'] = agesdicts[a] if a in agesdicts else 0
+# # 订单信息
+# city = history[history['userid'].isin([aid])]['city'].values[0] if aid in have_orderids2list else -1
+# rows['city'] = citysdict[city] if city in citysdict else 0
+# country = history[history['userid'].isin([aid])]['country'].values[0] if aid in have_orderids2list else -1
+# rows['country'] = countrydicts[country] if country in countrydicts else 0
+# continent = history[history['userid'].isin([aid])]['continent'].values[0] if aid in have_orderids2list else -1
+# rows['continent'] = continentdicts[continent] if continent in continentdicts else 0
 
 da1 = pd.read_csv("./datasets/train/action_train.csv", usecols=['userid']).values
 da2 = pd.read_csv("./datasets/train/orderFuture_train.csv", usecols=['userid']).values
