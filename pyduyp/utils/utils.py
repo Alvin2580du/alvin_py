@@ -365,8 +365,12 @@ def compute_interval_of_day(df):
         if i + 1 < length:
             cha = c[i + 1] - c[i]
             interval.append(cha.days)
-
-    return interval
+    two_interval = []
+    for i in range(length):
+        if i + 2 < length:
+            cha = c[i + 2] - c[i]
+            two_interval.append(cha.days)
+    return interval, two_interval
 
 
 def com_mode(arr):
@@ -374,3 +378,9 @@ def com_mode(arr):
         return np.argmax(np.bincount(arr))
     else:
         return -1
+
+
+def pandas_quantile(inputs):
+    df = pd.DataFrame(inputs)
+    return [df.quantile(q=0.25).values.tolist()[0], df.quantile(0.75).values.tolist()[0]]
+
