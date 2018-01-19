@@ -43,11 +43,14 @@ def minibatches(inputs=None, targets=None, batch_size=None, shuffle=False):
 
 def randomforest():
     # 　特征选择
-    pos = pd.read_csv("Order_predicts/datasets/results/train/action_pos_features.csv")
+    pos = pd.read_csv("Order_predicts/datasets/results/train/action_pos_features.csv", usecols=['14_atstd'])
+    posfillna = pos.fillna(pos.median()).replace(np.inf, 100)
     neg = pd.read_csv("Order_predicts/datasets/results/train/action_neg_features.csv")
-    data = pd.concat([pos, neg])
-    data = data.fillna(-1).replace(np.inf, 100)
+    negfillna = neg.fillna(neg.median()).replace(np.inf, 100)
+    data = pd.concat([posfillna, negfillna])
     data = shuffle(data)
+    data.to_csv("Order_predicts/datasets/results/train.csv", index=None)
+    log.info("train data save succes ...")
     del data['id']
     Y = data['label']
     del data['label']
@@ -81,7 +84,7 @@ def train_models(model_name, epoch=5, batch_size=100):
 
     y = data['label']
     del data['label']
-    X = data.fillna(-1).replace(np.inf, 100)
+    X = data.fillna(data.mean(), axis=1).replace(np.inf, 100)
     scaler = preprocessing.StandardScaler().fit(X)
     scaler.transform(X)
     X.to_csv("Order_predicts/datasets/results/scale_x.csv", index=None)
