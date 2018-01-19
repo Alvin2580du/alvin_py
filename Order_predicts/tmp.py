@@ -176,6 +176,7 @@ def fun5():
     data_new = data_new.round(6)
     data_new.to_csv("./datasets/results.csv", index=None, columns=['userid', 'orderType'])
 
+
 # userprofile = pd.read_csv("Order_predicts/datasets/{}/userProfile_{}.csv".format(step, step))
 
 # have_orderids = pd.read_csv("Order_predicts/datasets/{}/orderHistory_{}.csv".format(step, step), usecols=['userid']).values
@@ -195,16 +196,32 @@ def fun5():
 # continent = history[history['userid'].isin([aid])]['continent'].values[0] if aid in have_orderids2list else -1
 # rows['continent'] = continentdicts[continent] if continent in continentdicts else 0
 
-da1 = pd.read_csv("./datasets/train/action_train.csv", usecols=['userid']).values
-da2 = pd.read_csv("./datasets/train/orderFuture_train.csv", usecols=['userid']).values
-da3 = pd.read_csv("./datasets/train/orderHistory_train.csv", usecols=['userid']).values
-da4 = pd.read_csv("./datasets/train/userProfile_train.csv", usecols=['userid']).values
+# da1 = pd.read_csv("./datasets/train/action_train.csv", usecols=['userid']).values
+# da2 = pd.read_csv("./datasets/train/orderFuture_train.csv", usecols=['userid']).values
+# da3 = pd.read_csv("./datasets/train/orderHistory_train.csv", usecols=['userid']).values
+# da4 = pd.read_csv("./datasets/train/userProfile_train.csv", usecols=['userid']).values
+#
+# l1 = [i for j in da1.tolist() for i in j]
+# l2 = [i for j in da2.tolist() for i in j]
+# l3 = [i for j in da3.tolist() for i in j]
+# l4 = [i for j in da4.tolist() for i in j]
+# print("1")
+# r1 = [i for i in l1 if i not in l2]
+# print(r1)
+def fun6():
+    data = [[1, 2, np.inf], [2, np.nan, 3], [4, 2, 8]]
+    data = pd.DataFrame(data)
+    print(data)
+    X = data.fillna(data.mode(axis=1)).replace(np.inf, 100)
+    print(X)
 
-l1 = [i for j in da1.tolist() for i in j]
-l2 = [i for j in da2.tolist() for i in j]
-l3 = [i for j in da3.tolist() for i in j]
-l4 = [i for j in da4.tolist() for i in j]
-print("1")
-r1 = [i for i in l1 if i not in l2]
-print(r1)
 
+def fun7():
+    from pyduyp.utils.utils import pandas_quantile
+
+    inputs = [1, 2, 3, 4, 5, 5, 6, 7, 7, 8]
+    a, b = pandas_quantile(inputs)
+
+
+
+fun7()
