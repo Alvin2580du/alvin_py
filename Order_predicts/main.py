@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+import os
 
 from sklearn.ensemble import RandomForestRegressor
 from sklearn import svm
@@ -8,13 +9,18 @@ from sklearn.utils import shuffle
 from sklearn.externals import joblib
 from sklearn.linear_model import LogisticRegression
 from sklearn import preprocessing
-from sklearn.linear_model import Lasso
+from sklearn.linear_model import Lasso, RANSACRegressor, SGDRegressor, LinearRegression
 from sklearn.neural_network import MLPRegressor
 from sklearn.cross_validation import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.neighbors import NearestNeighbors
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB, BernoulliNB
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 from sklearn.metrics import mean_squared_error
 
@@ -36,6 +42,7 @@ def minibatches(inputs=None, targets=None, batch_size=None, shuffle=False):
 
 
 def randomforest():
+    # 　特征选择
     pos = pd.read_csv("Order_predicts/datasets/results/train/action_pos_features.csv")
     neg = pd.read_csv("Order_predicts/datasets/results/train/action_neg_features.csv")
     data = pd.concat([pos, neg])
@@ -60,7 +67,7 @@ def train_models(model_name, epoch=5, batch_size=100):
     neg = pd.read_csv("Order_predicts/datasets/results/train/action_neg_features.csv")
     data = pd.concat([pos, neg])
     data = shuffle(data)
-    del data['16_tmode']
+    del data['16_tmode']  # 删除不重要的特征　！
     del data['10_t9']
     del data['28_tmode']
     del data['27_atmedian']
@@ -91,7 +98,7 @@ def train_models(model_name, epoch=5, batch_size=100):
                                       coef0=0.0, shrinking=True, probability=False,
                                       tol=1e-3, cache_size=200, class_weight={1: 10},
                                       verbose=False, max_iter=-1, decision_function_shape='ovr',
-                                      random_state=None)
+                                      random_state=0)
             if model_name == 'svr':
                 clf_weights = svm.SVR(kernel='rbf', degree=3, gamma='auto', coef0=0.0,
                                       tol=1e-3, C=1.0, epsilon=0.1, shrinking=True,
@@ -100,20 +107,20 @@ def train_models(model_name, epoch=5, batch_size=100):
                 clf_weights = Lasso(alpha=1.0, fit_intercept=True, normalize=False,
                                     precompute=False, copy_X=True, max_iter=1000,
                                     tol=1e-4, warm_start=False, positive=False,
-                                    random_state=None, selection='cyclic')
+                                    random_state=0, selection='cyclic')
             if model_name == 'logistic':
                 clf_weights = LogisticRegression(penalty='l2', dual=False, tol=1e-4, C=1.0,
                                                  fit_intercept=True, intercept_scaling=1, class_weight={1: 10},
-                                                 random_state=None, solver='liblinear', max_iter=100,
+                                                 random_state=0, solver='liblinear', max_iter=100,
                                                  multi_class='ovr', verbose=0, warm_start=False, n_jobs=1)
-            if model_name == 'nn':
+            if model_name == 'mlpr':
                 # learning_rate: {'constant', 'invscaling', 'adaptive'}
                 clf_weights = MLPRegressor(hidden_layer_sizes=(100,), activation="logistic",
                                            solver='adam', alpha=0.0001,
                                            batch_size='auto', learning_rate="constant",
                                            learning_rate_init=0.001,
                                            power_t=0.5, max_iter=200, shuffle=True,
-                                           random_state=None, tol=1e-4,
+                                           random_state=0, tol=1e-4,
                                            verbose=False, warm_start=False, momentum=0.9,
                                            nesterovs_momentum=True, early_stopping=False,
                                            validation_fraction=0.1, beta_1=0.9, beta_2=0.999,
@@ -124,20 +131,63 @@ def train_models(model_name, epoch=5, batch_size=100):
                                                      min_samples_leaf=1, min_weight_fraction_leaf=0.,
                                                      max_features="auto", max_leaf_nodes=None,
                                                      min_impurity_decrease=0., min_impurity_split=None,
-                                                     bootstrap=True, oob_score=False, n_jobs=1, random_state=None,
+                                                     bootstrap=True, oob_score=False, n_jobs=1, random_state=0,
                                                      verbose=0, warm_start=False, class_weight=None)
             if model_name == 'adaboost':
                 clf_weights = AdaBoostClassifier(base_estimator=None, n_estimators=50, learning_rate=1.,
-                                                 algorithm='SAMME.R', random_state=None)
+                                                 algorithm='SAMME.R', random_state=0)
 
             if model_name == 'gbr':
                 clf_weights = GradientBoostingRegressor(loss='ls', learning_rate=0.1, n_estimators=100,
                                                         subsample=1.0, criterion='friedman_mse', min_samples_split=2,
                                                         min_samples_leaf=1, min_weight_fraction_leaf=0.,
                                                         max_depth=3, min_impurity_decrease=0.,
-                                                        min_impurity_split=None, init=None, random_state=None,
+                                                        min_impurity_split=None, init=None, random_state=0,
                                                         max_features=None, alpha=0.9, verbose=0, max_leaf_nodes=None,
                                                         warm_start=False, presort='auto')
+            if model_name == 'qda':
+                clf_weights = QuadraticDiscriminantAnalysis(priors=None, reg_param=0., store_covariance=False,
+                                                            tol=1.0e-4, store_covariances=None)
+            if model_name == 'lda':
+                clf_weights = LinearDiscriminantAnalysis(solver='svd', shrinkage=None, priors=None,
+                                                         n_components=None, store_covariance=False, tol=1e-4)
+            if model_name == 'n_n':
+                clf_weights = NearestNeighbors(n_neighbors=5, radius=1.0,
+                                               algorithm='auto', leaf_size=30, metric='minkowski',
+                                               p=2, metric_params=None, n_jobs=1)
+            if model_name == 'gnb':
+                clf_weights = GaussianNB(priors=None)
+
+            if model_name == 'bnb':
+                clf_weights = BernoulliNB(alpha=1.0, binarize=.0, fit_prior=True, class_prior=None)
+            if model_name == 'dcc':
+                clf_weights = DecisionTreeClassifier(criterion="gini", splitter="best", max_depth=None,
+                                                     min_samples_split=2, min_samples_leaf=1,
+                                                     min_weight_fraction_leaf=0., max_features=None,
+                                                     random_state=0, max_leaf_nodes=None,
+                                                     min_impurity_decrease=0., min_impurity_split=None,
+                                                     class_weight=None, presort=False)
+            if model_name == 'dcr':
+                clf_weights = DecisionTreeRegressor(criterion="mse", splitter="best", max_depth=None,
+                                                    min_samples_split=2, min_samples_leaf=1,
+                                                    min_weight_fraction_leaf=0., max_features=None,
+                                                    random_state=0, max_leaf_nodes=None,
+                                                    min_impurity_decrease=0., min_impurity_split=None, presort=False)
+            if model_name == 'RAN':
+                base_estimator = LinearRegression()
+                clf_weights = RANSACRegressor(base_estimator=base_estimator, min_samples=None,
+                                              residual_threshold=None, is_data_valid=None,
+                                              is_model_valid=None, max_trials=100, max_skips=np.inf,
+                                              stop_n_inliers=np.inf, stop_score=np.inf,
+                                              stop_probability=0.99, residual_metric=None,
+                                              loss='absolute_loss', random_state=0)
+            if model_name == 'SGDR':
+                clf_weights = SGDRegressor(loss="squared_loss", penalty="l2", alpha=0.0001,
+                                           l1_ratio=0.15, fit_intercept=True, max_iter=None, tol=None,
+                                           shuffle=True, verbose=0, epsilon=0.1,
+                                           random_state=None, learning_rate="invscaling", eta0=0.01,
+                                           power_t=0.25, warm_start=False, average=False, n_iter=None)
+
             # build
             clf_weights.fit(train_x, train_y)
             i += 1
@@ -147,8 +197,10 @@ def train_models(model_name, epoch=5, batch_size=100):
                 log.info("均方误差：{}".format(mse))
                 avgscores = cross_val_score(clf_weights, train_x, train_y).mean()
                 log.info("训练集得分平均值：　{}".format(avgscores))
-                joblib.dump(clf_weights,
-                            'Order_predicts/datasets/results/models/{}_{}_{}.model'.format(model_name, e, i))
+                model_path = os.path.join("Order_predicts/datasets/results/models", '{}'.format(model_name))
+                if not os.path.exists(model_path):
+                    os.makedirs(model_path)
+                joblib.dump(clf_weights, os.path.join(model_path, "{}_{}.model".format(e, i)))
                 log.info(" Save ")
 
             if i % 30 == 0:
@@ -161,7 +213,7 @@ def modeltest(model_name='svm'):
     neg = pd.read_csv("Order_predicts/datasets/results/test/action_neg_features.csv")
     data = pd.concat([pos, neg])
     data = shuffle(data)
-    ids = data['id']
+    ids = data['id'].values.tolist()
     data = data.fillna(-1).replace(np.inf, 100)
     del data['16_tmode']
     del data['10_t9']
@@ -185,7 +237,7 @@ def modeltest(model_name='svm'):
         # p = clf_weights.predict(batch_x.values)
         prob = clf_weights.predict_proba(batch_x.values)[0]
         max_prob = np.max(prob)
-        df_push.loc[linenumber, 'userid'] = int(i)
+        df_push.loc[linenumber, 'userid'] = i
         df_push.loc[linenumber, 'orderType'] = max_prob
         linenumber += 1
 
@@ -200,6 +252,11 @@ if __name__ == "__main__":
     method = sys.argv[1]
 
     if method == 'train':
-        train_models(model_name='adaboost', epoch=2, batch_size=1000)
+        m_names = ['svm', 'svr', 'lasso', 'mlpr', 'rf', 'adaboost', 'gbr', 'qda',
+                   'lda', 'n_n', 'gnb', 'bnb', 'dcc', 'RAN', 'SGDR']
+        log.info("Total number models: {}".format(len(m_names)))
+
+        for name in m_names:
+            train_models(model_name='{}'.format(name), epoch=2, batch_size=1000)
     if method == "test":
         modeltest(model_name='adaboost')
