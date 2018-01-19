@@ -213,11 +213,11 @@ def modeltest(model_name='svm'):
     ids = data['id'].values.tolist()
     df_push = pd.DataFrame()
     linenumber = 0
+    clf_weights = joblib.load("Order_predicts/datasets/results/models/{}/3_10.model".format(model_name))
+
     for i in tqdm(ids):
         batch_x = data[data['id'].isin([i])]
         del batch_x['id']
-        clf_weights = joblib.load("Order_predicts/datasets/results/models/{}/1_30.model".format(model_name))
-
         # p = clf_weights.predict(batch_x.values)
         prob = clf_weights.predict_proba(batch_x.values)[0]
         max_prob = np.max(prob)
@@ -242,6 +242,6 @@ if __name__ == "__main__":
                    'lda', 'n_n', 'gnb', 'bnb', 'dcc', 'RAN', 'SGDR']
         log.info("Total number models: {}".format(len(m_names)))
 
-        train_models(model_name='mlpr', epoch=5, batch_size=2000)
+        train_models(model_name='adaboost', epoch=5, batch_size=2000)
     if method == "test":
-        modeltest(model_name='mlpr')
+        modeltest(model_name='adaboost')
