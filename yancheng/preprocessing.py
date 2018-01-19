@@ -1,113 +1,127 @@
 import pandas as pd
+from tqdm import tqdm
 import os
-from glob import glob
-
-from collections import Counter, OrderedDict
+import numpy as np
 import matplotlib.pyplot as plt
 
+from collections import OrderedDict
 
-def fun1():
-    # date  day_of_week  brand   cnt
-    """
-  date  	     int   	  日期，经过脱敏，用数字来表示  
-  day_of_week  	 int  	  表示星期几  
-  brand  	    int  	  汽车品牌  
-  cnt  	        int  	  上牌数
-    :return: 
-    """
-    data = pd.read_csv("./datasets/train_20171215.txt", sep='\t')
-    brand_1 = data[data['brand'].isin([1])]
-    brand_2 = data[data['brand'].isin([2])]
-    brand_3 = data[data['brand'].isin([3])]
-    brand_4 = data[data['brand'].isin([4])]
-    brand_5 = data[data['brand'].isin([5])]
-
-    brand = data['brand']
-    brand_total = []
-    for x in brand.values.tolist():
-        if x not in brand_total:
-            brand_total.append(x)
-
-    brand_total_name = [brand_1, brand_2, brand_3, brand_4, brand_5]
-    i = 0
-    for b in brand_total_name:
-        i += 1
-        b.to_csv("./datasets/results/brand_{}.csv".format(i))
+from pyduyp.logger.log import log
 
 
-def fun2():
-    path = "./datasets/results/"
-    files = glob(os.path.join(path, "*.csv"))
-    out = []
-    for file in files:
-        rows = {}
-        data = pd.read_csv(file, usecols=['date', 'day_of_week', 'cnt'])
-        weeks = data['day_of_week']
-
-        weeks_list = []
-        for x in weeks.values.tolist():
-            weeks_list.append(x)
-
-        res = Counter(weeks_list)
-        for x, y in res.most_common(7):
-            rows[x] = y
-        out.append(rows)
-
-    df = pd.DataFrame(out)
-    df.to_csv("./datasets/results/freq.csv", index=None)
+def data_split_by_day():
+    data = pd.read_csv("yancheng/datasets/train_20171215.txt", sep='\t')
+    data_grouped = data.groupby(by='date')
+    for i, j in tqdm(data_grouped):
+        if len(j) == 0:
+            continue
+        j.to_csv("yancheng/datasets/results/train/{}.csv".format(i), index=None)
 
 
-def fun3():
-    path = "yancheng/datasets/results/"
-    files = glob(os.path.join(path, "*.csv"))
-    i = 0
-    plt.figure(figsize=(1200, 900), dpi=300)
-    for file in files:
-        print(file)
-        data = pd.read_csv(file, usecols=['date', 'day_of_week', 'cnt'])
-        cnt = data['cnt']
-        plt.subplot(511 + i)
-        plt.plot(cnt)
-        plt.subplots_adjust(hspace=2)
-        i += 1
-
-    plt.legend(labels="cnt", loc='best')
-    plt.savefig("yancheng/datasets/results/cnt.png")
-
-
-def fun4():
-    data = pd.read_csv("./datasets/train_20171215.txt", sep='\t', usecols=['date', 'day_of_week', 'cnt'])
-    df = pd.DataFrame()
-    df.insert(0, "date", None)
-    df.insert(1, "week", None)
-    df.insert(2, "cnt", None)
-
-    lines_number = 0
-    for i in range(1, 1033):
-        cnt = data[data['date'].isin([i])]['cnt']
-        total = 0
-        for x in cnt:
-            total += x
-
-        weeks = data[data['date'].isin([i])]['day_of_week']
-        week = weeks.values.tolist()[0]
-
-        df.loc[lines_number, 'date'] = int(i)
-        df.loc[lines_number, 'week'] = int(week)
-        df.loc[lines_number, 'cnt'] = int(total)
-        lines_number += 1
-
-    df.to_csv("./datasets/results/data_train.csv", index=None)
+def get_date_features():
+    root = 'yancheng/datasets/results/train/'
+    log.info("Total files :{}".format(len(os.listdir(root))))
+    res = []
+    for file in tqdm(os.listdir(root)):
+        rows = OrderedDict()
+        file_name = os.path.join(root, file)
+        data = pd.read_csv(file_name)
+        cnt = np.sum(data['cnt'].values)
+        rows['date'] = data['date'].values[0]
+        rows['week'] = data['day_of_week'].values[0]
+        rows['cnt'] = cnt
+        res.append(rows)
+    df = pd.DataFrame(res).sort_values(by='date')
+    df.to_csv(os.path.join("yancheng/datasets/results", "total_by_day.csv"), index=None)
 
 
-def plot_total():
-    data = pd.read_csv("./datasets/results/data_train.csv", usecols=['cnt'])
-    plt.figure(dpi=300)
-    plt.plot(data.values)
-    plt.savefig("./datasets/results/total.png")
+def plot_cnt():
+    data = pd.read_csv(os.path.join("yancheng/datasets/results", "total_by_day.csv"), usecols=['cnt']).values
+    plt.figure()
+    plt.plot(data)
+    plt.savefig(os.path.join("yancheng/datasets/results", "total_by_day.png"), dpi=300)
 
 
-if __name__ == "__main__":
-    plot_total()
+def get_features():
+    data = pd.read_csv(os.path.join("yancheng/datasets/results", "total_by_day.csv"))
+    X = data['cnt']
+    y = data['week']
+    corr = np.corrcoef(X, y)
+    log.info("{}".format(corr))
+    data_grouped = data.groupby(by='week')
+    for i, j in data_grouped:
+        j.to_csv("yancheng/datasets/results/{}.csv".format(i), index=None)
 
 
+def ex_data_find():
+    root = 'yancheng/datasets/results/train/week'
+    save_root = 'yancheng/datasets/results/train/week_ex'
+    if not os.path.exists(save_root):
+        os.makedirs(save_root)
+    for f in os.listdir(root):
+        f_name = os.path.join(root, f)
+        data = pd.read_csv(f_name)
+
+        if int(f.split(".")[0]) < 6:
+            data = data[data['cnt'] >= 200]
+            data.to_csv(os.path.join(save_root, "ex_{}".format(f)), index=None, header=None)
+        else:
+            data = data[data['cnt'] <= 1000]
+            data.to_csv(os.path.join(save_root, "ex_{}".format(f)), index=None, header=None)
+
+
+def conact():
+    df = []
+    save_root = 'yancheng/datasets/results/train/week_ex'
+    for f in os.listdir(save_root):
+        f_name = os.path.join(save_root, f)
+        with open(f_name, 'r') as fr:
+            lines = fr.readlines()
+            for line in lines:
+                rows = {'date': line.strip().split(",")[0], 'week': line.strip().split(",")[1],
+                        'cnt': line.strip().split(",")[2]}
+                df.append(rows)
+
+    df = pd.DataFrame(df)
+    df.columns = ['date', 'week', 'cnt']
+    df = df.sort_values(by='date')
+    df.to_csv("yancheng/datasets/results/train/total_by_day_ex.csv", index=None)
+
+
+def sorted_df(by='cnt'):
+    data = pd.read_csv("yancheng/datasets/results/train/total_by_day_ex.csv")
+
+    data = data.sort_values(by=by)
+    data.to_csv("yancheng/datasets/results/train/total_by_day_ex_sorted.csv", index=None)
+
+
+def get_features_corr():
+    data = pd.read_csv(os.path.join("yancheng/datasets/results", "total_by_day_ex_sorted.csv"))
+    X = data['cnt']
+    y = data['week']
+    corr = np.corrcoef(X, y)
+    log.info("{}".format(corr))
+
+if __name__ == '__main__':
+    import sys
+
+    if len(sys.argv) < 2:
+        exit(1)
+
+    method = sys.argv[1]
+
+    if method == 'first':
+        data_split_by_day()
+
+    if method == 'second':
+        get_date_features()
+    if method == 'plot':
+        plot_cnt()
+    if method == 'third':
+        get_features()
+    if method == 'four':
+        ex_data_find()
+    if method == 'five':
+        sorted_df()
+    if method == 'six':
+        get_features_corr()
