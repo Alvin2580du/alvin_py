@@ -6,7 +6,7 @@ import numpy as np
 from pyduyp.utils.utils import time2day, time2mouth, time2week
 from pyduyp.utils.utils import compute_interval_of_day
 from pyduyp.utils.utils import get_freq_of_day_and_month, get_week_freq, get_type_freq
-from pyduyp.utils.utils import com_mode
+from pyduyp.utils.utils import com_mode, pandas_quantile
 from pyduyp.logger.log import log
 from pyduyp.utils.large_datastruts import citysdict, continentdicts, countrydicts, provincedicts, agesdicts
 
@@ -101,7 +101,7 @@ def get_history(step='train'):
     get_neg_history_by_id(step)
 
 
-def get_action_features(step='train'):
+def get_action_features(step):
     pos_root = 'Order_predicts/datasets/results/{}/action_pos/'.format(step)
     neg_root = 'Order_predicts/datasets/results/{}/action_neg/'.format(step)
     if not os.path.exists(pos_root):
@@ -109,7 +109,7 @@ def get_action_features(step='train'):
     if not os.path.exists(neg_root):
         os.makedirs(neg_root)
     for root in [pos_root, neg_root]:
-        if 'neg' in root:
+        if 'pos' in root:
             continue
         base_name = root.split("/")[-2]
         history_path = "Order_predicts/datasets/results/{}/history_{}".format(step, base_name.split('_')[-1])
@@ -131,6 +131,7 @@ def get_action_features(step='train'):
             data_copy_grouped_day = data_copy.groupby(by='time2days')
             data_copy_grouped_month = data_copy.groupby(by='time2mouth')
             time_counts, two_interval = compute_interval_of_day(data_copy)
+            quantiles = pandas_quantile(time_counts)
             if len(time_counts) > 4:
                 last_times = time_counts[-4:-1]
             else:
@@ -193,6 +194,9 @@ def get_action_features(step='train'):
             rows['44_atptp'] = np.max(two_interval) - np.min(two_interval) if len(two_interval) > 0 else 0  # 时间极差
             rows['45_atvar'] = np.var(two_interval)  # 时间方差
             rows['46_xishu'] = np.mean(two_interval) / np.std(two_interval) if len(two_interval) > 1 else 0  # 时间变异系数
+            rows['47_quantile2'] = quantiles[0]
+            rows['48_quantile4'] = quantiles[1]
+
             actions.append(rows)
 
         df = pd.DataFrame(actions)
@@ -203,6 +207,7 @@ def get_action_features(step='train'):
         if step == 'test':
             del df['label']
         df.to_csv(save_name, index=None)
+        log.info(" !!! {}".format(save_name))
 
 
 if __name__ == "__main__":
@@ -219,4 +224,5 @@ if __name__ == "__main__":
     if method == 'third':
         get_history(step='test')
     if method == 'final':
-        get_action_features(step='test')
+        for x in ['train', 'test']:
+            get_action_features(step=x)
