@@ -177,4 +177,16 @@ def fun5():
     data_new.to_csv("./datasets/results.csv", index=None, columns=['userid', 'orderType'])
 
 
-fun5()
+da1 = pd.read_csv("./datasets/train/action_train.csv", usecols=['userid']).values
+da2 = pd.read_csv("./datasets/train/orderFuture_train.csv", usecols=['userid']).values
+da3 = pd.read_csv("./datasets/train/orderHistory_train.csv", usecols=['userid']).values
+da4 = pd.read_csv("./datasets/train/userProfile_train.csv", usecols=['userid']).values
+
+l1 = [i for j in da1.tolist() for i in j]
+l2 = [i for j in da2.tolist() for i in j]
+l3 = [i for j in da3.tolist() for i in j]
+l4 = [i for j in da4.tolist() for i in j]
+print("1")
+r1 = [i for i in l1 if i not in l2]
+print(r1)
+
