@@ -251,6 +251,8 @@ if __name__ == "__main__":
         exit(1)
     method = sys.argv[1]
 
+    if method == 'select':
+        randomforest()
     if method == 'train':
         m_names = ['svm', 'svr', 'lasso', 'mlpr', 'rf', 'adaboost', 'gbr', 'qda',
                    'lda', 'n_n', 'gnb', 'bnb', 'dcc', 'RAN', 'SGDR']
