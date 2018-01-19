@@ -102,23 +102,17 @@ def get_history(step='train'):
 
 
 def get_action_features(step='train'):
-    userprofile = pd.read_csv("Order_predicts/datasets/{}/userProfile_{}.csv".format(step, step))
     pos_root = 'Order_predicts/datasets/results/{}/action_pos/'.format(step)
     neg_root = 'Order_predicts/datasets/results/{}/action_neg/'.format(step)
     if not os.path.exists(pos_root):
         os.makedirs(pos_root)
     if not os.path.exists(neg_root):
         os.makedirs(neg_root)
-    have_orderids = pd.read_csv("Order_predicts/datasets/{}/orderHistory_{}.csv".format(step, step), usecols=['userid']).values
-    have_orderids2list = [j for i in have_orderids.tolist() for j in i]
-    all_usersids = pd.read_csv("Order_predicts/datasets/{}/userProfile_{}.csv".format(step, step), usecols=['userid']).values
-    all_usersids2list = [j for i in all_usersids.tolist() for j in i]
     for root in [pos_root, neg_root]:
-        if 'pos' in root:
+        if 'neg' in root:
             continue
         base_name = root.split("/")[-2]
         history_path = "Order_predicts/datasets/results/{}/history_{}".format(step, base_name.split('_')[-1])
-
         actions = []
         for file in tqdm(os.listdir(root)):
             rows = OrderedDict()
@@ -136,37 +130,23 @@ def get_action_features(step='train'):
             data_copy['time2week'] = data['actionTime'].apply(time2week)
             data_copy_grouped_day = data_copy.groupby(by='time2days')
             data_copy_grouped_month = data_copy.groupby(by='time2mouth')
-
-            time_counts = compute_interval_of_day(data_copy)
+            time_counts, two_interval = compute_interval_of_day(data_copy)
             if len(time_counts) > 4:
                 last_times = time_counts[-4:-1]
             else:
                 last_times = [0, 0, 0]
             type_freq, types_sum = get_type_freq(data)  # 每个操作的总数，　总次数
-
             if os.path.isfile(os.path.join(history_path, file)):
                 history = pd.read_csv(os.path.join(history_path, file))
                 historydata_copy = history.copy()
                 historydata_copy['time2days'] = data['actionTime'].apply(time2day)
-                historyinterval = compute_interval_of_day(historydata_copy)
+                historyinterval, two_historyinterval = compute_interval_of_day(historydata_copy)
                 if len(historyinterval) > 1:
                     historyinterval = historyinterval
                 else:
                     historyinterval = [0, 0, 0, 0, 0]
             else:
                 historyinterval = [0, 0, 0, 0, 0]
-            # 用户信息
-            p = userprofile[userprofile['userid'].isin([aid])]['province'].values[0] if aid in all_usersids2list else -1
-            rows['province'] = provincedicts[p] if p in provincedicts else 0
-            a = userprofile[userprofile['userid'].isin([aid])]['age'].values[0] if aid in all_usersids2list else -1
-            rows['age'] = agesdicts[a] if a in agesdicts else 0
-            # 订单信息
-            city = history[history['userid'].isin([aid])]['city'].values[0] if aid in have_orderids2list else -1
-            rows['city'] = citysdict[city] if city in citysdict else 0
-            country = history[history['userid'].isin([aid])]['country'].values[0] if aid in have_orderids2list else -1
-            rows['country'] = countrydicts[country] if country in countrydicts else 0
-            continent = history[history['userid'].isin([aid])]['continent'].values[0] if aid in have_orderids2list else -1
-            rows['continent'] = continentdicts[continent] if continent in continentdicts else 0
 
             rows['2_t1'] = type_freq['2_t1']  # 类型1－9点击总数
             rows['3_t2'] = type_freq['3_t2']
@@ -185,7 +165,7 @@ def get_action_features(step='train'):
             rows['16_tmode'] = com_mode(time_counts)  # 时间众数
             rows['17_atptp'] = np.max(time_counts) - np.min(time_counts) if len(time_counts) > 0 else 0  # 时间极差
             rows['18_atvar'] = np.var(time_counts)  # 时间方差
-            rows['19_xishu'] = np.mean(time_counts) / np.std(time_counts) if len(time_counts) > 0 else 0  # 时间变异系数
+            rows['19_xishu'] = np.mean(time_counts) / np.std(time_counts) if len(time_counts) > 1 else 0  # 时间变异系数
             rows['20_lastmean'] = np.mean(last_times)  # 最后三天间隔的均值
             rows['21_laststd'] = np.std(last_times)  # 最后三天间隔的标准差
             rows['22_dayrate'] = get_freq_of_day_and_month(data_copy_grouped_day)  # 日均
@@ -197,7 +177,7 @@ def get_action_features(step='train'):
             rows['28_tmode'] = com_mode(data_types)  # 类型众数
             rows['29_atptp'] = np.max(data_types) - np.min(data_types) if len(data_types) > 0 else 0  # 类型极差
             rows['30_atvar'] = np.var(data_types)  # 类型方差
-            rows['31_xishu'] = np.mean(data_types) / np.std(data_types) if len(data_types) > 0 else 0  # 类型变异系数
+            rows['31_xishu'] = np.mean(data_types) / np.std(data_types) if len(data_types) > 1 else 0  # 类型变异系数
             rows['32_rate2'] = type_freq['3_t2'] / types_sum  # 2的比例
             rows['33_rate3'] = type_freq['4_t3'] / types_sum  # 3的比例
             rows['34_rate4'] = type_freq['5_t4'] / types_sum  # 4的比例
@@ -205,8 +185,14 @@ def get_action_features(step='train'):
             rows['36_rate6'] = type_freq['7_t6'] / types_sum  # 6的比例
             rows['37_rate7'] = type_freq['8_t7'] / types_sum  # 7的比例
             rows['38_rate8'] = type_freq['9_t8'] / types_sum  # 8的比例
-
             rows['39_htptp'] = np.max(historyinterval) - np.min(historyinterval)  # 历史订单时间极差
+            rows['40_atmean'] = np.mean(two_interval)  # 时间均值
+            rows['41_atstd'] = np.std(two_interval)  # 时间标准差
+            rows['42_atmedian'] = np.median(two_interval)  # 时间中位数
+            rows['43_tmode'] = com_mode(two_interval)  # 时间众数
+            rows['44_atptp'] = np.max(two_interval) - np.min(two_interval) if len(two_interval) > 0 else 0  # 时间极差
+            rows['45_atvar'] = np.var(two_interval)  # 时间方差
+            rows['46_xishu'] = np.mean(two_interval) / np.std(two_interval) if len(two_interval) > 1 else 0  # 时间变异系数
             actions.append(rows)
 
         df = pd.DataFrame(actions)
