@@ -102,16 +102,16 @@ def get_history(step='train'):
 
 
 def get_action_features(step='train'):
-    userprofile = pd.read_csv("Order_predicts/datasets/train/userProfile_{}.csv".format(step))
+    userprofile = pd.read_csv("Order_predicts/datasets/{}/userProfile_{}.csv".format(step, step))
     pos_root = 'Order_predicts/datasets/results/{}/action_pos/'.format(step)
     neg_root = 'Order_predicts/datasets/results/{}/action_neg/'.format(step)
     if not os.path.exists(pos_root):
         os.makedirs(pos_root)
     if not os.path.exists(neg_root):
         os.makedirs(neg_root)
-    have_orderids = pd.read_csv("Order_predicts/datasets/train/orderHistory_train.csv", usecols=['userid']).values
+    have_orderids = pd.read_csv("Order_predicts/datasets/{}/orderHistory_{}.csv".format(step, step), usecols=['userid']).values
     have_orderids2list = [j for i in have_orderids.tolist() for j in i]
-    all_usersids = pd.read_csv("Order_predicts/datasets/train/userProfile_train.csv", usecols=['userid']).values
+    all_usersids = pd.read_csv("Order_predicts/datasets/{}/userProfile_{}.csv".format(step, step), usecols=['userid']).values
     all_usersids2list = [j for i in all_usersids.tolist() for j in i]
     for root in [pos_root, neg_root]:
         if 'pos' in root:
@@ -212,10 +212,10 @@ def get_action_features(step='train'):
         df = pd.DataFrame(actions)
         df = df.replace(np.inf, 100)
         df = df.round(7)
-        df = df.round({'0_label': 0, '1_id': 0})
+        df = df.round({'label': 0, 'id': 0})
         save_name = "Order_predicts/datasets/results/{}/{}_features.csv".format(step, base_name)
         if step == 'test':
-            del df['0_label']
+            del df['label']
         df.to_csv(save_name, index=None)
 
 
@@ -227,10 +227,10 @@ if __name__ == "__main__":
 
     method = sys.argv[1]
     if method == 'first':
-        get_pos_action_by_id()
+        get_pos_action_by_id(step='test')
     if method == 'second':
-        get_neg_action_by_id()
+        get_neg_action_by_id(step='test')
     if method == 'third':
-        get_history()
+        get_history(step='test')
     if method == 'final':
-        get_action_features()
+        get_action_features(step='test')
