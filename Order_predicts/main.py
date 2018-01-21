@@ -183,7 +183,7 @@ def train_models(model_name, epoch=5, batch_size=100):
                                                     random_state=0, max_leaf_nodes=None,
                                                     min_impurity_decrease=0., min_impurity_split=None, presort=False)
             elif model_name == 'RAN':
-                base_estimator = LinearRegression()
+                base_estimator = LinearRegression()                                                                                                                                                                                                                                         
                 clf_weights = RANSACRegressor(base_estimator=base_estimator, min_samples=None,
                                               residual_threshold=None, is_data_valid=None,
                                               is_model_valid=None, max_trials=100, max_skips=np.inf,
