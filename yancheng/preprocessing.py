@@ -10,6 +10,9 @@ from pyduyp.logger.log import log
 
 
 def data_split_by_day():
+    save_path = "yancheng/datasets/results/train/days"
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
     data = pd.read_csv("yancheng/datasets/train_20171215.txt", sep='\t')
     data_grouped = data.groupby(by='date')
     for i, j in tqdm(data_grouped):
@@ -36,7 +39,7 @@ def get_date_features():
 
 
 def plot_cnt():
-    data = pd.read_csv(os.path.join("yancheng/datasets/results", "total_by_day.csv"), usecols=['cnt']).values
+    data = pd.read_csv(os.path.join("yancheng/datasets/results/train", "total_by_day_ex_sorted.csv"), usecols=['cnt']).values
     plt.figure()
     plt.plot(data)
     plt.savefig(os.path.join("yancheng/datasets/results", "total_by_day.png"), dpi=300)
@@ -50,7 +53,7 @@ def get_features():
     log.info("{}".format(corr))
     data_grouped = data.groupby(by='week')
     for i, j in data_grouped:
-        j.to_csv("yancheng/datasets/results/{}.csv".format(i), index=None)
+        j.to_csv("yancheng/datasets/results/week/{}.csv".format(i), index=None)
 
 
 def ex_data_find():
@@ -71,24 +74,18 @@ def ex_data_find():
 
 
 def conact():
-    df = []
+    fw = open("yancheng/datasets/results/train/total_by_day_ex.csv", 'a+')
     save_root = 'yancheng/datasets/results/train/week_ex'
     for f in os.listdir(save_root):
         f_name = os.path.join(save_root, f)
         with open(f_name, 'r') as fr:
             lines = fr.readlines()
             for line in lines:
-                rows = {'date': line.strip().split(",")[0], 'week': line.strip().split(",")[1],
-                        'cnt': line.strip().split(",")[2]}
-                df.append(rows)
-
-    df = pd.DataFrame(df)
-    df.columns = ['date', 'week', 'cnt']
-    df = df.sort_values(by='date')
-    df.to_csv("yancheng/datasets/results/train/total_by_day_ex.csv", index=None)
+                rows = "{},{},{}".format(line.strip().split(",")[0], line.strip().split(",")[1], line.strip().split(",")[2])
+                fw.writelines(rows+"\n")
 
 
-def sorted_df(by='cnt'):
+def sorted_df(by='date'):
     data = pd.read_csv("yancheng/datasets/results/train/total_by_day_ex.csv")
 
     data = data.sort_values(by=by)
@@ -96,11 +93,12 @@ def sorted_df(by='cnt'):
 
 
 def get_features_corr():
-    data = pd.read_csv(os.path.join("yancheng/datasets/results", "total_by_day_ex_sorted.csv"))
+    data = pd.read_csv(os.path.join("yancheng/datasets/results/train", "total_by_day_ex_sorted.csv"))
     X = data['cnt']
     y = data['week']
     corr = np.corrcoef(X, y)
     log.info("{}".format(corr))
+
 
 if __name__ == '__main__':
     import sys
@@ -122,6 +120,8 @@ if __name__ == '__main__':
     if method == 'four':
         ex_data_find()
     if method == 'five':
-        sorted_df()
+        conact()
     if method == 'six':
+        sorted_df()
+    if method == 'seven':
         get_features_corr()

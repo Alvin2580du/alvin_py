@@ -6,6 +6,7 @@ from sklearn import preprocessing
 from sklearn.externals import joblib
 import random
 from tqdm import tqdm
+from sklearn.metrics import mean_squared_error
 
 from pyduyp.logger.log import log
 from sklearn.gaussian_process import GaussianProcessRegressor
@@ -16,25 +17,35 @@ scalar = StandardScaler()
 
 
 def linear_model():
-    data = pd.read_csv("./datasets/results/data_train.csv")
-    lm = LinearRegression()
+    data = pd.read_csv("./datasets/results/train/total_by_day_ex_sorted.csv")
     x, y = data['week'].values, data['cnt'].values
-    train_x = np.array(x[: int(len(x) * 0.7)]).reshape(722, 1)
-    train_y = np.array(y[: int(len(x) * 0.7)]).reshape(722, )
-    train_x = preprocessing.scale(train_x)
-    train_y = preprocessing.scale(train_y)
+    train_x = np.array(x[: int(len(x) * 0.8)]).reshape(782, 1)
+    train_y = np.array(y[: int(len(x) * 0.8)]).reshape(782, )
+    test_x = np.array(x[int(len(x)*0.8):]).reshape(196, 1)
+    test_y = np.array(x[int(len(x)*0.8):]).reshape(196,)
+
+    scaler = preprocessing.StandardScaler().fit(train_x)
+    train_x = scaler.transform(train_x).reshape(782, 1)
+
+    scaler = preprocessing.StandardScaler().fit(train_y)
+    train_y = scaler.transform(train_y).reshape(782, )
+
+    lm = LinearRegression()
+
     lm.fit(train_x, train_y)
     joblib.dump(lm, "./datasets/results/linear_model.m")
-
-    data = pd.read_csv("./datasets/test_A_20171225.txt", sep="\t")
-    test_x = data['day_of_week'].values.reshape(len(data), 1)
-    mean_y, std_y = np.mean(test_x), np.std(test_x)
-
-    test_x_scaled = preprocessing.scale(test_x)
-    p = lm.predict(test_x_scaled)
-    print(p)
-    p_real = p * std_y + mean_y
-    print(p_real)
+    score = lm.score(test_x, test_y)
+    mse = mean_squared_error(test_y, lm.predict(test_x))
+    log.info("{}, {}".format(score, mse))
+    # data = pd.read_csv("./datasets/test_A_20171225.txt", sep="\t")
+    # test_x = data['day_of_week'].values.reshape(len(data), 1)
+    # mean_y, std_y = np.mean(test_x), np.std(test_x)
+    #
+    # test_x_scaled = preprocessing.scale(test_x)
+    # p = lm.predict(test_x_scaled)
+    # print(p)
+    # p_real = p * std_y + mean_y
+    # print(p_real)
 
 
 def inear_model_t():
@@ -97,10 +108,9 @@ def GP_test():
         p = reg.predict(data_predict)[0]
         predicts.append(int(p))
 
-    print(predicts)
     out['predict'] = predicts
     out.to_csv("./datasets/results/predicts_A.csv", index=None)
 
 
 if __name__ == "__main__":
-    GP()
+    linear_model()
