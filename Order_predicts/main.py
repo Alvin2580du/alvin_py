@@ -14,7 +14,7 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.cross_validation import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
-from sklearn.ensemble import AdaBoostClassifier
+from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.neighbors import NearestNeighbors
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
@@ -108,7 +108,7 @@ def train_models(model_name, epoch=5, batch_size=100):
                                     random_state=0, selection='cyclic')
             elif model_name == 'logistic':
                 clf_weights = LogisticRegression(penalty='l2', dual=False, tol=1e-4, C=1.0,
-                                                 fit_intercept=True, intercept_scaling=1, class_weight={1: 10},
+                                                 fit_intercept=True, intercept_scaling=1, class_weight={0: 0.1, 1: 0.9},
                                                  random_state=0, solver='newton-cg', max_iter=100,
                                                  multi_class='ovr', verbose=0, warm_start=False, n_jobs=1)
             elif model_name == 'mlpr':
@@ -130,10 +130,21 @@ def train_models(model_name, epoch=5, batch_size=100):
                                                      max_features="auto", max_leaf_nodes=None,
                                                      min_impurity_decrease=0., min_impurity_split=None,
                                                      bootstrap=True, oob_score=False, n_jobs=1, random_state=0,
-                                                     verbose=0, warm_start=False, class_weight={1: 10})
+                                                     verbose=0, warm_start=False, class_weight={0: 0.1, 1: 0.9})
             elif model_name == 'adaboost':
-                base_estimator = RandomForestClassifier()
-                clf_weights = AdaBoostClassifier(base_estimator=base_estimator, n_estimators=50, learning_rate=0.05,
+                base_estimator = RandomForestClassifier(n_estimators=20, criterion="entropy",
+                                                        max_depth=None, min_samples_split=2,
+                                                        min_samples_leaf=1, min_weight_fraction_leaf=0.,
+                                                        max_features="auto", max_leaf_nodes=None,
+                                                        min_impurity_decrease=0., min_impurity_split=None,
+                                                        bootstrap=True, oob_score=False, n_jobs=1, random_state=0,
+                                                        verbose=0, warm_start=False, class_weight={0: 0.1, 1: 0.9})
+                base_estimator1 = LogisticRegression(penalty='l2', dual=False, tol=1e-4, C=1.0,
+                                                     fit_intercept=True, intercept_scaling=1,
+                                                     class_weight={0: 0.1, 1: 0.9},
+                                                     random_state=0, solver='newton-cg', max_iter=100,
+                                                     multi_class='ovr', verbose=0, warm_start=False, n_jobs=1)
+                clf_weights = AdaBoostClassifier(base_estimator=base_estimator, n_estimators=50, learning_rate=0.6666,
                                                  algorithm='SAMME.R', random_state=0)
 
             elif model_name == 'gbr':
@@ -179,6 +190,10 @@ def train_models(model_name, epoch=5, batch_size=100):
                                               stop_n_inliers=np.inf, stop_score=np.inf,
                                               stop_probability=0.99, residual_metric=None,
                                               loss='absolute_loss', random_state=0)
+            elif model_name == 'adar':
+                clf_weights = AdaBoostRegressor(base_estimator=None, n_estimators=50,
+                                                learning_rate=1., loss='linear', random_state=None)
+
             else:  # model_name == 'SGDR':
                 clf_weights = SGDRegressor(loss="squared_loss", penalty="l2", alpha=0.0001,
                                            l1_ratio=0.15, fit_intercept=True, max_iter=None, tol=None,
@@ -213,16 +228,16 @@ def modeltest(model_name):
     ids = data['id'].values.tolist()
     df_push = pd.DataFrame()
     linenumber = 0
-    clf_weights = joblib.load("Order_predicts/datasets/results/models/{}/44_800.model".format(model_name))
+    clf_weights = joblib.load("Order_predicts/datasets/results/models/{}/42_760.model".format(model_name))
 
     for i in tqdm(ids):
         batch_x = data[data['id'].isin([i])]
         del batch_x['id']
-        # p = clf_weights.predict(batch_x.values)
-        prob = clf_weights.predict_proba(batch_x.values)[0]
-        max_prob = np.max(prob)
-        df_push.loc[linenumber, 'userid'] = i
-        df_push.loc[linenumber, 'orderType'] = max_prob
+        p = clf_weights.predict(batch_x.values)
+        prob = clf_weights.predict_proba(batch_x.values)[0][1]
+        # log.info("{}, {:0.8f}".format(p[0], prob))
+        df_push.loc[linenumber, 'userid'] = int(i)
+        df_push.loc[linenumber, 'orderType'] = "{:0.8f}".format(prob)
         linenumber += 1
 
     df_push.to_csv("Order_predicts/datasets/results_push.csv", index=None)
@@ -242,6 +257,6 @@ if __name__ == "__main__":
                    'lda', 'n_n', 'gnb', 'bnb', 'dcc', 'RAN', 'SGDR']
         log.info("Total number models: {}".format(len(m_names)))
 
-        train_models(model_name='adaboost', epoch=50, batch_size=2000)
+        train_models(model_name='logistic', epoch=50, batch_size=2000)
     if method == "test":
-        modeltest(model_name='adaboost')
+        modeltest(model_name='logistic')
