@@ -11,7 +11,7 @@ from scipy import stats
 import statsmodels.api as sm  # 统计相关的库
 import matplotlib.pyplot as plt
 import arch  # 条件异方差模型相关的库
-
+# import bt
 from pyduyp.logger.log import log
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
@@ -149,47 +149,39 @@ def arma():
     cnt = data['cnt'].values
     length = len(data)
     dates = pd.date_range('1/1/2015', periods=length, freq='D')
+    predict_dates = pd.date_range('2017-10-28', periods=276, freq='D')
+
     df = pd.DataFrame(data=cnt, index=dates, dtype=np.float32)
     df.columns = ['cnt']
     df.to_csv("yancheng/datasets/results/cnt.csv")
     df.index = pd.DatetimeIndex(df.index)
     dta = df['cnt']
-    arma_mod20 = sm.tsa.ARMA(dta, (7, 0)).fit()
-    print(arma_mod20.aic, arma_mod20.bic, arma_mod20.hqic)
-    print("= "*20)
-    arma_mod30 = sm.tsa.ARMA(dta, (8, 1)).fit()
-    print(arma_mod30.aic, arma_mod30.bic, arma_mod30.hqic)
-    print("= "*20)
-
-    arma_mod40 = sm.tsa.ARMA(dta, (10, 1)).fit()
-    print(arma_mod40.aic, arma_mod40.bic, arma_mod40.hqic)
-    print("= "*20)
-
-    arma_mod50 = sm.tsa.ARMA(dta, (12, 0)).fit()
-    print(arma_mod50.aic, arma_mod50.bic, arma_mod50.hqic)
-    exit(1)
-    # aic，bic，hqic均最小，因此是最佳模型。
-    # at = data2shift - arma_mod20.fittedvalues
-    # at2 = np.square(at)
-    # plt.figure(figsize=(10, 6))
-    # plt.subplot(211)
-    # plt.plot(at, label='at')
-    # plt.legend()
-    # plt.subplot(212)
-    # plt.plot(at2, label='at^2')
-    # plt.legend(loc=0)
-    # plt.savefig("yancheng/datasets/arma.png")
-    fig = plt.figure(figsize=(12, 8))
-    ax1 = fig.add_subplot(211)
-    fig = sm.graphics.tsa.plot_acf(arma_mod50.resid.values.squeeze(), lags=40, ax=ax1)
-    ax2 = fig.add_subplot(212)
-    fig = sm.graphics.tsa.plot_pacf(arma_mod50.resid, lags=40, ax=ax2)
+    arma_mod12 = sm.tsa.ARMA(dta, (12, 0)).fit()
     # 模型预测
-    predict_sunspots = arma_mod20.predict('2090', '2100', dynamic=True)
-    print(predict_sunspots)
-    fig, ax = plt.subplots(figsize=(12, 8))
-    ax = dta.ix['2001':].plot(ax=ax)
-    predict_sunspots.plot(ax=ax)
+    predict_sunspots = arma_mod12.predict('28/10/2017', '30/7/2018', dynamic=True).values
+    predicts_data = pd.read_csv("yancheng/datasets/test_A_20171225.txt", sep='\t')
+    predicts_data['cnt'] = predict_sunspots
+
+    predicts_data.to_csv("yancheng/datasets/results/arma_predicts.csv", index=None)
+
+
+def arch_model():
+    train = pd.read_csv("yancheng/datasets/results/total_by_day.csv", usecols=['cnt']).values.tolist()
+    X = [j for i in train for j in i]
+    train_x = []
+    length = len(X)
+    for i in range(1, length):
+        cha = (X[i] - X[i-1])/X[i-1]
+        train_x.append(cha)
+
+    am = arch.arch_model(train_x, x=None, mean='ARX', lags=0, vol='Garch', p=1, o=0, q=1,
+                         power=2.0, dist='Normal', hold_back=1)
+    res = am.fit()
+    summ = res.summary()
+    print(summ)
+    parms = res.params
+    print(parms)
+    res.hedgehog_plot()
 
 
 if __name__ == "__main__":
@@ -206,3 +198,6 @@ if __name__ == "__main__":
 
     if method == 'state':
         arma()
+
+    if method == 'arch':
+        arch_model()
