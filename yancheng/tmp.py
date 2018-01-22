@@ -2,7 +2,7 @@ import pandas as pd
 
 from glob import glob
 from collections import Counter
-import statsmodels.api as sm
+# import statsmodels.api as sm
 import os
 import matplotlib.pyplot as plt
 
@@ -215,6 +215,14 @@ def plot_total():
     plt.plot(data.values)
     plt.savefig("./datasets/results/total.png")
 
+    data = pd.read_csv("./datasets/results/train/total_by_day_ex_sorted.csv", usecols=['cnt']).values
+    length = len(data)
+    for i in range(length):
+        if i+1<length:
+            c = data[i+1] - data[i]
+            print(c)
 
-if __name__ == "__main__":
-    plot_total()
+
+data = pd.read_csv("./datasets/train_20171215.txt", sep='\t', usecols=['date', 'day_of_week', 'cnt'])
+data.to_csv("/home/duyp/data.csv", index=None)
+

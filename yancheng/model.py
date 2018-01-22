@@ -7,6 +7,10 @@ from sklearn.externals import joblib
 import random
 from tqdm import tqdm
 from sklearn.metrics import mean_squared_error
+from scipy import stats
+import statsmodels.api as sm  # 统计相关的库
+import matplotlib.pyplot as plt
+import arch  # 条件异方差模型相关的库
 
 from pyduyp.logger.log import log
 from sklearn.gaussian_process import GaussianProcessRegressor
@@ -17,12 +21,12 @@ scalar = StandardScaler()
 
 
 def linear_model():
-    data = pd.read_csv("./datasets/results/train/total_by_day_ex_sorted.csv")
+    data = pd.read_csv("yancheng/datasets/results/train/total_by_day_ex_sorted.csv")
     x, y = data['week'].values, data['cnt'].values
     train_x = np.array(x[: int(len(x) * 0.8)]).reshape(782, 1)
-    train_y = np.array(y[: int(len(x) * 0.8)]).reshape(782, )
-    test_x = np.array(x[int(len(x)*0.8):]).reshape(196, 1)
-    test_y = np.array(x[int(len(x)*0.8):]).reshape(196,)
+    train_y = np.array(y[: int(len(x) * 0.8)]).reshape(782, 1)
+    test_x = np.array(x[int(len(x) * 0.8):]).reshape(196, 1)
+    test_y = np.array(x[int(len(x) * 0.8):]).reshape(196, )
 
     scaler = preprocessing.StandardScaler().fit(train_x)
     train_x = scaler.transform(train_x).reshape(782, 1)
@@ -33,24 +37,32 @@ def linear_model():
     lm = LinearRegression()
 
     lm.fit(train_x, train_y)
-    joblib.dump(lm, "./datasets/results/linear_model.m")
+    joblib.dump(lm, "yancheng/datasets/results/linear_model.m")
     score = lm.score(test_x, test_y)
     mse = mean_squared_error(test_y, lm.predict(test_x))
+    # log.info("{}".format(score, mse))
+
     log.info("{}, {}".format(score, mse))
-    # data = pd.read_csv("./datasets/test_A_20171225.txt", sep="\t")
-    # test_x = data['day_of_week'].values.reshape(len(data), 1)
-    # mean_y, std_y = np.mean(test_x), np.std(test_x)
-    #
-    # test_x_scaled = preprocessing.scale(test_x)
-    # p = lm.predict(test_x_scaled)
-    # print(p)
-    # p_real = p * std_y + mean_y
-    # print(p_real)
+
+
+def lineartest():
+    lm = joblib.load("yancheng/datasets/results/linear_model.m")
+    data = pd.read_csv("yancheng/datasets/test_A_20171225.txt", sep="\t")
+    test_x = data['day_of_week'].values.reshape(len(data), 1)
+    mean_y, std_y = np.mean(test_x), np.std(test_x)
+
+    test_x_scaled = preprocessing.scale(test_x)
+    p = lm.predict(test_x_scaled)
+    print(p)
+    # prob = lm.predict_proba(test_x_scaled)
+    # log.info("{}".format(prob))
+    p_real = p * std_y + mean_y
+    print(p_real)
 
 
 def inear_model_t():
-    lm = joblib.load("./datasets/results/linear_model.m")
-    data = pd.read_csv("./datasets/test_A_20171225.txt", sep="\t")
+    lm = joblib.load("yancheng/datasets/results/linear_model.m")
+    data = pd.read_csv("yancheng/datasets/test_A_20171225.txt", sep="\t")
     test_x = data['day_of_week'].values.reshape(len(data), 1)
 
     test_x_scaled = preprocessing.scale(test_x)
@@ -112,5 +124,85 @@ def GP_test():
     out.to_csv("./datasets/results/predicts_A.csv", index=None)
 
 
+def plot_acf():
+    data = pd.read_csv("yancheng/datasets/results/total_by_day.csv", usecols=['cnt']).values
+    data2series = [j for i in data.tolist() for j in i]
+    data2shift = pd.Series(data2series)
+    t = sm.tsa.stattools.adfuller(data2shift)
+    print("p-value: {:.07f}  ".format(t[1]))
+    fig = plt.figure(figsize=(20, 5))
+    ax1 = fig.add_subplot(111)
+    fig = sm.graphics.tsa.plot_pacf(data2shift, lags=20, ax=ax1)
+    fig.savefig("yancheng/datasets/acf.png")
+    order = (12, 0)
+
+    # m = 25  # 我们检验25个自相关系数
+    # acf, q, p = sm.tsa.acf(at2, nlags=m, qstat=True)  ## 计算自相关系数 及p-value
+    # out = np.c_[range(1, 26), acf[1:], q, p]
+    # output = pd.DataFrame(out, columns=['lag', "AC", "Q", "P-value"])
+    # output = output.set_index('lag')
+    # print(output)
+
+
+def arma():
+    data = pd.read_csv("yancheng/datasets/results/total_by_day.csv")
+    cnt = data['cnt'].values
+    length = len(data)
+    dates = pd.date_range('1/1/2015', periods=length, freq='D')
+    df = pd.DataFrame(data=cnt, index=dates, dtype=np.float32)
+    df.columns = ['cnt']
+    df.to_csv("yancheng/datasets/results/cnt.csv")
+    df.index = pd.DatetimeIndex(df.index)
+    dta = df['cnt']
+    arma_mod20 = sm.tsa.ARMA(dta, (7, 0)).fit()
+    print(arma_mod20.aic, arma_mod20.bic, arma_mod20.hqic)
+    print("= "*20)
+    arma_mod30 = sm.tsa.ARMA(dta, (8, 1)).fit()
+    print(arma_mod30.aic, arma_mod30.bic, arma_mod30.hqic)
+    print("= "*20)
+
+    arma_mod40 = sm.tsa.ARMA(dta, (10, 1)).fit()
+    print(arma_mod40.aic, arma_mod40.bic, arma_mod40.hqic)
+    print("= "*20)
+
+    arma_mod50 = sm.tsa.ARMA(dta, (12, 0)).fit()
+    print(arma_mod50.aic, arma_mod50.bic, arma_mod50.hqic)
+    exit(1)
+    # aic，bic，hqic均最小，因此是最佳模型。
+    # at = data2shift - arma_mod20.fittedvalues
+    # at2 = np.square(at)
+    # plt.figure(figsize=(10, 6))
+    # plt.subplot(211)
+    # plt.plot(at, label='at')
+    # plt.legend()
+    # plt.subplot(212)
+    # plt.plot(at2, label='at^2')
+    # plt.legend(loc=0)
+    # plt.savefig("yancheng/datasets/arma.png")
+    fig = plt.figure(figsize=(12, 8))
+    ax1 = fig.add_subplot(211)
+    fig = sm.graphics.tsa.plot_acf(arma_mod50.resid.values.squeeze(), lags=40, ax=ax1)
+    ax2 = fig.add_subplot(212)
+    fig = sm.graphics.tsa.plot_pacf(arma_mod50.resid, lags=40, ax=ax2)
+    # 模型预测
+    predict_sunspots = arma_mod20.predict('2090', '2100', dynamic=True)
+    print(predict_sunspots)
+    fig, ax = plt.subplots(figsize=(12, 8))
+    ax = dta.ix['2001':].plot(ax=ax)
+    predict_sunspots.plot(ax=ax)
+
+
 if __name__ == "__main__":
-    linear_model()
+    import sys
+
+    if len(sys.argv) < 2:
+        exit(1)
+
+    method = sys.argv[1]
+    if method == 'train':
+        linear_model()
+    if method == 'test':
+        lineartest()
+
+    if method == 'state':
+        arma()
