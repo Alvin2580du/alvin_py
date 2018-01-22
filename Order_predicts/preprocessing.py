@@ -104,12 +104,14 @@ def get_history(step='train'):
 def get_action_features(step):
     pos_root = 'Order_predicts/datasets/results/{}/action_pos/'.format(step)
     neg_root = 'Order_predicts/datasets/results/{}/action_neg/'.format(step)
+    if step == 'test':
+        neg_root = 'Order_predicts/datasets/results/{}/action/'.format(step)
     if not os.path.exists(pos_root):
         os.makedirs(pos_root)
     if not os.path.exists(neg_root):
         os.makedirs(neg_root)
     for root in [pos_root, neg_root]:
-        if 'pos' in root:
+        if 'pos' in root and step == 'test':
             continue
         base_name = root.split("/")[-2]
         history_path = "Order_predicts/datasets/results/{}/history_{}".format(step, base_name.split('_')[-1])
@@ -218,11 +220,13 @@ if __name__ == "__main__":
 
     method = sys.argv[1]
     if method == 'first':
-        get_pos_action_by_id(step='test')
+        get_pos_action_by_id(step='train')
     if method == 'second':
         get_neg_action_by_id(step='test')
     if method == 'third':
-        get_history(step='test')
+        get_history(step='train')
     if method == 'final':
         for x in ['train', 'test']:
+            if x == 'train':
+                continue
             get_action_features(step=x)
