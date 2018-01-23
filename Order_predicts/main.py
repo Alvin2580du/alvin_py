@@ -233,11 +233,13 @@ def modeltest(model_name):
     for i in tqdm(ids):
         batch_x = data[data['id'].isin([i])]
         del batch_x['id']
-        p = clf_weights.predict(batch_x.values)
-        prob = clf_weights.predict_proba(batch_x.values)[0][1]
-        # log.info("{}, {:0.8f}".format(p[0], prob))
+        try:
+            prob = clf_weights.predict(batch_x.values)
+        except:
+            prob = clf_weights.predict_proba(batch_x.values)[0][1]
+            # log.info("{}, {:0.8f}".format(p[0], prob))
         df_push.loc[linenumber, 'userid'] = int(i)
-        df_push.loc[linenumber, 'orderType'] = "{:0.8f}".format(prob)
+        df_push.loc[linenumber, 'orderType'] = "{}".format(prob)
         linenumber += 1
 
     df_push.to_csv("Order_predicts/datasets/results_push.csv", index=None)
