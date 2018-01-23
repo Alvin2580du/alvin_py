@@ -4,6 +4,7 @@ from elasticsearch import Elasticsearch
 import pandas as pd
 from tqdm import tqdm
 import os
+from elasticsearch.helpers import bulk
 
 from pyduyp.logger.log import log
 from pyduyp.utils.utils import replace_symbol
@@ -90,3 +91,44 @@ def message_Clustering():
 
             log.info("{}".format(save_path))
             df.to_csv(save_path, index=None)
+
+
+def save_question_45_to_es(index_name="question_cd_update"):
+    # 批量插入
+    try:
+        es.indices.delete(index_name)
+        log.info("{} have delete ".format(index_name))
+        setting = {"number_of_shards": 6, "number_of_replicas": 0}
+        mapping = {"timestamp": {"enabled": "true"},
+                   "properties": {"logdate": {"type": "date", "format": "dd/MM/yyy HH:mm:ss"}}}
+
+        settings = {"settings": setting, "mapping": mapping}
+        es.indices.create(index=index_name, ignore=400, body=settings)
+    except:
+        pass
+
+    file_dir = "antbot/datasets/city_questions_740432.csv"
+    if not os.path.isfile(file_dir):
+        raise FileNotFoundError("没有数据文件")
+    data = pd.read_csv(file_dir).values.tolist()
+
+    line_number = 0
+    all_data = []
+    source = ''
+    for m in tqdm(data):
+        body = {
+            '_index': '{}'.format(index_name),
+            '_type': 'post',
+            '_id': id,
+            '_source': source
+        }
+        all_data.append(body)
+        line_number += 1
+        if line_number % 10000 == 0:
+            try:
+                success, _ = bulk(es, all_data, index=index_name, raise_on_error=True)
+                all_data = []
+                log.info(
+                    "==================== success :{}/{} ====================".format(line_number, len(data)))
+            except Exception as e:
+                log.debug("\n 存储失败！ ")
