@@ -12,6 +12,9 @@ import statsmodels.api as sm  # 统计相关的库
 import matplotlib.pyplot as plt
 import arch  # 条件异方差模型相关的库
 # import bt
+from scipy.fftpack import fft, ifft, ifftn, dct, idct, dst, idst
+from scipy.fftpack import fftfreq, fftshift, rfft, irfft
+
 from pyduyp.logger.log import log
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
@@ -158,7 +161,7 @@ def arma():
     dta = df['cnt']
     arma_mod12 = sm.tsa.ARMA(dta, (12, 0)).fit()
     # 模型预测
-    predict_sunspots = arma_mod12.predict('28/10/2017', '30/7/2018', dynamic=True).values
+    predict_sunspots = arma_mod12.predict(start='28/10/2017', end='30/7/2018', dynamic=True).values
     predicts_data = pd.read_csv("yancheng/datasets/test_A_20171225.txt", sep='\t')
     predicts_data['cnt'] = predict_sunspots
 
@@ -171,7 +174,7 @@ def arch_model():
     train_x = []
     length = len(X)
     for i in range(1, length):
-        cha = (X[i] - X[i-1])/X[i-1]
+        cha = (X[i] - X[i - 1]) / X[i - 1]
         train_x.append(cha)
 
     am = arch.arch_model(train_x, x=None, mean='ARX', lags=0, vol='Garch', p=1, o=0, q=1,
@@ -182,6 +185,31 @@ def arch_model():
     parms = res.params
     print(parms)
     res.hedgehog_plot()
+
+
+def ar():
+    data = pd.read_csv("yancheng/datasets/results/total_by_day.csv")
+    cnt = data['cnt'].values
+    length = len(data)
+    dates = pd.date_range('1/1/2015', periods=length, freq='D')
+    df = pd.DataFrame(data=cnt, index=dates, dtype=np.float32)
+    df.columns = ['cnt']
+    df.index = pd.DatetimeIndex(df.index)
+    dta = df['cnt']
+    mod_ar2 = sm.tsa.SARIMAX(dta, order=(2, 0, 0))
+    res_ar2 = mod_ar2.fit()
+    # print(res_ar2.summary())
+    mod_sarimax = sm.tsa.SARIMAX(dta, order=(1, 1, 1), seasonal_order=(0, 1, 1, 4))
+    res_sarimax = mod_sarimax.fit()
+    print(res_sarimax.summary())
+
+
+def fft_study():
+    x = np.array([1.0, 2.0, 1.0, -1.0, 1.5])
+    y = fft(x)
+    print(y[0].real)
+    yinv = ifft(y)
+    print(yinv)
 
 
 if __name__ == "__main__":
@@ -196,8 +224,14 @@ if __name__ == "__main__":
     if method == 'test':
         lineartest()
 
-    if method == 'state':
+    if method == 'arma':
         arma()
 
     if method == 'arch':
         arch_model()
+
+    if method == 'ar':
+        ar()
+
+    if method == 'fft':
+        fft_study()
