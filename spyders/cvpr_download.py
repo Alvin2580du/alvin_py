@@ -38,5 +38,9 @@ def down_load_cvpr():
         pass
 
 
+urls = 'http://life.city8090.com/chengdu/daoluming/more'
+auto_down(urls, filename='street.txt')
+
 if __name__ == "__main__":
-    down_load_cvpr()
+    urls = 'http://life.city8090.com/chengdu/daoluming/more'
+    auto_down(urls, filename='street.txt')
