@@ -3,9 +3,15 @@ import jieba
 import re
 import jieba.analyse
 import jieba.posseg
+import pandas as pd
 
 
 from pyduyp.utils.utils import replace_symbol
+
+jieba.load_userdict("chinese_segment/dictionary/jieba_dict.csv")
+jieba.analyse.set_stop_words("chinese_segment/dictionary/stopwords_zh.csv")
+sw = pd.read_csv("chinese_segment/dictionary/stopwords_zh.csv", lineterminator="\n").values.tolist()
+sw2list = [j for i in sw for j in i]
 
 
 def final():
