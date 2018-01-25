@@ -1,11 +1,18 @@
 import os
-from  tqdm import tqdm
+from tqdm import tqdm
 import urllib.request
 import re
 
 
-def gongjiao_spyder():
+# http://life.city8090.com/chengdu/daoluming/more
+def street_spyder():
+    urls = 'http://life.city8090.com/chengdu/daoluming/more'
+    res = urllib.request.urlopen(urls).read().decode("utf-8")
+    res2str = str(res).replace(" ", "").replace("\n", "")
+    print(res2str)
 
+
+def gongjiao_spyder():
     urls = []
     with open("./datasets/urls", 'r') as fr:
         lines = fr.readlines()
@@ -62,5 +69,8 @@ def find_gongjiaozhan():
                     continue
                 out.append(x)
 
-    for  x in out:
-        fw.writelines(x+"\n")
+    for x in out:
+        fw.writelines(x + "\n")
+
+
+street_spyder()
