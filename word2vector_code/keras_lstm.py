@@ -16,14 +16,9 @@ import pdb
     from here: http://www.fit.vutbr.cz/~imikolov/rnnlm/simple-examples.tgz. Change the
     data_path variable below to your local exraction path"""
 
-data_path = "C:\\Users\Andy\Documents\simple-examples\data"
+run_opt = 1
+data_path = 'word2vector_code'
 
-parser = argparse.ArgumentParser()
-parser.add_argument('run_opt', type=int, default=1, help='An integer: 1 to train, 2 to test')
-parser.add_argument('--data_path', type=str, default=data_path, help='The full path of the training data')
-args = parser.parse_args()
-if args.data_path:
-    data_path = args.data_path
 
 def read_words(filename):
     with tf.gfile.GFile(filename, "r") as f:
@@ -67,7 +62,10 @@ def load_data():
     print(" ".join([reversed_dictionary[x] for x in train_data[:10]]))
     return train_data, valid_data, test_data, vocabulary, reversed_dictionary
 
+
 train_data, valid_data, test_data, vocabulary, reversed_dictionary = load_data()
+print(train_data)
+exit(1)
 
 
 class KerasBatchGenerator(object):
@@ -102,7 +100,7 @@ class KerasBatchGenerator(object):
                 # convert all of temp_y into a one hot representation
                 # temp_y_2 = np.zeros((self.target_size, self.vocabulary))
                 # for j in range(self.target_size):
-                 #   temp_y_2[i, j, temp_y[i, j]] = 1
+                #   temp_y_2[i, j, temp_y[i, j]] = 1
                 # now reshape to feed to softmax output layer, size = target_size * vocabulary
                 # y[i, :] = np.reshape(temp_y_2, (1, self.target_size * self.vocabulary))
                 y[i, :, :] = to_categorical(temp_y[i, :], num_classes=self.vocabulary)
@@ -110,26 +108,7 @@ class KerasBatchGenerator(object):
                 self.current_idx += self.skip_step
             yield x, y
 
-num_steps = 15
-target_size = 5
-batch_size = 20
-train_data_generator = KerasBatchGenerator(train_data, num_steps, target_size, batch_size, vocabulary,
-                                           skip_step=num_steps)
-valid_data_generator = KerasBatchGenerator(valid_data, num_steps, target_size, batch_size, vocabulary,
-                                           skip_step=num_steps)
-test_data_generator = KerasBatchGenerator(test_data, num_steps, target_size, batch_size, vocabulary,
-                                          skip_step=num_steps)
 
-hidden_layers = 300
-
-model = Sequential()
-model.add(Embedding(vocabulary, hidden_layers, input_length=num_steps))
-model.add(LSTM(hidden_layers, return_sequences=True))
-# model.add(LSTM(hidden_layers, return_sequences=True))
-model.add(Dropout(0.2))
-model.add(Reshape((target_size, -1)))
-model.add(TimeDistributed(Dense(vocabulary)))
-model.add(Activation('softmax'))
 # model.add(Reshape((target_size*vocabulary,)))
 
 def our_accuracy(y_true, y_pred, target_size=10):
@@ -138,34 +117,52 @@ def our_accuracy(y_true, y_pred, target_size=10):
     # pdb.set_trace()
     return K.mean(K.equal(K.argmax(y_true, axis=-1), K.argmax(y_pred, axis=-1)))
 
+
 def loss(y_true, y_pred, target_size=10):
     y_true = K.reshape(y_true, (target_size, -1))
     y_pred = K.reshape(y_pred, (target_size, -1))
 
 
-# optimizer = RMSprop(lr=0.001)
-# optimizer = SGD(lr=1.0)
-optimizer = Adam()
-model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['categorical_accuracy'])
+def train():
+    num_steps = 15
+    target_size = 5
+    batch_size = 20
+    train_data_generator = KerasBatchGenerator(train_data, num_steps, target_size, batch_size, vocabulary,
+                                               skip_step=num_steps)
+    valid_data_generator = KerasBatchGenerator(valid_data, num_steps, target_size, batch_size, vocabulary,
+                                               skip_step=num_steps)
+    test_data_generator = KerasBatchGenerator(test_data, num_steps, target_size, batch_size, vocabulary,
+                                              skip_step=num_steps)
 
-print(model.summary())
+    hidden_layers = 300
 
-num_epochs = 50
-if args.run_opt == 1:
-    model.fit_generator(train_data_generator.generate(), len(train_data)//(batch_size*num_steps), num_epochs,
-                        validation_data=valid_data_generator.generate(),
-                        validation_steps=len(valid_data)//(batch_size*num_steps))
-    # model.fit_generator(train_data_generator.generate(), 2000, num_epochs,
-    #                     validation_data=valid_data_generator.generate(),
-    #                     validation_steps=10)
-    model.save(data_path + "model.h5")
-elif args.run_opt == 2:
-    model = load_model(data_path + "model.h5")
-    prediction = model.predict_generator(train_data_generator.generate(),steps=1)
-    pdb.set_trace()
-    x=1
+    model = Sequential()
+    model.add(Embedding(vocabulary, hidden_layers, input_length=num_steps))
+    model.add(LSTM(hidden_layers, return_sequences=True))
+    # model.add(LSTM(hidden_layers, return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(Reshape((target_size, -1)))
+    model.add(TimeDistributed(Dense(vocabulary)))
+    model.add(Activation('softmax'))
 
+    # optimizer = RMSprop(lr=0.001)
+    # optimizer = SGD(lr=1.0)
+    optimizer = Adam()
+    model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['categorical_accuracy'])
 
+    print(model.summary())
 
-
-
+    num_epochs = 50
+    if args.run_opt == 1:
+        model.fit_generator(train_data_generator.generate(), len(train_data) // (batch_size * num_steps), num_epochs,
+                            validation_data=valid_data_generator.generate(),
+                            validation_steps=len(valid_data) // (batch_size * num_steps))
+        # model.fit_generator(train_data_generator.generate(), 2000, num_epochs,
+        #                     validation_data=valid_data_generator.generate(),
+        #                     validation_steps=10)
+        model.save(data_path + "model.h5")
+    elif args.run_opt == 2:
+        model = load_model(data_path + "model.h5")
+        prediction = model.predict_generator(train_data_generator.generate(), steps=1)
+        pdb.set_trace()
+        x = 1
