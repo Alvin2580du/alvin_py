@@ -2,6 +2,8 @@ import random
 
 import jieba
 import collections
+import zipfile
+import tensorflow as tf
 
 
 def skipgrams(sequence, vocabulary_size, window_size=4, negative_samples=1., shuffle=True,
@@ -71,12 +73,20 @@ def build_dataset(words, n_words):
     return data, count, dictionary, reversed_dictionary
 
 
+def read_data(filename):
+
+    with zipfile.ZipFile(filename) as f:
+
+        data = tf.compat.as_str(f.read(f.namelist()[0])).split()
+    return data
+
+
 if __name__ == "__main__":
     seq = '那个布拉格的房间是不是有小阳台'
     seq_cut = jieba.lcut(seq)
-    print(seq_cut)
     seq = " ".join(seq_cut)
     couples, labels = skipgrams(seq, vocabulary_size=2)
     data, count, dictionary, reversed_dictionary = build_dataset(seq_cut, 6)
-    print(dictionary)
+    data = read_data('test.zip')
+    print(data)
 
