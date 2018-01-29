@@ -4,38 +4,18 @@ data_path = "C:\\Users\Andy\PycharmProjects\data\cifar-10-batches-bin\\"
 
 
 def FIFO_queue_demo_no_coord():
-    # first let's create a simple random normal Tensor to act as dummy input data
-    # this operation should be run more than once, everytime the queue needs filling
-    # back up.  However, it isn't in this case, because of our lack of a co-ordinator/
-    # proper threading
     dummy_input = tf.random_normal([3], mean=0, stddev=1)
-    # let's print so we can see when this operation is called
-    dummy_input = tf.Print(dummy_input, data=[dummy_input],
-                           message='New dummy inputs have been created: ', summarize=6)
-    # create a FIFO queue object
+    dummy_input = tf.Print(dummy_input, data=[dummy_input], message='New dummy inputs have been created: ', summarize=6)
     q = tf.FIFOQueue(capacity=3, dtypes=tf.float32)
-    # load up the queue with our dummy input data
     enqueue_op = q.enqueue_many(dummy_input)
-    # grab some data out of the queue
+
     data = q.dequeue()
-    # now print how much is left in the queue
     data = tf.Print(data, data=[q.size()], message='This is how many items are left in q: ')
-    # create a fake graph that we can call upon
     fg = data + 1
-    # now run some operations
     with tf.Session() as sess:
-        # first load up the queue
         sess.run(enqueue_op)
-        # now dequeue a few times, and we should see the number of items
-        # in the queue decrease
         sess.run(fg)
-        sess.run(fg)
-        sess.run(fg)
-        # by this stage the queue will be emtpy, if we run the next time, the queue
-        # will block waiting for new data
-        sess.run(fg)
-        # this will never print:
-        print("We're here!")
+
 
 def FIFO_queue_demo_with_coord():
     # first let's create a simple random normal Tensor to act as dummy input data
@@ -162,6 +142,7 @@ def cifar_shuffle_queue_batch(image, label, batch_size, capacity, min_after_dequ
     image_batch, label_batch = q.dequeue_many(batch_size)
     return image_batch, label_batch
 
+
 def read_data(file_q):
     # Code from https://github.com/tensorflow/models/blob/master/tutorials/image/cifar10/cifar10_input.py
     class CIFAR10Record(object):
@@ -222,14 +203,12 @@ def read_data(file_q):
 
     return float_image, result.label
 
+
 if __name__ == "__main__":
-    run_opt = 3
+    run_opt = 1
     if run_opt == 1:
         FIFO_queue_demo_no_coord()
     elif run_opt == 2:
         FIFO_queue_demo_with_coord()
     elif run_opt == 3:
         cifar_shuffle_batch()
-
-
-
