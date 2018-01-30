@@ -1,9 +1,15 @@
 import random
-
 import jieba
 import collections
 import zipfile
 import tensorflow as tf
+import itertools
+import os
+import sys
+from gensim.models import word2vec
+
+jieba.load_userdict("./datasets/jieba_dict_sorted.csv")
+root_path = os.path.dirname(os.path.realpath(__file__))
 
 
 def skipgrams(sequence, vocabulary_size, window_size=4, negative_samples=1., shuffle=True,
@@ -74,19 +80,128 @@ def build_dataset(words, n_words):
 
 
 def read_data(filename):
-
     with zipfile.ZipFile(filename) as f:
-
         data = tf.compat.as_str(f.read(f.namelist()[0])).split()
     return data
 
 
-if __name__ == "__main__":
-    seq = '那个布拉格的房间是不是有小阳台'
-    seq_cut = jieba.lcut(seq)
-    seq = " ".join(seq_cut)
-    couples, labels = skipgrams(seq, vocabulary_size=2)
-    data, count, dictionary, reversed_dictionary = build_dataset(seq_cut, 6)
-    data = read_data('test.zip')
-    print(data)
+def make_closing(base, **attrs):
+    if not hasattr(base, '__enter__'):
+        attrs['__enter__'] = lambda self: self
+    if not hasattr(base, '__exit__'):
+        attrs['__exit__'] = lambda self, type, value, traceback: self.close()
+    return type('Closing' + base.__name__, (base, object), attrs)
 
+
+def smart_open(fname, mode='rb'):
+    _, ext = os.path.splitext(fname)
+    if ext == '.bz2':
+        from bz2 import BZ2File
+        return make_closing(BZ2File)(fname, mode)
+    if ext == '.gz':
+        from gzip import GzipFile
+        return make_closing(GzipFile)(fname, mode)
+    return open(fname, mode)
+
+
+if sys.version_info[0] >= 3:
+    unicode = str
+
+
+def any2unicode(text, encoding='utf8', errors='strict'):
+    """Convert a string (bytestring in `encoding` or unicode), to unicode."""
+    if isinstance(text, unicode):
+        return text
+    return unicode(text, encoding, errors=errors)
+
+
+to_unicode = any2unicode
+
+
+class TextBatch(object):
+    """Iterate over sentences from the "text8" corpus, unzipped from http://mattmahoney.net/dc/text8.zip ."""
+    MAX_WORDS_IN_BATCH = 100000
+
+    def __init__(self, fname, max_sentence_length=MAX_WORDS_IN_BATCH):
+        self.fname = fname
+        self.max_sentence_length = max_sentence_length
+
+    def __iter__(self):
+        # the entire corpus is one gigantic line -- there are no sentence marks at all
+        # so just split the sequence of tokens arbitrarily: 1 sentence = 1000 tokens
+        sentence, rest = [], b''
+        with smart_open(self.fname) as fin:
+            while True:
+                text = rest + fin.readline()  # avoid loading the entire file (=1 line) into RAM
+                if text == rest:  # EOF
+                    words = to_unicode(text).split()
+                    sentence.extend(words)  # return the last chunk of words, too (may be shorter/longer)
+                    if sentence:
+                        yield sentence
+                    break
+                last_token = text.rfind(b' ')  # last token may have been split in two... keep for next iteration
+                words, rest = (
+                    to_unicode(text[:last_token]).split(), text[last_token:].strip()) if last_token >= 0 else ([], text)
+                sentence.extend(words)
+                while len(sentence) >= self.max_sentence_length:
+                    yield sentence[:self.max_sentence_length]
+                    sentence = sentence[self.max_sentence_length:]
+
+
+def convert_data_to_index(string_data, wv):
+    index_data = []
+    for word in string_data:
+        if word in wv:
+            index_data.append(wv.vocab[word].index)
+    return index_data
+
+
+class LineSentence(object):
+    MAX_WORDS_IN_BATCH = 1000
+
+    def __init__(self, source, max_sentence_length=MAX_WORDS_IN_BATCH, limit=None):
+        self.source = source
+        self.max_sentence_length = max_sentence_length
+        self.limit = limit
+
+    def __iter__(self):
+        try:
+            self.source.seek(0)
+            for line in itertools.islice(self.source, self.limit):
+                line = to_unicode(line).split()
+                i = 0
+                while i < len(line):
+                    yield line[i: i + self.max_sentence_length]
+                    i += self.max_sentence_length
+        except AttributeError:
+            # If it didn't work like a file, use it as a string filename
+            with smart_open(self.source) as fin:
+                for line in itertools.islice(fin, self.limit):
+                    line = to_unicode(line).split()
+                    i = 0
+                    while i < len(line):
+                        yield line[i: i + self.max_sentence_length]
+                        i += self.max_sentence_length
+
+
+if __name__ == "__main__":
+    data_name = 'test'
+    sentences = TextBatch(fname=data_name, max_sentence_length=5)
+    sentences = LineSentence(source=data_name, max_sentence_length=5)
+    for x in sentences:
+        print(x)
+    model = word2vec.Word2Vec(sentences, iter=10, min_count=10, size=300, workers=4)
+    print(model.wv.similarity('方便接待', '有房'), model.wv.similarity('方便接待', '卫生间'))
+
+    print(model.wv['the'])
+    print(model.wv.index2word[0], model.wv.index2word[1], model.wv.index2word[2])
+    vocab_size = len(model.wv.vocab)
+    print(model.wv.index2word[vocab_size - 1], model.wv.index2word[vocab_size - 2], model.wv.index2word[vocab_size - 3])
+    print('Index of "of" is: {}'.format(model.wv.vocab['of'].index))
+
+    print(model.wv.doesnt_match("green blue red zebra".split()))
+    str_data = read_data(root_path + "/" + data_name)
+    index_data = convert_data_to_index(str_data, model.wv)
+    print(str_data[:4], index_data[:4])
+    # save and reload the model
+    model.save(root_path + "mymodel")
