@@ -7,9 +7,11 @@ import itertools
 import os
 import sys
 from gensim.models import word2vec
+from gensim.models.keyedvectors import KeyedVectors
 
-jieba.load_userdict("./datasets/jieba_dict_sorted.csv")
 root_path = os.path.dirname(os.path.realpath(__file__))
+
+jieba.load_userdict(os.path.join(root_path, "datasets/jieba_dict_sorted.csv"))
 
 
 def skipgrams(sequence, vocabulary_size, window_size=4, negative_samples=1., shuffle=True,
@@ -184,24 +186,35 @@ class LineSentence(object):
                         i += self.max_sentence_length
 
 
+def cut_data():
+    out = ""
+    data_name = os.path.join(root_path, 'datasets/test')
+    with open(data_name, 'r') as fr:
+        lines = fr.readlines()
+        for line in lines:
+            line_cut = jieba.lcut(line)
+            out += " ".join(line_cut)
+    fw = open(os.path.join(root_path, "datasets/cd_test.txt"), 'w')
+    fw.writelines(out)
+    fw.close()
+
+
 if __name__ == "__main__":
-    data_name = 'test'
-    sentences = TextBatch(fname=data_name, max_sentence_length=5)
-    sentences = LineSentence(source=data_name, max_sentence_length=5)
-    for x in sentences:
-        print(x)
-    model = word2vec.Word2Vec(sentences, iter=10, min_count=10, size=300, workers=4)
-    print(model.wv.similarity('方便接待', '有房'), model.wv.similarity('方便接待', '卫生间'))
+    import sys
+    method = sys.argv[1]
 
-    print(model.wv['the'])
-    print(model.wv.index2word[0], model.wv.index2word[1], model.wv.index2word[2])
-    vocab_size = len(model.wv.vocab)
-    print(model.wv.index2word[vocab_size - 1], model.wv.index2word[vocab_size - 2], model.wv.index2word[vocab_size - 3])
-    print('Index of "of" is: {}'.format(model.wv.vocab['of'].index))
+    if method == 'train':
+        data_name = os.path.join(root_path, "datasets/cd.txt")
+        sentences = TextBatch(fname=data_name, max_sentence_length=6)
+        model = word2vec.Word2Vec(sentences, iter=10, min_count=4, size=50, workers=4)
+        total_path = os.path.join(root_path, "datasets/cd_test_vectors.txt")
+        model.wv.save_word2vec_format(total_path, binary=False)
+        model.save(root_path + "/datasets/cd_model")
 
-    print(model.wv.doesnt_match("green blue red zebra".split()))
-    str_data = read_data(root_path + "/" + data_name)
-    index_data = convert_data_to_index(str_data, model.wv)
-    print(str_data[:4], index_data[:4])
-    # save and reload the model
-    model.save(root_path + "mymodel")
+    if method == 'test':
+        total_path = os.path.join(root_path, "datasets/cd_test_vectors.txt")
+        word_vectors = KeyedVectors.load_word2vec_format(total_path, binary=False)
+        model = word2vec.Word2Vec.load(root_path + "/datasets/cd_model")
+        print(model.wv['方便接待'])
+        print(model.wv.similarity('方便接待', '我们'), model.wv.similarity('方便接待', '旅游'))
+
