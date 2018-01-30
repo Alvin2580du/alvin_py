@@ -1,17 +1,26 @@
 import random
 import jieba
+import jieba.analyse
 import collections
 import zipfile
 import tensorflow as tf
 import itertools
 import os
 import sys
+import pandas as pd
+
 from gensim.models import word2vec
 from gensim.models.keyedvectors import KeyedVectors
+
+from pyduyp.logger.log import log
 
 root_path = os.path.dirname(os.path.realpath(__file__))
 
 jieba.load_userdict(os.path.join(root_path, "datasets/jieba_dict_sorted.csv"))
+
+jieba.analyse.set_stop_words(os.path.join(root_path, 'datasets/stopwords_zh.csv'))
+sw = pd.read_csv(os.path.join(root_path, 'datasets/stopwords_zh.csv'), lineterminator="\n").values.tolist()
+sw2list = [j for i in sw for j in i]
 
 
 def skipgrams(sequence, vocabulary_size, window_size=4, negative_samples=1., shuffle=True,
@@ -187,34 +196,47 @@ class LineSentence(object):
 
 
 def cut_data():
-    out = ""
-    data_name = os.path.join(root_path, 'datasets/test')
+    out = " "
+    data_name = os.path.join(root_path, 'datasets/cd_by_nosplit.txt')
     with open(data_name, 'r') as fr:
         lines = fr.readlines()
         for line in lines:
             line_cut = jieba.lcut(line)
-            out += " ".join(line_cut)
-    fw = open(os.path.join(root_path, "datasets/cd_test.txt"), 'w')
+            for x in line_cut:
+                if x not in sw2list:
+                    out += x
+    fw = open(os.path.join(root_path, "datasets/cd.txt"), 'w')
     fw.writelines(out)
     fw.close()
 
 
 if __name__ == "__main__":
     import sys
+    if len(sys.argv)<2:
+        raise Exception("[!] you should put more args")
     method = sys.argv[1]
 
+    if method == 'cut':
+        cut_data()
+        log.info(" ! Build Success ! ")
+
     if method == 'train':
+        MAX_WORDS_IN_BATCH = 10000
+
         data_name = os.path.join(root_path, "datasets/cd.txt")
         sentences = TextBatch(fname=data_name, max_sentence_length=6)
-        model = word2vec.Word2Vec(sentences, iter=10, min_count=4, size=50, workers=4)
-        total_path = os.path.join(root_path, "datasets/cd_test_vectors.txt")
+        model = word2vec.Word2Vec(sentences, size=128, alpha=0.025, window=5, min_count=5,
+                                  max_vocab_size=None, sample=1e-3, seed=1, workers=3, min_alpha=0.0001,
+                                  sg=0, hs=0, negative=5, cbow_mean=1, hashfxn=hash, iter=100, null_word=0,
+                                  trim_rule=None, sorted_vocab=1, batch_words=MAX_WORDS_IN_BATCH, compute_loss=False)
+
+        total_path = os.path.join(root_path, "datasets/cd_vectors.txt")
         model.wv.save_word2vec_format(total_path, binary=False)
-        model.save(root_path + "/datasets/cd_model")
+        model.save(root_path + "/datasets/cd.model")
 
     if method == 'test':
         total_path = os.path.join(root_path, "datasets/cd_test_vectors.txt")
         word_vectors = KeyedVectors.load_word2vec_format(total_path, binary=False)
-        model = word2vec.Word2Vec.load(root_path + "/datasets/cd_model")
+        model = word2vec.Word2Vec.load(root_path + "/datasets/cd.model")
         print(model.wv['方便接待'])
         print(model.wv.similarity('方便接待', '我们'), model.wv.similarity('方便接待', '旅游'))
-
