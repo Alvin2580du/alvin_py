@@ -8,7 +8,7 @@ import itertools
 import os
 import sys
 import pandas as pd
-
+from tqdm import tqdm
 from gensim.models import word2vec
 from gensim.models.keyedvectors import KeyedVectors
 
@@ -196,24 +196,26 @@ class LineSentence(object):
 
 
 def cut_data():
-    out = " "
+    out = []
     data_name = os.path.join(root_path, 'datasets/cd_by_nosplit.txt')
     with open(data_name, 'r') as fr:
         lines = fr.readlines()
-        for line in lines:
+        for line in tqdm(lines):
             line_cut = jieba.lcut(line)
             for x in line_cut:
                 if x not in sw2list:
-                    out += x
+                    out.append(x)
+    log.info(" Length: {} ".format(len(out)))
     fw = open(os.path.join(root_path, "datasets/cd.txt"), 'w')
-    fw.writelines(out)
+    fw.writelines(" ".join(out))
     fw.close()
 
 
 if __name__ == "__main__":
     import sys
-    if len(sys.argv)<2:
-        raise Exception("[!] you should put more args")
+
+    if len(sys.argv) < 2:
+        raise Exception("[!] You should put more args")
     method = sys.argv[1]
 
     if method == 'cut':
@@ -224,7 +226,7 @@ if __name__ == "__main__":
         MAX_WORDS_IN_BATCH = 10000
 
         data_name = os.path.join(root_path, "datasets/cd.txt")
-        sentences = TextBatch(fname=data_name, max_sentence_length=6)
+        sentences = TextBatch(fname=data_name, max_sentence_length=1000)
         model = word2vec.Word2Vec(sentences, size=128, alpha=0.025, window=5, min_count=5,
                                   max_vocab_size=None, sample=1e-3, seed=1, workers=3, min_alpha=0.0001,
                                   sg=0, hs=0, negative=5, cbow_mean=1, hashfxn=hash, iter=100, null_word=0,
@@ -233,10 +235,13 @@ if __name__ == "__main__":
         total_path = os.path.join(root_path, "datasets/cd_vectors.txt")
         model.wv.save_word2vec_format(total_path, binary=False)
         model.save(root_path + "/datasets/cd.model")
+        log.info(" ! Build Success ! ")
 
     if method == 'test':
+        # distance = model.wmdistance(sentence_obama, sentence_president)
         total_path = os.path.join(root_path, "datasets/cd_test_vectors.txt")
         word_vectors = KeyedVectors.load_word2vec_format(total_path, binary=False)
         model = word2vec.Word2Vec.load(root_path + "/datasets/cd.model")
         print(model.wv['方便接待'])
         print(model.wv.similarity('方便接待', '我们'), model.wv.similarity('方便接待', '旅游'))
+        log.info(" ! Build Success ! ")
