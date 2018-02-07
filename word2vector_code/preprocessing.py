@@ -6,11 +6,17 @@ import zipfile
 import tensorflow as tf
 import itertools
 import os
-import sys
 import pandas as pd
 from tqdm import tqdm
 from gensim.models import word2vec
 from gensim.models.keyedvectors import KeyedVectors
+
+import sys
+import codecs
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
+
 
 from pyduyp.logger.log import log
 
@@ -211,6 +217,27 @@ def cut_data():
     fw.close()
 
 
+def plot_embedding():
+    embeddings_file = sys.argv[2]
+    wv, vocabulary = load_embeddings(embeddings_file)
+
+    tsne = TSNE(n_components=2, random_state=0)
+    np.set_printoptions(suppress=True)
+    Y = tsne.fit_transform(wv[:1000, :])
+
+    plt.scatter(Y[:, 0], Y[:, 1])
+    for label, x, y in zip(vocabulary, Y[:, 0], Y[:, 1]):
+        plt.annotate(label, xy=(x, y), xytext=(0, 0), textcoords='offset points')
+    plt.savefig("结果.png")
+
+
+def load_embeddings(file_name):
+    with codecs.open(file_name, 'r', 'utf-8') as f_in:
+        vocabulary, wv = zip(*[line.strip().split(' ', 1) for line in f_in])
+    wv = np.loadtxt(wv)
+    return wv, vocabulary
+
+
 if __name__ == "__main__":
     import sys
 
@@ -229,7 +256,7 @@ if __name__ == "__main__":
         sentences = TextBatch(fname=data_name, max_sentence_length=1000)
         model = word2vec.Word2Vec(sentences, size=128, alpha=0.025, window=5, min_count=5,
                                   max_vocab_size=1024, sample=1e-3, seed=1, workers=3, min_alpha=0.0001,
-                                  sg=0, hs=0, negative=5, cbow_mean=1, hashfxn=hash, iter=100, null_word=0,
+                                  sg=0, hs=0, negative=5, cbow_mean=1, hashfxn=hash, iter=2, null_word=0,
                                   trim_rule=None, sorted_vocab=1, batch_words=MAX_WORDS_IN_BATCH, compute_loss=False)
         """
         ·  sentences：可以是一个·ist，对于大语料集，建议使用BrownCorpus,Text8Corpus或·ineSentence构建。
@@ -266,3 +293,6 @@ if __name__ == "__main__":
         log.info("{}, {}".format(len(model.wv['方便接待']), model.wv['方便接待']))
         log.info("{}, {}".format(model.wv.similarity('方便接待', '我们'), model.wv.similarity('方便接待', '旅游')))
         log.info(" ! Build Success ! ")
+
+    if method == 'plot':
+        plot_embedding()
