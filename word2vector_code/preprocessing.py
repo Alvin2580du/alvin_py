@@ -1,6 +1,4 @@
 import random
-import jieba
-import jieba.analyse
 import collections
 import zipfile
 import tensorflow as tf
@@ -15,7 +13,6 @@ import codecs
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
-
 
 from pyduyp.logger.log import log
 from pyduyp.preprocessing.Zhsegment import cut
@@ -153,7 +150,8 @@ class TextBatch(object):
                         yield sentence
                     break
                 last_token = text.rfind(b' ')
-                words, rest = (to_unicode(text[:last_token]).split(), text[last_token:].strip()) if last_token >= 0 else ([], text)
+                words, rest = (
+                    to_unicode(text[:last_token]).split(), text[last_token:].strip()) if last_token >= 0 else ([], text)
                 sentence.extend(words)
                 while len(sentence) >= self.max_sentence_length:
                     yield sentence[:self.max_sentence_length]
@@ -211,7 +209,7 @@ def cut_data():
     fw.close()
 
 
-def plot_embedding():
+def plot_embedding(embeddings_file):
     embeddings_file = sys.argv[2]
     wv, vocabulary = load_embeddings(embeddings_file)
 
@@ -255,6 +253,40 @@ def read_newdata():
     log.info("{}".format(number))
 
 
+def conact_csv():
+    out = []
+    path = 'word2vector_code/datasets/rawdata'
+    for file in tqdm(os.listdir(path)):
+        data_name = os.path.join(path, file)
+        with open(data_name, 'r') as fr:
+            lines = fr.readlines()
+            for line in lines:
+                for x in line.split():
+                    if x.isdigit():
+                        continue
+                    out.append(x)
+        log.info(" NEXT ")
+    log.info("{}".format(len(out)))
+
+    fw = open("word2vector_code/datasets/train.csv", 'w')
+    fw.writelines(" ".join(out))
+
+
+def getfreq():
+    out = {}
+    with open('word2vector_code/datasets/results/vector/vectors_question_8700000_2000000.csv', 'r') as fr:
+        lines = fr.readlines()
+        for line in lines:
+            word = line.split()[0]
+            out[word] = 0
+    with open("word2vector_code/datasets/rawdata/question_8700000_2000000.csv", 'r') as fr:
+        lines = fr.readlines()
+        for line in lines:
+            for x in line.split():
+                if x in out.keys():
+                    out[x] += 1
+
+
 if __name__ == "__main__":
     import sys
 
@@ -267,53 +299,42 @@ if __name__ == "__main__":
         log.info(" ! Build Success ! ")
 
     if method == 'train':
-        MAX_WORDS_IN_BATCH = 20000
-        path = 'word2vector_code/datasets/rawdata'
-        for file in os.listdir(path):
-            data_name = os.path.join(path, file)
-            sentences = TextBatch(fname=data_name, max_sentence_length=1000)
-            model = word2vec.Word2Vec(sentences, size=128, alpha=0.025, window=3, min_count=2,
-                                      max_vocab_size=1024, sample=1e-3, seed=1, workers=4, min_alpha=0.0001,
-                                      sg=1, hs=0, negative=5, cbow_mean=1, hashfxn=hash, iter=10, null_word=0,
-                                      trim_rule=None, sorted_vocab=1, batch_words=MAX_WORDS_IN_BATCH, compute_loss=False)
-            """
-            ·  sentences：可以是一个·ist，对于大语料集，建议使用BrownCorpus,Text8Corpus或·ineSentence构建。
-            ·  sg： 用于设置训练算法，默认为0，对应CBOW算法；sg=1则采用skip-gram算法。
-            ·  size：是指特征向量的维度，默认为100。大的size需要更多的训练数据,但是效果会更好. 推荐值为几十到几百。
-            ·  window：表示当前词与预测词在一个句子中的最大距离是多少
-            ·  alpha: 是学习速率
-            ·  seed：用于随机数发生器。与初始化词向量有关。
-            ·  min_count: 可以对字典做截断. 词频少于min_count次数的单词会被丢弃掉, 默认值为5
-            ·  max_vocab_size: 设置词向量构建期间的RAM限制。如果所有独立单词个数超过这个，则就消除掉其中最不频繁的一个。
-                               每一千万个单词需要大约1GB的RAM。设置成None则没有限制。
-            ·  sample: 高频词汇的随机降采样的配置阈值，默认为1e-3，范围是(0,1e-5)
-            ·  workers: 参数控制训练的并行数。
-            ·  hs: 如果为1则会采用hierarchica·softmax技巧。如果设置为0（defau·t），则negative sampling会被使用。
-            ·  negative: 如果>0,则会采用negativesamp·ing，用于设置多少个noise words
-            ·  cbow_mean: 如果为0，则采用上下文词向量的和，如果为1（defau·t）则采用均值。只有使用CBOW的时候才起作用。
-            ·  hashfxn： hash函数来初始化权重。默认使用python的hash函数
-            ·  iter： 迭代次数，默认为5
-            ·  trim_rule： 用于设置词汇表的整理规则，指定那些单词要留下，哪些要被删除。
-                            可以设置为None（min_count会被使用）或者一个接受()并返回RU·E_DISCARD,uti·s.RU·E_KEEP或者uti·s.RU·E_DEFAU·T的函数。
-            ·  sorted_vocab： 如果为1（defau·t），则在分配word index 的时候会先对单词基于频率降序排序。
-            ·  batch_words：每一批的传递给线程的单词的数量，默认为10000
-            """
-            save_dir = 'datasets/results/vector'
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)
+        import logging
 
-            total_path = os.path.join(root_path, "datasets/results/vector/cd_vectors.txt")
-            model.wv.save_word2vec_format(total_path, binary=False)
-            model.save(root_path + "/datasets/cd.model")
-            log.info(" ! Build Success ! ")
+        logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+
+        data_name = 'word2vector_code/datasets/train.csv'
+        sentences = TextBatch(fname=data_name, max_sentence_length=10000)
+        model = word2vec.Word2Vec(sentences, iter=5, workers=4, size=1000, min_count=1, alpha=0.025,
+                                  window=3, max_vocab_size=None, sample=1e-3, seed=1, min_alpha=0.0001,
+                                  sg=1, hs=0, negative=5, cbow_mean=1, hashfxn=hash, null_word=0,
+                                  trim_rule=None, sorted_vocab=1, batch_words=10,
+                                  compute_loss=False)
+        logging.info(model)
+        save_dir = 'word2vector_code/datasets/results/vector'
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+
+        total_path = os.path.join(root_path, "datasets/results/vector/vectors_train.csv")
+        fvocab_path = os.path.join(root_path, "datasets/results/vector/fvocab_train.csv")
+
+        log.debug("save path : {}".format(total_path))
+        model.wv.save_word2vec_format(total_path, fvocab=fvocab_path, binary=False)
+        model.save(root_path + "/datasets/train.model")
+        log.info(" ! Build Success ! ")
 
     if method == 'test':
         # distance = model.wmdistance(sentence_obama, sentence_president)
-        total_path = os.path.join(root_path, "datasets/cd_test_vectors.txt")
+        total_path = os.path.join(root_path, "datasets/results/vector/vectors_traintest.csv")
         word_vectors = KeyedVectors.load_word2vec_format(total_path, binary=False)
-        model = word2vec.Word2Vec.load(root_path + "/datasets/cd.model")
-        log.info("{}, {}".format(len(model.wv['方便接待']), model.wv['方便接待']))
-        log.info("{}, {}".format(model.wv.similarity('方便接待', '我们'), model.wv.similarity('方便接待', '旅游')))
+        with open("word2vector_code/datasets/results/vector/fvocab_traintest.csv", 'r') as fr:
+            lines = fr.readlines()
+            for line in lines:
+                word = line.split(" ")[0]
+                similar = word_vectors.most_similar(positive=word, topn=10)
+                print("{}, {}".format(word, similar))
+                print("= " * 20)
+
         log.info(" ! Build Success ! ")
 
     if method == 'plot':
@@ -321,3 +342,9 @@ if __name__ == "__main__":
 
     if method == 'newdata':
         read_newdata()
+
+    if method == 'conact_csv':
+        conact_csv()
+
+    if method == 'getfreq':
+        getfreq()
