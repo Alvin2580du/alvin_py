@@ -13,7 +13,7 @@ from pyduyp.logger.log import log
 args = get_dictionary()
 not_cuts = re.compile(u'([\da-zA-Z \.]+)|《(.*?)》|“(.{1,10})”')
 re_replace = re.compile(u'[^\u4e00-\u9fa50-9a-zA-Z《》\(\)（）“”·\.]')
-jieba.load_userdict(os.path.join(args.get('path'), 'jieba_dict.csv'))
+# jieba.load_userdict(os.path.join(args.get('path'), 'jieba_dict.csv'))
 jieba.analyse.set_stop_words(os.path.join(args.get('path'), 'stopwords_zh.csv'))
 sw = pd.read_csv("pyduyp/dictionary/stopwords_zh.csv", lineterminator="\n").values.tolist()
 sw2list = [j for i in sw for j in i]
@@ -82,3 +82,23 @@ def posegcut(inputs):
             return inputs
     else:
         return inputs
+
+
+def cutpro(inputs):
+    if isinstance(inputs, str):
+        _msg_cut = jieba.lcut(replace_symbol(inputs.lower()), cut_all=True, HMM=True)
+        msg_cut = [i for i in _msg_cut if i not in sw2list]
+
+        p = re.compile("[0-9]+?[元|块]").findall(inputs)
+        if p:
+            for price in p:
+                msg_cut.append("{}_{}".format(price, 'n'))
+
+        p = re.compile("[0-9]+?[月|日][0-9]+?[月|日]").findall(inputs)
+        if p:
+            for x in p:
+                msg_cut.append(x)
+
+        return msg_cut
+    else:
+        return None
