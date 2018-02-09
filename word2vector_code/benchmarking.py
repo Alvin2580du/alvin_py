@@ -10,6 +10,9 @@ from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 from sklearn.cross_validation import cross_val_score
 from sklearn.cross_validation import StratifiedShuffleSplit
+import pandas as pd
+import tabulate
+import matplotlib.pyplot as plt
 
 # TRAIN_SET_PATH = "20ng-no-stop.txt"
 # TRAIN_SET_PATH = "r52-all-terms.txt"
@@ -74,11 +77,7 @@ class MeanEmbeddingVectorizer(object):
         return self
 
     def transform(self, X):
-        return np.array([
-            np.mean([self.word2vec[w] for w in words if w in self.word2vec]
-                    or [np.zeros(self.dim)], axis=0)
-            for words in X
-        ])
+        return np.array([np.mean([self.word2vec[w] for w in words if w in self.word2vec] or [np.zeros(self.dim)], axis=0) for words in X])
 
 
 # and a tf-idf version of the same
