@@ -122,6 +122,7 @@ def cutpro(inputs):
 
 
 def cutallcase(inputs):
+    # TODO 按照标点符号切割，然后再遍历所有情况
     outputs = []
     inputs = replace_symbol(inputs)
     length = len(inputs)
