@@ -13,11 +13,25 @@ from pyduyp.logger.log import log
 args = get_dictionary()
 not_cuts = re.compile(u'([\da-zA-Z \.]+)|《(.*?)》|“(.{1,10})”')
 re_replace = re.compile(u'[^\u4e00-\u9fa50-9a-zA-Z《》\(\)（）“”·\.]')
-# jieba.load_userdict(os.path.join(args.get('path'), 'jieba_dict.csv'))
+jieba.load_userdict(os.path.join(args.get('path'), 'jieba_dict.csv'))
 jieba.analyse.set_stop_words(os.path.join(args.get('path'), 'stopwords_zh.csv'))
 sw = pd.read_csv("pyduyp/dictionary/stopwords_zh.csv", lineterminator="\n").values.tolist()
 sw2list = [j for i in sw for j in i]
+
+dict_name = os.path.join(args.get('path'), 'jieba_dict.csv')
+dict_data = pd.read_csv(dict_name).values.tolist()
+dict_data2list = [j for i in dict_data for j in i]
+
 log.debug("dict load success")
+
+
+def isindict(inputs):
+    out = True
+    for x in inputs:
+        if x not in sw2list:
+            if x not in dict_data2list:
+                out = False
+    return out
 
 
 def cut(s, add_stopwords=True):
@@ -98,7 +112,39 @@ def cutpro(inputs):
         if p:
             for x in p:
                 msg_cut.append(x)
-
-        return msg_cut
+        if isindict(msg_cut):
+            return msg_cut
+        else:
+            msg_cut = cutallcase(inputs)
+            return msg_cut
     else:
         return None
+
+
+def cutallcase(inputs):
+    outputs = []
+    inputs = replace_symbol(inputs)
+    length = len(inputs)
+    for i in range(length):
+        if length == 2:
+            outputs.append(inputs)
+        elif length == 3:
+            x8, x9 = inputs[i:i + 2], inputs[i:i + 3]
+            outputs.append(x8)
+            outputs.append(x9)
+
+        elif length == 4:
+            x5, x6, x7 = inputs[i: i + 2], inputs[i: i + 3], inputs[i: i + 4]
+            outputs.append(x5)
+            outputs.append(x6)
+            outputs.append(x7)
+
+        elif 5 < length:
+            x1, x2, x3, x4 = inputs[i:i + 2], inputs[i:i + 3], inputs[i:i + 4], inputs[i:i + 5]
+            outputs.append(x1)
+            outputs.append(x2)
+            outputs.append(x3)
+            outputs.append(x4)
+        else:
+            continue
+    return outputs
