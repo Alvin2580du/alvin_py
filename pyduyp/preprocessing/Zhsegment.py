@@ -13,12 +13,12 @@ from pyduyp.logger.log import log
 args = get_dictionary()
 not_cuts = re.compile(u'([\da-zA-Z \.]+)|《(.*?)》|“(.{1,10})”')
 re_replace = re.compile(u'[^\u4e00-\u9fa50-9a-zA-Z《》\(\)（）“”·\.]')
-jieba.load_userdict(os.path.join(args.get('path'), 'jieba_dict.csv'))
+jieba.load_userdict(os.path.join(args.get('path'), 'jiebadict.csv'))
 jieba.analyse.set_stop_words(os.path.join(args.get('path'), 'stopwords_zh.csv'))
 sw = pd.read_csv("pyduyp/dictionary/stopwords_zh.csv", lineterminator="\n").values.tolist()
 sw2list = [j for i in sw for j in i]
 
-dict_name = os.path.join(args.get('path'), 'jieba_dict.csv')
+dict_name = os.path.join(args.get('path'), 'jiebadict.csv')
 dict_data = pd.read_csv(dict_name).values.tolist()
 dict_data2list = [j for i in dict_data for j in i]
 
@@ -147,4 +147,4 @@ def cutallcase(inputs):
             outputs.append(x4)
         else:
             continue
-    return outputs
+    return list(set(outputs))
