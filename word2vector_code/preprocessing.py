@@ -306,7 +306,7 @@ def getdict():
             for word in res:
                 out.append(word)
 
-        fw = open("word2vector_code/datasets/userdict_{}.csv".format(num), 'a+')
+        fw = open("word2vector_code/datasets/results/userdict/userdict_{}.csv".format(num), 'w')
         for i, j in Counter(out).most_common(20000):
             fw.writelines("{}:{}".format(i, j) + "\n")
         num += 1
