@@ -13,9 +13,12 @@ import codecs
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
+import time
+import re
+from collections import Counter
 
 from pyduyp.logger.log import log
-from pyduyp.preprocessing.Zhsegment import cut
+from pyduyp.preprocessing.Zhsegment import cut, cutpro
 from pyduyp.utils.utils import replace_symbol
 
 root_path = os.path.dirname(os.path.realpath(__file__))
@@ -129,14 +132,13 @@ to_unicode = any2unicode
 
 class TextBatch(object):
     """Iterate over sentences from the "text8" corpus, unzipped from http://mattmahoney.net/dc/text8.zip ."""
-    MAX_WORDS_IN_BATCH = 100000
-
-    def __init__(self, fname, max_sentence_length=MAX_WORDS_IN_BATCH):
+    def __init__(self, fname, max_sentence_length):
         self.fname = fname
         self.max_sentence_length = max_sentence_length
 
     def __iter__(self):
         sentence, rest = [], b''
+        linenumber, t0 = 0, time.time()
         with smart_open(self.fname) as fin:
             while True:
                 text = rest + fin.readline()
@@ -155,7 +157,9 @@ class TextBatch(object):
                 sentence.extend(words)
                 while len(sentence) >= self.max_sentence_length:
                     yield sentence[:self.max_sentence_length]
+                    linenumber += 1
                     sentence = sentence[self.max_sentence_length:]
+                    # log.info("{}, {}".format(linenumber, time.time()-t0))
 
 
 def convert_data_to_index(string_data, wv):
@@ -287,6 +291,24 @@ def getfreq():
                     out[x] += 1
 
 
+def getdict():
+    path = '/home/duyp/mayi_datasets/question/question_new'
+    out = []
+
+    for file in os.listdir(path):
+        filename = os.path.join(path, file)
+        data = pd.read_csv(filename, lineterminator="\n").values
+        for x in tqdm(data):
+            msg = x[0]
+            res = cutpro(msg)
+            for word in res:
+                out.append(word)
+
+    fw = open("word2vector_code/datasets/datesdict.csv", 'a+')
+    for i, j in Counter(out).most_common(100000):
+        fw.writelines("{}:{}".format(i, j)+"\n")
+
+
 if __name__ == "__main__":
     import sys
 
@@ -302,13 +324,13 @@ if __name__ == "__main__":
         import logging
 
         logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-
+        max_words = 10000
         data_name = 'word2vector_code/datasets/train.csv'
-        sentences = TextBatch(fname=data_name, max_sentence_length=10000)
+        sentences = TextBatch(fname=data_name, max_sentence_length=max_words)
         model = word2vec.Word2Vec(sentences, iter=5, workers=4, size=1000, min_count=1, alpha=0.025,
                                   window=3, max_vocab_size=None, sample=1e-3, seed=1, min_alpha=0.0001,
                                   sg=1, hs=0, negative=5, cbow_mean=1, hashfxn=hash, null_word=0,
-                                  trim_rule=None, sorted_vocab=1, batch_words=10,
+                                  trim_rule=None, sorted_vocab=1, batch_words=max_words,
                                   compute_loss=False)
         logging.info(model)
         save_dir = 'word2vector_code/datasets/results/vector'
@@ -348,3 +370,6 @@ if __name__ == "__main__":
 
     if method == 'getfreq':
         getfreq()
+
+    if method == 'getdict':
+        getdict()
