@@ -19,7 +19,7 @@ from collections import Counter
 
 from pyduyp.logger.log import log
 from pyduyp.preprocessing.Zhsegment import cut, cutpro
-from pyduyp.utils.utils import replace_symbol
+from pyduyp.utils.utils import replace_symbol, is_chinese
 
 root_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -132,6 +132,7 @@ to_unicode = any2unicode
 
 class TextBatch(object):
     """Iterate over sentences from the "text8" corpus, unzipped from http://mattmahoney.net/dc/text8.zip ."""
+
     def __init__(self, fname, max_sentence_length):
         self.fname = fname
         self.max_sentence_length = max_sentence_length
@@ -293,9 +294,10 @@ def getfreq():
 
 def getdict():
     path = '/home/duyp/mayi_datasets/question/question_new'
-    out = []
-
+    num = 0
     for file in os.listdir(path):
+        out = []
+
         filename = os.path.join(path, file)
         data = pd.read_csv(filename, lineterminator="\n").values
         for x in tqdm(data):
@@ -304,9 +306,68 @@ def getdict():
             for word in res:
                 out.append(word)
 
-    fw = open("word2vector_code/datasets/datesdict.csv", 'a+')
-    for i, j in Counter(out).most_common(100000):
-        fw.writelines("{}:{}".format(i, j)+"\n")
+        fw = open("word2vector_code/datasets/userdict_{}.csv".format(num), 'a+')
+        for i, j in Counter(out).most_common(20000):
+            fw.writelines("{}:{}".format(i, j) + "\n")
+        num += 1
+
+
+def getonedirline(path):
+    total_line = 0
+    for (root, dirs, files) in os.walk(path):
+        for filename in files:
+            file = os.path.join(root, filename)
+            ext = os.path.splitext(file)[1]
+            if ext == '.py':
+                with open(file, 'r') as fr:
+                    lines = fr.readline()
+                    length = len(lines)
+                    total_line += length
+    return total_line
+
+
+def totallineofantcolony():
+    path = "/home/duyp/antcolony"
+    total_line = 0
+    for (root, dirs, files) in os.walk(path):
+        for dirc in dirs:
+            dir = os.path.join(root, dirc)
+            if not os.path.isfile(dir):
+                line = getonedirline(dir)
+                total_line += line
+    return total_line
+
+
+def makedict():
+    jiebadict = []
+    path = 'word2vector_code/datasets/datesdict.csv'
+    with open(path, 'r') as fr:
+        lines = fr.readlines()
+        for line in lines:
+            word = line.split(":")[0]
+            if len(word) == 1:
+                continue
+            if word.isnumeric():
+                continue
+            jiebadict.append(word)
+    df = pd.Series(jiebadict)
+    log.debug(len(df))
+    df.to_csv("word2vector_code/datasets/jiebadict.csv", index=None)
+
+
+def getdiff():
+    path1 = "word2vector_code/datasets/jiebadict.csv"
+    path2 = "pyduyp/dictionary/jieba_dict.csv"
+    da1 = pd.read_csv(path1)
+    da2 = pd.read_csv(path2)
+    out = []
+    da1list = [j for i in da1.values.tolist() for j in i]
+    da2list = [j for i in da2.values.tolist() for j in i]
+    for x in da1list:
+        if x not in da2list:
+            out.append(x)
+    df = pd.Series(out)
+    df.to_csv("word2vector_code/datasets/diff.csv", index=None)
 
 
 if __name__ == "__main__":
@@ -373,3 +434,9 @@ if __name__ == "__main__":
 
     if method == 'getdict':
         getdict()
+
+    if method == 'makedict':
+        makedict()
+
+    if method == 'getdiff':
+        getdiff()
