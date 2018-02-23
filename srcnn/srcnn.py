@@ -37,6 +37,7 @@ class SRCNN(object):
         self.checkpoint_dir = checkpoint_dir
         self.sample_dir = sample_dir
         self.build_model()
+        input_setup(self.sess, FLAGS)
 
     def build_model(self):
         self.images = tf.placeholder(tf.float32, [None, self.image_size, self.image_size, self.c_dim], name='images')
@@ -58,7 +59,6 @@ class SRCNN(object):
         self.saver = tf.train.Saver()
 
     def train(self, config):
-        input_setup(self.sess, config)
         data_dir = os.path.join('./{}'.format(config.checkpoint_dir), "train.h5")
 
         train_data, train_label = read_data(data_dir)
@@ -66,7 +66,6 @@ class SRCNN(object):
         tf.initialize_all_variables().run()
         counter = 0
         start_time = time.time()
-
         if self.load(self.checkpoint_dir):
             print(" [*] Load SUCCESS")
         else:
@@ -92,6 +91,11 @@ class SRCNN(object):
 
     def test(self, config):
         print("Testing...")
+        if self.load(self.checkpoint_dir):
+            print(" [*] Load SUCCESS")
+        else:
+            print(" [!] Load failed...")
+
         data_dir = os.path.join('./{}'.format(config.checkpoint_dir), "test.h5")
         train_data, train_label = read_data(data_dir)
         result = self.pred.eval({self.images: train_data, self.labels: train_label})
@@ -101,6 +105,7 @@ class SRCNN(object):
         result = result.squeeze()
         image_path = os.path.join(os.getcwd(), config.sample_dir)
         image_path = os.path.join(image_path, "test_image.png")
+        print(image_path)
         imsave(result, image_path)
 
     def model(self):
@@ -146,6 +151,7 @@ def main(_):
         os.makedirs(FLAGS.sample_dir)
 
     with tf.Session() as sess:
+
         srcnn = SRCNN(sess,
                       image_size=FLAGS.image_size,
                       label_size=FLAGS.label_size,
@@ -157,6 +163,7 @@ def main(_):
             srcnn.train(FLAGS)
         else:
             srcnn.test(FLAGS)
+
 
 if __name__ == '__main__':
     tf.app.run()
