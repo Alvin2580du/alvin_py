@@ -67,7 +67,7 @@ def prepare_data(sess, dataset):
     return data
 
 
-def make_data(sess, data, label):
+def make_data(data, label):
     """
   Make input data as h5 file format
   Depending on 'is_train' (flag value), savepath would be changed.
@@ -115,10 +115,6 @@ def modcrop(image, scale=3):
 
 
 def input_setup(sess, config):
-    """
-  Read image files and make their sub-images and saved them as a h5 file format.
-  """
-    # Load data path
     if config.is_train:
         data = prepare_data(sess, dataset="Train")
     else:
@@ -157,8 +153,6 @@ def input_setup(sess, config):
             h, w, _ = input_.shape
         else:
             h, w = input_.shape
-
-        # Numbers of sub-images in height and width of image are needed to compute merge operation.
         nx = ny = 0
         for x in range(0, h - config.image_size + 1, config.stride):
             nx += 1
@@ -175,15 +169,10 @@ def input_setup(sess, config):
                 sub_input_sequence.append(sub_input)
                 sub_label_sequence.append(sub_label)
 
-    """
-  len(sub_input_sequence) : the number of sub_input (33 x 33 x ch) in one image
-  (sub_input_sequence[0]).shape : (33, 33, 1)
-  """
-    # Make list to numpy array. With this transform
-    arrdata = np.asarray(sub_input_sequence)  # [?, 33, 33, 1]
-    arrlabel = np.asarray(sub_label_sequence)  # [?, 21, 21, 1]
+    arrdata = np.asarray(sub_input_sequence)
+    arrlabel = np.asarray(sub_label_sequence)
 
-    make_data(sess, arrdata, arrlabel)
+    make_data(arrdata, arrlabel)
 
     if not config.is_train:
         return nx, ny
