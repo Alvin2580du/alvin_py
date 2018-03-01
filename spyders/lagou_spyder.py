@@ -46,22 +46,43 @@ def lagouspyder():
                 continue
             html = urlhelper(rooturl)
             soup = BeautifulSoup(html, "lxml")
-            resp = soup.findAll('div', attrs={'class': 's_position_list'})
-            resp = resp[0]
-            resp = resp.findAll('li', attrs={'class': 'con_list_item default_list'})
+            try:
+                resp = soup.findAll('div', attrs={'class': 's_position_list'})
+                resp = resp[0]
+                resp = resp.findAll('li', attrs={'class': 'con_list_item default_list'})
+            except:
+                continue
+
             for i in trange(len(resp)):
                 position_link = resp[i].findAll('a', attrs={'class': 'position_link'})
                 link = position_link[0]['href']
                 if isurl(link):
                     htmlnext = urlhelper(link)
                     soup = BeautifulSoup(htmlnext, "lxml")
-                    job_bt = soup.findAll('dd', attrs={'class': 'job_bt'})[0].text
-
-                    jobname = position_link[0].find('h3').get_text()
-                    p_bot = resp[i].findAll('div', attrs={'class': 'p_bot'})[0].text
-                    money = resp[i].findAll('span', attrs={'class': 'money'})[0].text
-                    industry = resp[i].findAll('div', attrs={'class': 'industry'})[0].text
-                    company_name = resp[i].findAll('div', attrs={'class': 'company_name'})[0].text
+                    try:
+                        job_bt = soup.findAll('dd', attrs={'class': 'job_bt'})[0].text
+                    except:
+                        continue
+                    try:
+                        jobname = position_link[0].find('h3').get_text()
+                    except:
+                        continue
+                    try:
+                        p_bot = resp[i].findAll('div', attrs={'class': 'p_bot'})[0].text
+                    except:
+                        continue
+                    try:
+                        money = resp[i].findAll('span', attrs={'class': 'money'})[0].text
+                    except:
+                        continue
+                    try:
+                        industry = resp[i].findAll('div', attrs={'class': 'industry'})[0].text
+                    except:
+                        continue
+                    try:
+                        company_name = resp[i].findAll('div', attrs={'class': 'company_name'})[0].text
+                    except:
+                        continue
                     rows = OrderedDict()
                     rows["jobname"] = jobname.replace(" ", "")
                     rows["money"] = money
