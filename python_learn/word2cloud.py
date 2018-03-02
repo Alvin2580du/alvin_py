@@ -15,7 +15,7 @@ def plot_word_cloud():
                              max_font_size=20,
                              random_state=1,
                              max_words=100,
-                             font_path='/home/duyp/fonts/msyh.ttf')
+                             font_path='msyh.ttf')
     wc.generate(text)
     image_colors = wordcloud.ImageColorGenerator(alice_coloring)
 

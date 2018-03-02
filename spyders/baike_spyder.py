@@ -6,7 +6,7 @@ from tqdm import trange, tqdm
 import urllib.parse
 import pandas as pd
 
-from antcolony.logger.log import log
+from pyduyp.logger.log import log
 
 
 def stringpro(inputs):

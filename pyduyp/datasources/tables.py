@@ -1,0 +1,13 @@
+
+from sqlalchemy import TEXT, Table, Column, INT, VARCHAR, TIMESTAMP
+
+from pyduyp.datasources.basic_db import metadata
+
+xiaohua = Table("xiaohua", metadata,
+                Column('id', INT, primary_key=True),
+                Column("name", VARCHAR),
+                Column("namemd5", VARCHAR),
+
+                Column("status", INT),
+                Column("createtime", TIMESTAMP)
+                )

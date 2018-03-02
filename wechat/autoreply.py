@@ -1,7 +1,7 @@
 import itchat
 from itchat.content import TEXT, MAP, CARD, NOTE, SHARING, PICTURE, RECORDING, ATTACHMENT, VIDEO, FRIENDS
 
-itchat.auto_login()
+itchat.auto_login(hotReload=True)
 
 
 @itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING])

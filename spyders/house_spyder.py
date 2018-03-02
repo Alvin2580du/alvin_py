@@ -9,9 +9,9 @@ import matplotlib.pyplot as plt
 from pylab import mpl
 
 citys = {'bj': "北京", 'xa': "西安", 'cd': "成都", 'cq': "重庆", 'sh': "上海", 'sz': "深圳", 'gz': "广州",
-          'hz': "杭州", 'dl': "大连", 'nj': "南京", 'sjz': "石家庄", 'sy': "沈阳", 'tj': "天津", 'wh': "武汉",
-          'xm': "厦门", 'cs': '长沙', 'zz': '郑州', 'ty': '太原', 'hf': '合肥', 'fs': "佛山", 'hui': '惠州',
-          'jn': '济南', 'zs': "中山"}
+         'hz': "杭州", 'dl': "大连", 'nj': "南京", 'sjz': "石家庄", 'sy': "沈阳", 'tj': "天津", 'wh': "武汉",
+         'xm': "厦门", 'cs': '长沙', 'zz': '郑州', 'ty': '太原', 'hf': '合肥', 'fs': "佛山", 'hui': '惠州',
+         'jn': '济南', 'zs': "中山"}
 
 print(len(citys))
 mpl.rcParams['font.sans-serif'] = ['FangSong']
