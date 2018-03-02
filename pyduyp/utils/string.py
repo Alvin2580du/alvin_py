@@ -1,4 +1,5 @@
 import re
+import opencc
 
 
 def removespecialchar(str):
@@ -54,3 +55,22 @@ def dict_process(inputs, k):
         else:
             out.append(value)
     return "".join(out)
+
+
+
+
+cc = opencc.OpenCC('t2s')
+def linesplit_bysymbol(line):
+    # 先按句子切割，然后去标点，然后繁简体转换
+    out = []
+    juzi = r"[\】\【\：\，\。\?\？\)\(\,\.\(\『\』\<\>\、\；\．\[\]\（\）\〔\〕]"
+    p = r"[\^\$\]\］\［\/\.\’\~\#\￥\#\&\*\%\”\“\]\[\&\×\@\]\"]"
+    linesplit = re.split(juzi, line)
+    for x in linesplit:
+        res = re.sub(p, "", x)
+        resnew = ""
+        for i in res:
+            t2s = cc.convert(i)
+            resnew += t2s
+        out.append(resnew.replace("\n", ""))
+    return out
