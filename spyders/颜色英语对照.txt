@@ -1,0 +1,151 @@
+blue蓝色
+green绿色
+purple紫色
+yellow黄色
+red红色
+pink粉红色
+palegoldenrod 苍麒麟色
+palegreen 苍绿色
+paleturquoise 苍绿色
+palevioletred 苍紫罗蓝色
+pansy 紫罗兰色
+papayawhip 番木色
+peachpuff 桃色
+peru 秘鲁色
+pink  粉红色
+salmon pink  橙红色
+baby pink  浅粉红色
+shocking pink  鲜粉红色
+brown  褐色, 茶色
+beige  灰褐色
+chocolate  红褐色, 赭石色
+sandy beige  浅褐色
+camel  驼色
+amber  琥珀色
+khaki  卡其色
+maroon  褐红色
+green  绿色
+moss green  苔绿色
+emerald green  鲜绿色
+olive green  橄榄绿
+blue  蓝色
+turquoise blue  土耳其玉色
+cobalt blue  钴蓝色, 艳蓝色
+navy blue  藏青色, 深蓝色, 天蓝色
+aquamarine blue  蓝绿色
+red  红色
+scarlet  绯红, 猩红
+mauve  紫红
+wine red  葡萄酒红
+purple, violet  紫色
+lavender  淡紫色
+lilac  浅紫色
+antique violet  古紫色
+pansy  紫罗兰色
+white  白色
+off-white  灰白色
+ivory  象牙色
+snowy white  雪白色
+oyster white  乳白色
+gray  灰色
+charcoal gray  炭灰色
+smoky gray  烟灰色
+misty gray  雾灰色
+plum 杨李色
+powderblue 粉蓝色
+purple 紫色
+red 红色
+rosybrown 褐玫瑰红
+royalblue 宝蓝色
+rubine 宝石红
+saddlebrown 重褐色
+salmon 鲜肉色
+salmon pink 橙红色
+sandy beige 浅褐色
+sandybrown 沙褐色
+sapphire 宝石蓝
+scarlet 猩红色
+seagreen 海绿色
+seashell 海贝色
+shocking pink 鲜粉红色
+sienna 赭色
+silver 银白色
+skyblue 天蓝色
+slateblue 石蓝色
+slategray 灰石色
+smoky gray 烟灰色
+snow 雪白色
+springgreen 春绿色
+steelblue 钢蓝色
+stone 石色
+tan 茶色
+teal 水鸭色
+thistle 蓟色
+tomato 番茄色
+turquoise 青绿色
+turquoise blue 翠蓝色
+violet 紫色
+wheat 浅黄色
+white 白色
+whitesmoke 烟白色
+winered 葡萄酒红
+yellow 黄色
+yellowgreen 黄绿色
+beige 米色
+black 黑色
+brown 咖啡色
+cream 雪白
+khaki 卡其色
+grey 灰色
+navy 丈青色
+offwhite 灰白色
+palegoldenrod 苍麒麟色
+palegreen 苍绿色
+paleturquoise 苍绿色
+palevioletred 苍紫罗蓝色
+pansy 紫罗兰色
+papayawhip 番木色
+peachpuff 桃色
+peru 秘鲁色
+pink 粉红
+plum 杨李色
+powderblue 粉蓝色
+purple 紫色
+red 红色
+rosybrown 褐玫瑰红
+royalblue 宝蓝色
+rubine 宝石红
+saddlebrown 重褐色
+salmon 鲜肉色
+salmon pink 橙红色
+sandy beige 浅褐色
+sandybrown 沙褐色
+sapphire 宝石蓝
+scarlet 猩红色
+seagreen 海绿色
+seashell 海贝色
+shocking pink 鲜粉红色
+sienna 赭色
+silver 银白色
+skyblue 天蓝色
+slateblue 石蓝色
+slategray 灰石色
+smoky gray 烟灰色
+snow 雪白色
+springgreen 春绿色
+steelblue 钢蓝色
+stone 石色
+tan 茶色
+teal 水鸭色
+thistle 蓟色
+tomato 番茄色
+turquoise 青绿色
+turquoise blue 翠蓝色
+violet 紫色
+wheat 浅黄色
+white 白色
+wheat 土黄色
+whitesmoke 烟白色
+winered 葡萄酒红
+yellow 黄色
+yellowgreen 黄绿色

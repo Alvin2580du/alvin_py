@@ -8,6 +8,7 @@ import urllib.request
 from urllib import error
 import logging
 
+
 logging.basicConfig(level=logging.WARNING)
 
 
@@ -107,13 +108,7 @@ for name in tqdm(names):
                     rows["company_name"] = company_name.replace("\n", "")
                     rows["p_bot"] = p_bot.strip().replace(" ", ""). \
                         replace("\n", ",").replace("/", ",")
-                    rows["industry"] = industry.strip().\
+                    rows["industry"] = industry.strip(). \
                         replace("\t", "").replace("\n", "")
                     rows["job_bt"] = job_bt
-                    # for k, v in rows.items():
-                    #     print(v)
-                    #     fw.writelines(v+"\n")
                     savedata.append(rows)
-                    print()
-                    print(rows)
-

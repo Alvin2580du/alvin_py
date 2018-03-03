@@ -5,12 +5,12 @@ import matplotlib.pyplot as plt
 import wordcloud
 
 
-def plot_word_cloud():
-    text = open("test_file.txt", 'r').read()
+def plot_word_cloud(file_name, savename):
+    text = open(file_name, 'r').read()
 
     alice_coloring = imread("back.png")
 
-    wc = wordcloud.WordCloud(background_color="white",
+    wc = wordcloud.WordCloud(background_color="white", width=800, height=600,
                              mask=alice_coloring,
                              max_font_size=20,
                              random_state=1,
@@ -23,9 +23,8 @@ def plot_word_cloud():
     plt.figure()
     plt.imshow(wc.recolor(color_func=image_colors))
     plt.axis("off")
-    plt.figure()
+    plt.figure(dpi=300)
     plt.axis("off")
-    wc.to_file("wordcloud.png")
+    wc.to_file(savename)
 
 
-plot_word_cloud()

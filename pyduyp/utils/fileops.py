@@ -114,8 +114,8 @@ def file2set(path, file, delete=False):
 
 
 def sortfilebylength(in_path, out_path, delete=False):
-    line_l = open(out_path, "a+")
-    with open(in_path, 'r') as fr:
+    line_l = open(out_path, "a+", encoding="utf-8")
+    with open(in_path, 'r', encoding='utf-8') as fr:
         lines = fr.readlines()
         lines.sort(key=lambda x: len(x))
         for line in lines:

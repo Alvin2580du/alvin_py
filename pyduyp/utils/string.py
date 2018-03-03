@@ -57,9 +57,9 @@ def dict_process(inputs, k):
     return "".join(out)
 
 
-
-
 cc = opencc.OpenCC('t2s')
+
+
 def linesplit_bysymbol(line):
     # 先按句子切割，然后去标点，然后繁简体转换
     out = []
