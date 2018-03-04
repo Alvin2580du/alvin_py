@@ -9,3 +9,11 @@ class XiaoHua(Base, dict):
     def __init__(self, dic):
         for k, v in dic.items():
             self.__dict__[k] = self[k] = XiaoHua(v) if isinstance(v, dict) else v
+
+
+class CaiLianShe(Base, dict):
+    __table__ = xiaohua
+
+    def __init__(self, dic):
+        for k, v in dic.items():
+            self.__dict__[k] = self[k] = CaiLianShe(v) if isinstance(v, dict) else v
