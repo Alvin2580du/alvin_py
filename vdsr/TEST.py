@@ -4,6 +4,8 @@ import glob, os, re
 import scipy.io
 import pickle
 import time
+import math
+
 from pyduyp.logger.log import log
 
 DATA_PATH = "./data/test/"
@@ -25,6 +27,7 @@ def psnr(target, ref, scale):
     return 20 * math.log10(1.0 / rmse)
 
 
+#
 def model(input_tensor):
     with tf.device("/cpu:0"):
         weights = []
@@ -71,6 +74,15 @@ def get_img_list(data_path):
     return train_list
 
 
+def get_train_list_for_png(data_path):
+    l = glob.glob(os.path.join(data_path, "*.bmp"))
+
+    train_list = []
+    for f in l:
+        train_list.append(f)
+    return train_list
+
+
 def get_test_image(test_list, offset, batch_size):
     target_list = test_list[offset:offset + batch_size]
     input_list = []
@@ -96,14 +108,17 @@ def get_test_image(test_list, offset, batch_size):
 
 
 def test_VDSR_with_sess(epoch, ckpt_path, data_path, sess):
+    log.debug("{}".format(data_path))
     folder_list = glob.glob(os.path.join(data_path, 'Set*'))
-    log.debug("{}".format('folder_list', folder_list))
+    log.debug("folder_list: {}".format(folder_list))
+    log.debug("{}".format(ckpt_path))
     saver.restore(sess, ckpt_path)
 
     psnr_dict = {}
     for folder_path in folder_list:
         psnr_list = []
-        img_list = get_img_list(folder_path)
+        img_list = get_train_list_for_png(folder_path)
+        log.debug("{}".format(img_list))
         for i in range(len(img_list)):
             input_list, gt_list, scale_list = get_test_image(img_list, i, 1)
             input_y = input_list[0]
@@ -132,7 +147,8 @@ def test_VDSR(epoch, ckpt_path, data_path):
 
 if __name__ == '__main__':
     model_list = sorted(glob.glob("./checkpoints/VDSR_adam_epoch_*"))
-    model_list = [fn for fn in model_list if not os.path.basename(fn).endswith("meta")]
+    # model_list = [fn for fn in model_list if not os.path.basename(fn).endswith("meta")]
+    log.info("{}".format(model_list))
     with tf.Session() as sess:
         input_tensor = tf.placeholder(tf.float32, shape=(1, None, None, 1))
         shared_model = tf.make_template('shared_model', model)
@@ -141,6 +157,7 @@ if __name__ == '__main__':
         saver = tf.train.Saver(weights)
         tf.initialize_all_variables().run()
         for model_ckpt in model_list:
+            log.debug("{}".format(model_ckpt))
             epoch = int(model_ckpt.split('epoch_')[-1].split('.ckpt')[0])
 
             test_VDSR_with_sess(80, model_ckpt, DATA_PATH, sess)
