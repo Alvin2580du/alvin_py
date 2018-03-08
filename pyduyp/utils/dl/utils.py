@@ -6,6 +6,8 @@ import scipy.ndimage
 import numpy as np
 import tensorflow as tf
 
+from pyduyp.logger.log import log
+
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -24,7 +26,7 @@ def read_data(path):
         return data, label
 
 
-def preprocess(path, scale=3):
+def preprocess(path, scale=4):
     """
   Preprocess single image file 
     (1) Read original image as YCbCr format (and grayscale as default)
@@ -36,16 +38,17 @@ def preprocess(path, scale=3):
     input_: image applied bicubic interpolation (low-resolution)
     label_: image with original resolution (high-resolution)
   """
-    image = imread(path, is_grayscale=True)
+    image = imread(path, is_grayscale=False)
+    log.debug("image shape:{}".format(image.shape))
     label_ = modcrop(image, scale)
-
+    log.debug("label_ shape: {}".format(label_.shape))
     # Must be normalized
     image = image / 255.
     label_ = label_ / 255.
-
     input_ = scipy.ndimage.interpolation.zoom(label_, (1. / scale), prefilter=False)
+    log.debug("inputs shape: {}".format(input_.shape))
     input_ = scipy.ndimage.interpolation.zoom(input_, (scale / 1.), prefilter=False)
-
+    log.debug("inputs shape: {}".format(input_.shape))
     return input_, label_
 
 
@@ -59,10 +62,11 @@ def prepare_data(sess, dataset):
     if FLAGS.is_train:
         filenames = os.listdir(dataset)
         data_dir = os.path.join(os.getcwd(), dataset)
-        data = glob.glob(os.path.join(data_dir, "*.bmp"))
+        data = glob.glob(os.path.join(data_dir, "*.png"))
     else:
         data_dir = os.path.join(os.sep, (os.path.join(os.getcwd(), dataset)), "Set5")
-        data = glob.glob(os.path.join(data_dir, "*.bmp"))
+        log.debug("65: data dir:{}".format(data_dir))
+        data = glob.glob(os.path.join(data_dir, "*.png"))
 
     return data
 
@@ -93,7 +97,7 @@ def imread(path, is_grayscale=True):
         return scipy.misc.imread(path, mode='YCbCr').astype(np.float)
 
 
-def modcrop(image, scale=3):
+def modcrop(image, scale=4):
     """
   To scale down and up the original image, first thing to do is to have no remainder while scaling operation.
 
@@ -116,9 +120,9 @@ def modcrop(image, scale=3):
 
 def input_setup(sess, config):
     if config.is_train:
-        data = prepare_data(sess, dataset="Train")
+        data = prepare_data(sess, dataset="Train\\{}".format(config.train_data))
     else:
-        data = prepare_data(sess, dataset="Test")
+        data = prepare_data(sess, dataset="Test\\{}".format(config.test_data))
 
     sub_input_sequence = []
     sub_label_sequence = []
@@ -132,12 +136,11 @@ def input_setup(sess, config):
                 h, w, _ = input_.shape
             else:
                 h, w = input_.shape
-
+            log.debug("{}, {}".format(h, w))
             for x in range(0, h - config.image_size + 1, config.stride):
                 for y in range(0, w - config.image_size + 1, config.stride):
-                    sub_input = input_[x:x + config.image_size, y:y + config.image_size]  # [33 x 33]
-                    sub_label = label_[x + int(padding):x + int(padding) + config.label_size,
-                                y + int(padding):y + int(padding) + config.label_size]  # [21 x 21]
+                    sub_input = input_[x:x + config.image_size, y:y + config.image_size]
+                    sub_label = label_[x + int(padding):x + int(padding) + config.label_size, y + int(padding):y + int(padding) + config.label_size]
 
                     # Make channel value
                     sub_input = sub_input.reshape([config.image_size, config.image_size, 1])

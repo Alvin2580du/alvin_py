@@ -257,7 +257,7 @@ def opencv_resize_larger_images(inputs, times=2):
 
 
 def resize_images2same_size(path):
-    data_dir = "D:\\SRGAN-master\\asset\\data\\images\\{}\\".format(path)
+    data_dir = "D:\\Other\\yaoganshuju\\yaogan\\{}".format(path)
     save_path = "D:\\SRGAN-master\\asset\\data\\yaogan\\{}\\".format(path)
     if not os.path.exists(save_path):
         os.makedirs(save_path)
@@ -266,7 +266,7 @@ def resize_images2same_size(path):
     for file in files_dir:
         file_name = os.path.basename(file)
         data = cv2.imread(file)
-        new_data = cv2.resize(data, (512, 512), interpolation=cv2.INTER_AREA)
+        new_data = cv2.resize(data, (176, 197), interpolation=cv2.INTER_AREA)
         cv2.imwrite(os.path.join(save_path, "{}".format(file_name)), new_data)
     print("Total preprocess :{}".format(len(files_dir)))
 
@@ -313,7 +313,7 @@ def downsample_fn(x):
     return x
 
 
-def splitimage(src, dst, target_size=512):
+def splitimage(src, dst, target_size=256):
     img = Image.open(src)
     w, h = img.size
     rownum, colnum = int(w / target_size), int(h / target_size)
@@ -342,7 +342,7 @@ def build_split_data(step='train'):
         save_path = "D:\\SuperResolution_WIth_GAN\\data2017\\yaogan\\images\\{}".format(step)
         if not os.path.exists(save_path):
             os.makedirs(save_path)
-        splitimage(os.path.join(path, file), save_path, target_size=64)
+        splitimage(os.path.join(path, file), save_path, target_size=256)
 
 
 def make_x4datasets():

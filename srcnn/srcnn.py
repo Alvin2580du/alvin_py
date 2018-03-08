@@ -12,11 +12,14 @@ flags.DEFINE_integer("image_size", 33, "The size of image to use [33]")
 flags.DEFINE_integer("label_size", 21, "The size of label to produce [21]")
 flags.DEFINE_float("learning_rate", 1e-4, "The learning rate of gradient descent algorithm [1e-4]")
 flags.DEFINE_integer("c_dim", 1, "Dimension of image color. [1]")
-flags.DEFINE_integer("scale", 3, "The size of scale factor for preprocessing input image [3]")
+flags.DEFINE_integer("scale", 4, "The size of scale factor for preprocessing input image [3]")
 flags.DEFINE_integer("stride", 14, "The size of stride to apply input image [14]")
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Name of checkpoint directory [checkpoint]")
-flags.DEFINE_string("sample_dir", "Train", "Name of sample directory [sample]")
-flags.DEFINE_boolean("is_train", False, "True for training, False for testing [True]")
+flags.DEFINE_string("sample_dir", "result", "Name of sample directory [sample]")
+flags.DEFINE_string("train_data", "yaogan", "Name of sample directory [sample]")
+flags.DEFINE_string("test_data", "yaogan", "Name of sample directory [sample]")
+
+flags.DEFINE_boolean("is_train", True, "True for training, False for testing [True]")
 FLAGS = flags.FLAGS
 
 pp = pprint.PrettyPrinter()
@@ -37,6 +40,7 @@ class SRCNN(object):
         self.checkpoint_dir = checkpoint_dir
         self.sample_dir = sample_dir
         self.build_model()
+        print("  build modeel success ")
         input_setup(self.sess, FLAGS)
 
     def build_model(self):
@@ -63,7 +67,7 @@ class SRCNN(object):
 
         train_data, train_label = read_data(data_dir)
         self.train_op = tf.train.GradientDescentOptimizer(config.learning_rate).minimize(self.loss)
-        tf.initialize_all_variables().run()
+        tf.global_variables_initializer().run()
         counter = 0
         start_time = time.time()
         if self.load(self.checkpoint_dir):
