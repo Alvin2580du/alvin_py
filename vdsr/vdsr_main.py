@@ -1,14 +1,13 @@
 import tensorflow as tf
-import argparse
 import math
 import numpy as np
 import os
 from tqdm import trange
 from pyduyp.logger.log import log
+import cv2
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-DATA_PATH = "D:\\alvin_py\\srcnn\\Train\\"
 IMG_SIZE = (64, 64)
 batch_size = 16
 base_lr = 0.0001
@@ -18,7 +17,6 @@ max_epoch = 120
 
 
 def psnr(target, ref, scale):
-    # assume RGB image
     target_data = np.array(target)
     target_data = target_data[scale:-scale, scale:-scale]
 
@@ -34,11 +32,7 @@ def psnr(target, ref, scale):
 def model(input_tensor):
     with tf.device("/cpu:0"):
         weights = []
-        tensor = None
-
-        # conv_00_w = tf.get_variable("conv_00_w", [3,3,1,64], initializer=tf.contrib.layers.xavier_initializer())
-        conv_00_w = tf.get_variable("conv_00_w", [3, 3, 1, 64],
-                                    initializer=tf.random_normal_initializer(stddev=np.sqrt(2.0 / 9)))
+        conv_00_w = tf.get_variable("conv_00_w", [3, 3, 1, 64], initializer=tf.random_normal_initializer(stddev=np.sqrt(2.0 / 9)))
         log.info("conv_00_w: {}".format(conv_00_w))
         conv_00_b = tf.get_variable("conv_00_b", [64], initializer=tf.constant_initializer(0))
         weights.append(conv_00_w)
@@ -81,6 +75,16 @@ def get_image_batch_forpng(start_idx, batch_size):
     yield hr_paths[excerpt], lr_paths[excerpt]
 
 
+def read_data2arr(inputs_list):
+    out = []
+    for image in inputs_list:
+        image = cv2.imread(image)
+        out.append(image)
+    out2arr = np.array(out)
+    log.info("{}".format(out2arr.shape))
+    return out2arr
+
+
 if __name__ == '__main__':
     train_list_length = 2700
     train_input = tf.placeholder(tf.float32, shape=(batch_size, IMG_SIZE[0], IMG_SIZE[1], 1))
@@ -114,7 +118,9 @@ if __name__ == '__main__':
             batch_count = train_list_length // batch_size
             for bc in range(batch_count):
                 offset = bc * batch_size
-                for input_data, gt_data in get_image_batch_forpng(bc, batch_size):
+                for hr, lr in get_image_batch_forpng(bc, batch_size):
+                    input_data, gt_data = read_data2arr(lr), read_data2arr(hr)
+
                     feed_dict = {train_input: input_data, train_gt: gt_data}
                     _, l, output, lr, g_step = sess.run([opt, loss, train_output, learning_rate, global_step],
                                                         feed_dict=feed_dict)
