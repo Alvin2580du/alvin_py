@@ -11,7 +11,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn import preprocessing
 from sklearn.linear_model import Lasso, RANSACRegressor, SGDRegressor, LinearRegression
 from sklearn.neural_network import MLPRegressor
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
 from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor

@@ -104,7 +104,7 @@ def read_data2arr(inputs_list):
 
 
 if __name__ == '__main__':
-    method = 'train'
+    method = 'test'
     if method == 'train':
         train_list_length = 2700
         train_input = tf.placeholder(tf.float32, shape=(batch_size, IMG_SIZE[0], IMG_SIZE[1], 3))
@@ -148,7 +148,7 @@ if __name__ == '__main__':
                         log.info("{}".format(loginfo))
 
                     if bc % 80 == 1:
-                        model_path = 'D:\\alvin_py\\vdsr\\checkpoints\\vsdr_{}_{}.ckpt'.format(epoch, bc)
+                        model_path = 'D:\\alvin_py\\srcnn\\checkpoints\\vdsr\\vsdr_{}_{}.ckpt'.format(epoch, bc)
                         saver.save(sess, model_path, global_step=epoch)
                         log.info("Save Success : {}".format(model_path))
 
@@ -157,38 +157,30 @@ if __name__ == '__main__':
             input_tensor = tf.placeholder(tf.float32, shape=(1, None, None, 3))
             shared_model = tf.make_template('shared_model', model)
             output_tensor, weights = shared_model(input_tensor)
-            log.info("{}, {}".format(output_tensor, weights))
             saver = tf.train.Saver(weights)
             tf.initialize_all_variables().run()
-            model_dir = 'D:\\alvin_py\\vdsr\\checkpoints'
+            model_dir = 'D:\\alvin_py\\srcnn\\checkpoints\\vdsr'
             ckpt = tf.train.get_checkpoint_state(model_dir)
             if ckpt and ckpt.model_checkpoint_path:
                 ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
                 saver.restore(sess, os.path.join(model_dir, ckpt_name))
                 log.info("{}".format(ckpt_name))
 
-            data_path = 'D:\\alvin_py\\srcnn\\Test\\yaogan'
+            data_path = 'D:\\alvin_py\\srcnn\\Test\\yaogan_lr_256x256'
             tf.initialize_all_variables().run()
             for file in os.listdir(data_path):
                 file_name = os.path.join(data_path, file)
-                log.debug("{}".format(file_name))
-                file_name = './data/2.jpg'
-                save_name = file_name.split("/")[-1].split(".")[0]
-                image = cv2.imread(file_name)
-                input_y = cv2.resize(image, (64, 64))
-                log.info("input_y shape: {}".format(input_y.shape))
-                img_vdsr_y = sess.run([output_tensor],
-                                      feed_dict={
-                                          input_tensor: np.resize(input_y, (1, input_y.shape[0], input_y.shape[1], 3))})
-                log.debug("{}".format(img_vdsr_y[0][0].shape))
-                cv2.imwrite("D:\\alvin_py\\vdsr\\results\\0_{}.png".format(save_name), img_vdsr_y[0][0])
 
-                img_vdsr_y = np.resize(img_vdsr_y[0][0], (input_y.shape[0], input_y.shape[1], 3))
+                input_y = cv2.imread(file_name)
+                log.info("input_y shape: {}".format(input_y.shape))
+                testfeed_dict = {input_tensor: np.resize(input_y, (1, input_y.shape[0], input_y.shape[1], 3))}
+                img_vdsr_y = sess.run([output_tensor], feed_dict=testfeed_dict)[0][0]
                 log.debug("{}".format(img_vdsr_y.shape))
-                cv2.imwrite("D:\\alvin_py\\vdsr\\results\\1_{}.png".format(save_name), img_vdsr_y)
+                png_name = "D:\\alvin_py\\srcnn\\results\\vdsr\\{}".format(file)
+                cv2.imwrite(png_name, img_vdsr_y)
+                log.info("{}".format(png_name))
 
     if method == 'stat':
         img1 = cv2.imread('./results/orig.png')
         img2 = cv2.imread('./results/srcnn.png')
         res = compare_psnr(img1, img2, 1)
-        print(res)
