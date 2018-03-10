@@ -5,16 +5,38 @@ import os
 from tqdm import trange
 from pyduyp.logger.log import log
 import cv2
-import glob
+from skimage import measure
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-IMG_SIZE = (64, 64)
-batch_size = 16
+IMG_SIZE = (256, 256)
+batch_size = 4
 base_lr = 0.0001
 lr_rate = 0.1
 lr_step_size = 120
 max_epoch = 120
+
+
+def compare_ssim(img1, img2):
+    if img2.size == img1.size:
+        if len(img2.shape) == 3:
+            ssim = measure.compare_ssim(img1, img2, multichannel=True)
+            return ssim
+        else:
+            ssim = measure.compare_ssim(img1, img2)
+            return ssim
+
+
+def compare_psnr(img1, img2, scale):
+    if img2.size == img1.size:
+        ssim = measure.compare_psnr(img1, img2, data_range=scale)
+        return ssim
+
+
+def compare_nrmse(img1, img2):
+    if img2.size == img1.size:
+        ssim = measure.compare_nrmse(img1, img2, norm_type='Euclidean')
+        return ssim
 
 
 def psnr(target, ref, scale):
@@ -33,18 +55,23 @@ def psnr(target, ref, scale):
 def model(input_tensor):
     with tf.device("/cpu:0"):
         weights = []
-        conv_00_w = tf.get_variable("conv_00_w", [3, 3, 3, 64], initializer=tf.random_normal_initializer(stddev=np.sqrt(2.0 / 9)))
+        conv_00_w = tf.get_variable("conv_00_w", [3, 3, 3, 64],
+                                    initializer=tf.random_normal_initializer(stddev=np.sqrt(2.0 / 9)))
         conv_00_b = tf.get_variable("conv_00_b", [64], initializer=tf.constant_initializer(0))
         weights.append(conv_00_w)
         weights.append(conv_00_b)
-        tensor = tf.nn.relu(tf.nn.bias_add(tf.nn.conv2d(input_tensor, conv_00_w, strides=[1, 1, 1, 1], padding='SAME'), conv_00_b))
+        tensor = tf.nn.relu(
+            tf.nn.bias_add(tf.nn.conv2d(input_tensor, conv_00_w, strides=[1, 1, 1, 1], padding='SAME'), conv_00_b))
         for i in range(18):
-            conv_w = tf.get_variable("conv_%02d_w" % (i + 1), [3, 3, 64, 64], initializer=tf.random_normal_initializer(stddev=np.sqrt(2.0 / 9 / 64)))
+            conv_w = tf.get_variable("conv_%02d_w" % (i + 1), [3, 3, 64, 64],
+                                     initializer=tf.random_normal_initializer(stddev=np.sqrt(2.0 / 9 / 64)))
             conv_b = tf.get_variable("conv_%02d_b" % (i + 1), [64], initializer=tf.constant_initializer(0))
             weights.append(conv_w)
             weights.append(conv_b)
-            tensor = tf.nn.relu(tf.nn.bias_add(tf.nn.conv2d(tensor, conv_w, strides=[1, 1, 1, 1], padding='SAME'), conv_b))
-        conv_w = tf.get_variable("conv_20_w", [3, 3, 64, 1], initializer=tf.random_normal_initializer(stddev=np.sqrt(2.0 / 9 / 64)))
+            tensor = tf.nn.relu(
+                tf.nn.bias_add(tf.nn.conv2d(tensor, conv_w, strides=[1, 1, 1, 1], padding='SAME'), conv_b))
+        conv_w = tf.get_variable("conv_20_w", [3, 3, 64, 1],
+                                 initializer=tf.random_normal_initializer(stddev=np.sqrt(2.0 / 9 / 64)))
         conv_b = tf.get_variable("conv_20_b", [1], initializer=tf.constant_initializer(0))
         weights.append(conv_w)
         weights.append(conv_b)
@@ -78,7 +105,7 @@ def read_data2arr(inputs_list):
 
 
 if __name__ == '__main__':
-    method = 'test'
+    method = 'train'
     if method == 'train':
         train_list_length = 2700
         train_input = tf.placeholder(tf.float32, shape=(batch_size, IMG_SIZE[0], IMG_SIZE[1], 3))
@@ -152,7 +179,8 @@ if __name__ == '__main__':
                 input_y = cv2.resize(image, (64, 64))
                 log.info("input_y shape: {}".format(input_y.shape))
                 img_vdsr_y = sess.run([output_tensor],
-                                      feed_dict={input_tensor: np.resize(input_y, (1, input_y.shape[0], input_y.shape[1], 3))})
+                                      feed_dict={
+                                          input_tensor: np.resize(input_y, (1, input_y.shape[0], input_y.shape[1], 3))})
                 log.debug("{}".format(img_vdsr_y[0][0].shape))
                 cv2.imwrite("D:\\alvin_py\\vdsr\\results\\0_{}.png".format(save_name), img_vdsr_y[0][0])
 
@@ -160,4 +188,8 @@ if __name__ == '__main__':
                 log.debug("{}".format(img_vdsr_y.shape))
                 cv2.imwrite("D:\\alvin_py\\vdsr\\results\\1_{}.png".format(save_name), img_vdsr_y)
 
-
+    if method == 'stat':
+        img1 = cv2.imread('./results/orig.png')
+        img2 = cv2.imread('./results/srcnn.png')
+        res = compare_psnr(img1, img2, 1)
+        print(res)
