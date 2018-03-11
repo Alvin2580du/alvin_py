@@ -10,7 +10,7 @@ from skimage import measure
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 IMG_SIZE = (256, 256)
-batch_size = 4
+batch_size = 2
 base_lr = 0.0001
 lr_rate = 0.1
 lr_step_size = 120
@@ -53,7 +53,7 @@ def psnr(target, ref, scale):
 
 
 def model(input_tensor):
-    with tf.device("/cpu:0"):
+    with tf.device("/gpu:0"):
         weights = []
         conv_00_w = tf.get_variable("conv_00_w", [3, 3, 3, 64],
                                     initializer=tf.random_normal_initializer(stddev=np.sqrt(2.0 / 9)))
@@ -80,10 +80,10 @@ def model(input_tensor):
         return tensor, weights
 
 
-def get_image_batch_forpng(start_idx, batch_size):
+def get_image_batch_forpng(start_idx, batch_size, data_path="bsd300.txt"):
     hr_paths = []
     lr_paths = []
-    with open("yaogan.txt", 'r', encoding='utf-8') as fr:
+    with open(data_path, 'r', encoding='utf-8') as fr:
         lines = fr.readlines()
         for line in lines:
             lr, hr = line.split('|')[1].strip(), line.split('|')[0].strip()
@@ -98,8 +98,10 @@ def read_data2arr(inputs_list):
     out = []
     for image in inputs_list:
         image = cv2.imread(image)
+        image = cv2.resize(image, (256, 256))
         out.append(image)
     out2arr = np.array(out)
+    log.debug("{}".format(out2arr.shape))
     return out2arr
 
 
@@ -107,6 +109,7 @@ if __name__ == '__main__':
     method = 'test'
     if method == 'train':
         train_list_length = 2700
+        data_sets = 'bsd300'
         train_input = tf.placeholder(tf.float32, shape=(batch_size, IMG_SIZE[0], IMG_SIZE[1], 3))
         train_gt = tf.placeholder(tf.float32, shape=(batch_size, IMG_SIZE[0], IMG_SIZE[1], 3))
 
@@ -122,7 +125,7 @@ if __name__ == '__main__':
         tf.summary.scalar("learning rate", learning_rate)
         optimizer = tf.train.AdamOptimizer(learning_rate)
         opt = optimizer.minimize(loss, global_step=global_step)
-        saver = tf.train.Saver(weights, max_to_keep=0)
+        saver = tf.train.Saver(weights, max_to_keep=50)
 
         config = tf.ConfigProto()
 
@@ -138,7 +141,7 @@ if __name__ == '__main__':
                 log.info("{}".format(batch_count))
                 for bc in range(batch_count):
                     offset = bc * batch_size
-                    for hr, lr in get_image_batch_forpng(bc, batch_size):
+                    for hr, lr in get_image_batch_forpng(bc, batch_size, data_path="{}.txt".format(data_sets)):
                         input_data, gt_data = read_data2arr(lr), read_data2arr(hr)
                         log.debug("{}, {}".format(input_data.shape, gt_data.shape))
                         feed_dict = {train_input: input_data, train_gt: gt_data}
@@ -147,8 +150,11 @@ if __name__ == '__main__':
                         loginfo = "epoch/bc:{}/{}, loss: {},lr: {}".format(epoch, bc, np.sum(l) / batch_size, lr)
                         log.info("{}".format(loginfo))
 
-                    if bc % 80 == 1:
-                        model_path = 'D:\\alvin_py\\srcnn\\checkpoints\\vdsr\\vsdr_{}_{}.ckpt'.format(epoch, bc)
+                    if bc % 1000 == 1:
+                        model_path = 'D:\\alvin_py\\srcnn\\checkpoints\\{}'.format(data_sets)
+                        if not os.path.exists(model_path):
+                            os.makedirs(model_path)
+                        model_names = os.path.join(model_path, "{}_{}.ckpt".format(epoch, bc))
                         saver.save(sess, model_path, global_step=epoch)
                         log.info("Save Success : {}".format(model_path))
 
@@ -165,13 +171,14 @@ if __name__ == '__main__':
                 ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
                 saver.restore(sess, os.path.join(model_dir, ckpt_name))
                 log.info("{}".format(ckpt_name))
-
-            data_path = 'D:\\alvin_py\\srcnn\\Test\\yaogan_lr_256x256'
+            datasets_name = 'bsd300'
+            data_path = 'D:\\alvin_py\\srcnn\\Test\\{}'.format(datasets_name)
             tf.initialize_all_variables().run()
             for file in os.listdir(data_path):
                 file_name = os.path.join(data_path, file)
 
                 input_y = cv2.imread(file_name)
+                # input_y = cv2.resize(input_y, (256, 256))
                 log.info("input_y shape: {}".format(input_y.shape))
                 testfeed_dict = {input_tensor: np.resize(input_y, (1, input_y.shape[0], input_y.shape[1], 3))}
                 img_vdsr_y = sess.run([output_tensor], feed_dict=testfeed_dict)[0][0]
@@ -181,6 +188,8 @@ if __name__ == '__main__':
                 log.info("{}".format(png_name))
 
     if method == 'stat':
+        # TODO 统计数据
         img1 = cv2.imread('./results/orig.png')
         img2 = cv2.imread('./results/srcnn.png')
-        res = compare_psnr(img1, img2, 1)
+        res = compare_nrmse(img1, img2)
+        print(res)
