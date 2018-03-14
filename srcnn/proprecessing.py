@@ -3,6 +3,7 @@ import scipy
 import os
 from PIL import Image
 import cv2
+from tqdm import tqdm
 
 root = "D:\\alvin_py\\srcnn\\"
 
@@ -73,12 +74,83 @@ def write2file_for_train(step='Test', hr_path='yaogan', lr_path='yaogan_lr_256x2
     for i in range(length):
         files_hr_name = files_hr[i]
         files_lr_name = files_lr[i]
-        save_str = "{}|{}".format(os.path.join(root, step, hr_path, files_hr_name), os.path.join(root, step, lr_path, files_lr_name))
+        save_str = "{}|{}".format(os.path.join(root, step, hr_path, files_hr_name),
+                                  os.path.join(root, step, lr_path, files_lr_name))
         fw.writelines(save_str + "\n")
 
 
+def bsd300_to_text():
+    lr_path = './Train/BSDS300/images/train_x4/'
+    hr_path = './Train/BSDS300/images/train/'
+    length = len(os.listdir(lr_path))
+    fw = open(os.path.join(root, 'bsd300.txt'), 'w', encoding='utf-8')
+
+    for i in range(length):
+        lr_image = os.path.join(lr_path, os.listdir(lr_path)[i])
+        hr_image = os.path.join(hr_path, os.listdir(hr_path)[i])
+
+        res = "{}|{}".format(hr_image, lr_image)
+        fw.writelines(res + "\n")
+
+
+def celeba2text():
+    path = 'D:\\alvin_data\\celeba'
+    lr_path = 'D:\\alvin_data\\celeba_4x'
+    if not os.path.exists(lr_path):
+        os.makedirs(lr_path)
+
+    for file in tqdm(os.listdir(path)):
+        file_name = os.path.join(path, file)
+        image = cv2.imread(file_name)
+        imageresize = cv2.resize(image, (178 * 4, 218 * 4), interpolation=cv2.INTER_CUBIC)
+        cv2.imwrite(os.path.join(lr_path, "4x_" + file), imageresize)
+
+
+def delete():
+    from pyduyp.utils.utils import is_chinese
+    res = []
+    with open('paper.txt', 'r', encoding='utf-8') as fr:
+        lines = fr.readlines()
+        for line in lines:
+            for x in line:
+                if is_chinese(x):
+                    res.append(x)
+    fw = open("paper_delet.txt", 'w', encoding='utf-8')
+    fw.writelines("".join(res))
+
+
+def get_celeba_names():
+    fw = open(os.path.join(root, 'celeba.txt'), 'w', encoding='utf-8')
+    hr_path = 'D:\\alvin_data\\celeba'
+    lr_path = 'D:\\alvin_data\\celeba_4x'
+    hr_images = os.listdir(hr_path)
+    lr_images = os.listdir(lr_path)
+    length = len(hr_images)
+    for i in range(length):
+        hr = os.path.join(hr_path, hr_images[i])
+        lr = os.path.join(lr_path, lr_images[i])
+        res = "{}|{}".format(hr, lr)
+        fw.writelines(res + "\n")
+
+
+def plot_logs():
+    import re
+    import matplotlib.pyplot as plt
+    import pandas as pd
+    losses = []
+    with open('logs.txt', 'r', encoding='utf-8') as fr:
+        lines = fr.readlines()
+        for line in lines:
+            if "INFO" in line:
+                loss = re.compile("loss: \d+(\.\d+)?").findall(line)
+                if loss:
+                    losses.append(loss[0])
+    df = pd.Series(losses)
+    df.to_csv("logs.csv")
+
+
 if __name__ == "__main__":
-    method = 'four'
+    method = 'plotlogs'
 
     if method == 'first':
         build_split_data(step='test')
@@ -91,3 +163,14 @@ if __name__ == "__main__":
 
     if method == 'four':
         write2file_for_train(step='Test', hr_path='yaogan', lr_path='yaogan_lr_256x256')
+
+    if method == 'five':
+        bsd300_to_text()
+
+    if method == 'six':
+        # celeba2text()
+        delete()
+    if method == 'senven':
+        get_celeba_names()
+    if method == 'plotlogs':
+        plot_logs()
