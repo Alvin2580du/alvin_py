@@ -9,12 +9,28 @@ from skimage import measure
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-IMG_SIZE = (256, 256)
-batch_size = 2
+input_size = (128, 128)
+output_size = (128, 128)
+
+batch_size = 8
 base_lr = 0.0001
 lr_rate = 0.1
 lr_step_size = 120
-max_epoch = 120
+max_epoch = 500
+
+
+def crop(x, wrg, hrg, is_random=False, row_index=0, col_index=1):
+    h, w = x.shape[row_index], x.shape[col_index]
+    if is_random:
+        h_offset = int(np.random.uniform(0, h - hrg) - 1)
+        w_offset = int(np.random.uniform(0, w - wrg) - 1)
+        return x[h_offset: hrg + h_offset, w_offset: wrg + w_offset]
+    else:
+        h_offset = int(np.floor((h - hrg) / 2.))
+        w_offset = int(np.floor((w - wrg) / 2.))
+        h_end = h_offset + hrg
+        w_end = w_offset + wrg
+        return x[h_offset: h_end, w_offset: w_end]
 
 
 def compare_ssim(img1, img2):
@@ -53,6 +69,7 @@ def psnr(target, ref, scale):
 
 
 def model(input_tensor):
+    log.info("input_tensor: {}".format(input_tensor))
     with tf.device("/gpu:0"):
         weights = []
         conv_00_w = tf.get_variable("conv_00_w", [3, 3, 3, 64],
@@ -77,6 +94,7 @@ def model(input_tensor):
         weights.append(conv_b)
         tensor = tf.nn.bias_add(tf.nn.conv2d(tensor, conv_w, strides=[1, 1, 1, 1], padding='SAME'), conv_b)
         tensor = tf.add(tensor, input_tensor)
+        log.info("out tensor :{}".format(tensor))
         return tensor, weights
 
 
@@ -94,11 +112,25 @@ def get_image_batch_forpng(start_idx, batch_size, data_path="bsd300.txt"):
     yield hr_paths[excerpt], lr_paths[excerpt]
 
 
-def read_data2arr(inputs_list):
+def read_lf2arr(inputs_list):
     out = []
     for image in inputs_list:
         image = cv2.imread(image)
-        image = cv2.resize(image, (256, 256))
+        log.debug("{}".format(image.shape))
+        image = cv2.resize(image, (178, 218))
+        log.debug("{}".format(image.shape))
+        image = crop(image, 128, 128)
+        out.append(image)
+    out2arr = np.array(out)
+    log.debug("{}".format(out2arr.shape))
+    return out2arr
+
+
+def read_hf2arr(inputs_list):
+    out = []
+    for image in inputs_list:
+        image = cv2.imread(image)
+        image = crop(image, 128, 128)
         out.append(image)
     out2arr = np.array(out)
     log.debug("{}".format(out2arr.shape))
@@ -106,12 +138,12 @@ def read_data2arr(inputs_list):
 
 
 if __name__ == '__main__':
-    method = 'test'
+    method = 'train'
     if method == 'train':
-        train_list_length = 2700
-        data_sets = 'bsd300'
-        train_input = tf.placeholder(tf.float32, shape=(batch_size, IMG_SIZE[0], IMG_SIZE[1], 3))
-        train_gt = tf.placeholder(tf.float32, shape=(batch_size, IMG_SIZE[0], IMG_SIZE[1], 3))
+        train_list_length = 202599
+        data_sets = 'celeba'
+        train_input = tf.placeholder(tf.float32, shape=(batch_size, output_size[1], output_size[0], 3))
+        train_gt = tf.placeholder(tf.float32, shape=(batch_size, output_size[1], output_size[0], 3))
 
         shared_model = tf.make_template('shared_model', model)
         train_output, weights = shared_model(train_input)
@@ -121,7 +153,8 @@ if __name__ == '__main__':
         tf.summary.scalar("loss", loss)
 
         global_step = tf.Variable(0, trainable=False)
-        learning_rate = tf.train.exponential_decay(base_lr, global_step * batch_size, train_list_length * lr_step_size, lr_rate, staircase=True)
+        learning_rate = tf.train.exponential_decay(base_lr, global_step * batch_size, train_list_length * lr_step_size,
+                                                   lr_rate, staircase=True)
         tf.summary.scalar("learning rate", learning_rate)
         optimizer = tf.train.AdamOptimizer(learning_rate)
         opt = optimizer.minimize(loss, global_step=global_step)
@@ -142,7 +175,7 @@ if __name__ == '__main__':
                 for bc in range(batch_count):
                     offset = bc * batch_size
                     for hr, lr in get_image_batch_forpng(bc, batch_size, data_path="{}.txt".format(data_sets)):
-                        input_data, gt_data = read_data2arr(lr), read_data2arr(hr)
+                        input_data, gt_data = read_lf2arr(lr), read_hf2arr(hr)
                         log.debug("{}, {}".format(input_data.shape, gt_data.shape))
                         feed_dict = {train_input: input_data, train_gt: gt_data}
                         run_obj = [opt, loss, train_output, learning_rate, global_step]
@@ -150,28 +183,29 @@ if __name__ == '__main__':
                         loginfo = "epoch/bc:{}/{}, loss: {},lr: {}".format(epoch, bc, np.sum(l) / batch_size, lr)
                         log.info("{}".format(loginfo))
 
-                    if bc % 1000 == 1:
+                    if bc % 90 == 1:
                         model_path = 'D:\\alvin_py\\srcnn\\checkpoints\\{}'.format(data_sets)
                         if not os.path.exists(model_path):
                             os.makedirs(model_path)
-                        model_names = os.path.join(model_path, "{}_{}.ckpt".format(epoch, bc))
-                        saver.save(sess, model_path, global_step=epoch)
-                        log.info("Save Success : {}".format(model_path))
+                        model_names = os.path.join(model_path, "\\{}_{}.ckpt".format(epoch, bc))
+                        saver.save(sess, model_names, global_step=epoch)
+                        log.info("Save Success : {}".format(model_names))
 
     if method == 'test':
+        datasets_name = 'bsd300'
+
         with tf.Session() as sess:
             input_tensor = tf.placeholder(tf.float32, shape=(1, None, None, 3))
             shared_model = tf.make_template('shared_model', model)
             output_tensor, weights = shared_model(input_tensor)
             saver = tf.train.Saver(weights)
             tf.initialize_all_variables().run()
-            model_dir = 'D:\\alvin_py\\srcnn\\checkpoints\\vdsr'
+            model_dir = 'D:\\alvin_py\\srcnn\\checkpoints\\bsd300'
             ckpt = tf.train.get_checkpoint_state(model_dir)
             if ckpt and ckpt.model_checkpoint_path:
                 ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
                 saver.restore(sess, os.path.join(model_dir, ckpt_name))
                 log.info("{}".format(ckpt_name))
-            datasets_name = 'bsd300'
             data_path = 'D:\\alvin_py\\srcnn\\Test\\{}'.format(datasets_name)
             tf.initialize_all_variables().run()
             for file in os.listdir(data_path):
@@ -183,7 +217,7 @@ if __name__ == '__main__':
                 testfeed_dict = {input_tensor: np.resize(input_y, (1, input_y.shape[0], input_y.shape[1], 3))}
                 img_vdsr_y = sess.run([output_tensor], feed_dict=testfeed_dict)[0][0]
                 log.debug("{}".format(img_vdsr_y.shape))
-                png_name = "D:\\alvin_py\\srcnn\\results\\vdsr\\{}".format(file)
+                png_name = "D:\\alvin_py\\srcnn\\results\\bsd300\\{}".format(file)
                 cv2.imwrite(png_name, img_vdsr_y)
                 log.info("{}".format(png_name))
 
@@ -193,3 +227,8 @@ if __name__ == '__main__':
         img2 = cv2.imread('./results/srcnn.png')
         res = compare_nrmse(img1, img2)
         print(res)
+
+    if method == 'tmp':
+        da = cv2.imread("D:\\alvin_data\\celeba\\000001.jpg")
+        da_crop = crop(da, 128, 128)
+        cv2.imwrite("crop_test.png", da_crop)
