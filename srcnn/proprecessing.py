@@ -4,11 +4,16 @@ import os
 from PIL import Image
 import cv2
 from tqdm import tqdm
+from glob import glob
+import numpy as np
+import re
+import matplotlib.pyplot as plt
+import pandas as pd
 
 root = "D:\\alvin_py\\srcnn\\"
 
 
-def splitimage(src, dst, target_size=256):
+def splitimage(src, dst, target_size=96):
     img = Image.open(src)
     w, h = img.size
     rownum, colnum = int(w / target_size), int(h / target_size)
@@ -34,10 +39,10 @@ def build_split_data(step='train'):
     path = "D:\\alvin_data\\yaogan\\{}".format(step)
     files = os.listdir(path)
     for file in files:
-        save_path = "./Test/yaogan/"
+        save_path = "./Train/yaogan_96x96/"
         if not os.path.exists(save_path):
             os.makedirs(save_path)
-        splitimage(os.path.join(path, file), save_path, target_size=256)
+        splitimage(os.path.join(path, file), save_path, target_size=96)
 
 
 def subsample_yaogan(size=64, Hr_subsample='yaogan_64x64', origin_Hr='yaogan', step='Test'):
@@ -133,27 +138,76 @@ def get_celeba_names():
         fw.writelines(res + "\n")
 
 
-def plot_logs():
-    import re
-    import matplotlib.pyplot as plt
-    import pandas as pd
+def get_logs():
     losses = []
     with open('logs.txt', 'r', encoding='utf-8') as fr:
         lines = fr.readlines()
         for line in lines:
             if "INFO" in line:
-                loss = re.compile("loss: \d+(\.\d+)?").findall(line)
+                loss = re.compile("loss: \d+\.\d+").findall(line)
                 if loss:
-                    losses.append(loss[0])
+                    losses.append(loss[0].split(":")[-1])
     df = pd.Series(losses)
     df.to_csv("logs.csv")
 
 
+def plot_logs():
+    logs = pd.read_csv("logs.csv").values
+    data = [i for j in logs for i in j]
+    print(data)
+    index = range(0, 61900, 10)
+    res = []
+    for x in index:
+        res.append(data[x])
+
+    plt.figure()
+    plt.plot(res)
+    plt.savefig("logs.png")
+
+
+def yaoganProcess():
+    yaogan_path = "./Train/yaogan_96x96/"
+    x_train = []
+    files = os.listdir(yaogan_path)
+    print(len(files))
+    for file in tqdm(files):
+        filename = os.path.join(yaogan_path, file)
+        images = cv2.imread(filename)
+        images = cv2.resize(images, (96, 96))
+        x_train.append(images)
+
+    x_train = np.array(x_train, dtype=np.float16)
+    np.save('D:\\alvin_py\\srcnn\\Train\\x_train.npy', x_train)
+
+
+def lfwProcess():
+    persons = glob('D:\\alvin_py\\srcnn\\Train\\lfw\\*')
+    paths = np.array([e for x in [glob(os.path.join(person, '*')) for person in persons] for e in x])
+    np.random.shuffle(paths)
+    r = int(len(paths) * 0.95)
+    train_paths = paths[:r]
+    test_paths = paths[r:]
+
+    x_train = []
+    for i, d in enumerate(train_paths):
+        face = cv2.imread(d)
+        face = cv2.resize(face, (96, 96))
+        if face is None:
+            continue
+        x_train.append(face)
+        imgpath = os.path.join('D:\\alvin_py\\srcnn\\Train\\lfw_train\\', "{}.jpg".format("{0:05d}".format(i)))
+        cv2.imwrite(imgpath, face)
+        print(imgpath)
+
+    x_train = np.array(x_train, dtype=np.uint8)
+    np.save('D:\\alvin_py\\srcnn\\Train\\yg_train.npy', x_train)
+
+
 if __name__ == "__main__":
-    method = 'plotlogs'
+    method = 'yaogan'
 
     if method == 'first':
-        build_split_data(step='test')
+        build_split_data(step='train')
 
     if method == 'second':
         subsample_yaogan(size=64, Hr_subsample='yaogan_64x64', origin_Hr='yaogan', step='Test')
@@ -174,3 +228,9 @@ if __name__ == "__main__":
         get_celeba_names()
     if method == 'plotlogs':
         plot_logs()
+
+    if method == 'lfw':
+        lfwProcess()
+
+    if method == 'yaogan':
+        yaoganProcess()

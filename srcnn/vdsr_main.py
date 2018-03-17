@@ -138,7 +138,7 @@ def read_hf2arr(inputs_list):
 
 
 if __name__ == '__main__':
-    method = 'train'
+    method = 'stat'
     if method == 'train':
         train_list_length = 202599
         data_sets = 'celeba'
@@ -192,7 +192,7 @@ if __name__ == '__main__':
                         log.info("Save Success : {}".format(model_names))
 
     if method == 'test':
-        datasets_name = 'bsd300'
+        datasets_name = 'celeba'
 
         with tf.Session() as sess:
             input_tensor = tf.placeholder(tf.float32, shape=(1, None, None, 3))
@@ -200,7 +200,7 @@ if __name__ == '__main__':
             output_tensor, weights = shared_model(input_tensor)
             saver = tf.train.Saver(weights)
             tf.initialize_all_variables().run()
-            model_dir = 'D:\\alvin_py\\srcnn\\checkpoints\\bsd300'
+            model_dir = 'D:\\alvin_py\\srcnn\\checkpoints\\celeba'
             ckpt = tf.train.get_checkpoint_state(model_dir)
             if ckpt and ckpt.model_checkpoint_path:
                 ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
@@ -212,23 +212,38 @@ if __name__ == '__main__':
                 file_name = os.path.join(data_path, file)
 
                 input_y = cv2.imread(file_name)
+
+                # input_y = crop(input_y, 128, 128)
                 # input_y = cv2.resize(input_y, (256, 256))
                 log.info("input_y shape: {}".format(input_y.shape))
                 testfeed_dict = {input_tensor: np.resize(input_y, (1, input_y.shape[0], input_y.shape[1], 3))}
                 img_vdsr_y = sess.run([output_tensor], feed_dict=testfeed_dict)[0][0]
                 log.debug("{}".format(img_vdsr_y.shape))
-                png_name = "D:\\alvin_py\\srcnn\\results\\bsd300\\{}".format(file)
+                png_name = "D:\\alvin_py\\srcnn\\results\\{}".format(file)
                 cv2.imwrite(png_name, img_vdsr_y)
                 log.info("{}".format(png_name))
 
     if method == 'stat':
-        # TODO 统计数据
-        img1 = cv2.imread('./results/orig.png')
-        img2 = cv2.imread('./results/srcnn.png')
-        res = compare_nrmse(img1, img2)
-        print(res)
+        origin = './results/yaogan100_1'
+        results = './results/yaogan100'
+        length = len(os.listdir(origin))
+        nrmseall = 0
+        for i in range(length):
+            log.debug("{}, {}".format(os.path.join(origin, os.listdir(origin)[i]), os.path.join(results, os.listdir(results)[i])))
+            originimg = cv2.imread(os.path.join(origin, os.listdir(origin)[i]))
+            resultsimg = cv2.imread(os.path.join(results, os.listdir(results)[i]))
+            res = compare_ssim(originimg, resultsimg)
+            nrmseall += res
+
+        print(nrmseall/length)
 
     if method == 'tmp':
-        da = cv2.imread("D:\\alvin_data\\celeba\\000001.jpg")
-        da_crop = crop(da, 128, 128)
-        cv2.imwrite("crop_test.png", da_crop)
+        datasets_name = 'celeba'
+
+        data_path = 'D:\\alvin_py\\srcnn\\Test\\{}'.format(datasets_name)
+
+        for file in os.listdir(data_path):
+            file_name = os.path.join(data_path, file)
+            input_y = cv2.imread(file_name)
+            input_y = crop(input_y, 128, 128)
+            cv2.imwrite(file, input_y)

@@ -126,9 +126,8 @@ class VGGNetwork:
 
     def load_vgg_weight(self, model):
         print("============ Start load_vgg_weight ====================")
-        weights = get_file('D:\\srgan\\srgan_keras\\weights\\vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5',
-                           TF_WEIGHTS_PATH_NO_TOP,
-                           cache_subdir='models')
+        weights = get_file('D:\\alvin_py\\srcnn\\checkpoints\\srgan\\vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5',
+                           TF_WEIGHTS_PATH_NO_TOP, cache_subdir='models')
         f = h5py.File(weights)
 
         layer_names = [name for name in f.attrs['layer_names']]
@@ -666,8 +665,7 @@ class SRGANNetwork:
         print("=============== Start train full model ========================")
         self.build_srgan_model(use_small_srgan, use_small_discriminator)
 
-        self._train_model(image_dir, nb_images, epochs, load_generative_weights=True,
-                          load_discriminator_weights=True)
+        self._train_model(image_dir, nb_images, epochs, load_generative_weights=True, load_discriminator_weights=True)
 
     def _train_model(self, image_dir, nb_images, epochs=10, pre_train_srgan=False,
                      pre_train_discriminator=False, load_generative_weights=False, load_discriminator_weights=False,
@@ -946,19 +944,19 @@ class SRGANNetwork:
 
 if __name__ == "__main__":
     # Path to MS COCO dataset
-    coco_path = "datasets/val_images"
-    srgan_network = SRGANNetwork(img_width=32, img_height=32, batch_size=1)
+    coco_path = "./Train/bsds300train"
+    srgan_network = SRGANNetwork(img_width=32, img_height=32, batch_size=2)
     print("================ 1: {} ================".format(srgan_network))
     srgan_network.build_srgan_model()
     # plot(srgan_network.srgan_model_, 'SRGAN.png', show_shapes=True)
 
     # # Pretrain the SRGAN network
     # srgan_network.pre_train_srgan(coco_path, nb_images=1000, epochs=1)
-    # # #
-    # # # # Pretrain the discriminator network
+    # # # #
+    # # # # # Pretrain the discriminator network
     # srgan_network.pre_train_discriminator(coco_path, nb_images=1000, epochs=1, batch_size=16)
 
     # Fully train the SRGAN with VGG loss and Discriminator loss
-    srgan_network.train_full_model(coco_path, nb_images=5000, epochs=20)
+    srgan_network.train_full_model(coco_path, nb_images=200, epochs=20)
 
 
