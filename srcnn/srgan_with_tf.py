@@ -1,12 +1,17 @@
 import tensorflow as tf
 import numpy as np
-from tqdm import tqdm
-import matplotlib.pyplot as plt
-import cv2
+from tqdm import tqdm, trange
+import scipy.misc
 import os
+import matplotlib as mpl
 
-from pyduyp.logger.log import log
+mpl.use('Agg')
+import matplotlib.pyplot as plt
 
+from antcolony.logger.log import log
+
+plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.rcParams['axes.unicode_minus'] = False
 learning_rate = 1e-3
 batch_size = 2
 image_size = 96
@@ -341,28 +346,6 @@ def normalize(images):
     return np.array([image / 127.5 - 1 for image in images])
 
 
-def save_img(imgs, label, epoch):
-    for i in range(batch_size):
-        fig = plt.figure()
-        for j, img in enumerate(imgs):
-            im = np.uint8((img[i] + 1) * 127.5)
-            im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
-            fig.add_subplot(1, len(imgs), j + 1)
-            plt.imshow(im)
-            plt.tick_params(labelbottom='off')
-            plt.tick_params(labelleft='off')
-            plt.gca().get_xaxis().set_ticks_position('none')
-            plt.gca().get_yaxis().set_ticks_position('none')
-            plt.xlabel(label[j])
-        seq_ = "{0:09d}".format(i + 1)
-        epoch_ = "{0:09d}".format(epoch)
-        path = os.path.join('result', seq_, '{}.jpg'.format(epoch_))
-        if not os.path.exists(os.path.join('result', seq_)):
-            os.mkdir(os.path.join('result', seq_))
-        plt.savefig(path)
-        plt.close()
-
-
 def downscale(x):
     K = 4
     arr = np.zeros([K, K, 3, 3])
@@ -374,42 +357,24 @@ def downscale(x):
     return downscaled
 
 
-def get_image_batch_forpng(start_idx, batch_size, data_path="bsd300.txt"):
-    hr_paths = []
-    lr_paths = []
-    with open(data_path, 'r', encoding='utf-8') as fr:
-        lines = fr.readlines()
-        for line in lines:
-            lr, hr = line.split('|')[1].strip(), line.split('|')[0].strip()
-            hr_paths.append(hr)
-            lr_paths.append(lr)
-
-    excerpt = slice(start_idx, start_idx + batch_size)
-    yield hr_paths[excerpt], lr_paths[excerpt]
+def minibatches(inputs=None, batch_size=None):
+    for start_idx in range(0, len(inputs) - batch_size + 1, batch_size):
+        excerpt = slice(start_idx, start_idx + batch_size)
+        yield inputs[excerpt]
 
 
 def train():
+    epoch = 100
+
     is_training = tf.placeholder(tf.bool, [])
     x = tf.placeholder(tf.float32, [None, image_size, image_size, 3])
     downscaled = downscale(x)
-    log.debug("downscaled: {}".format(downscaled))
-
     imitation, G_vars = generator(downscaled, is_training, False)
 
-    log.debug("imitation: {}, {}".format(imitation, G_vars))
-    log.debug("xxxxxx: {}".format(x))
     real_output, _ = discriminator(x, is_training, False)
-    log.debug("real_output:{}".format(real_output))
-    log.debug("xxxxxx: {}".format(x))
-
     fake_output, D_vars = discriminator(imitation, is_training, True)
-    log.debug("fake_output:{}, {}".format(fake_output, D_vars))
-    log.debug("xxxxxx: {}".format(x))
 
     g_loss, d_loss = inference_losses(x, imitation, real_output, fake_output)
-    log.debug("g_loss： {}, d_loss： {}".format(g_loss, d_loss))
-    log.debug("xxxxxx: {}".format(x))
-
     run_config = tf.ConfigProto()
     run_config.gpu_options.allow_growth = True
     sess = tf.Session(config=run_config)
@@ -417,56 +382,89 @@ def train():
     with tf.variable_scope('srgan'):
         global_step = tf.Variable(0, name='global_step', trainable=False)
     opt = tf.train.AdamOptimizer(learning_rate=learning_rate)
-    log.debug("xxxxxx: {}".format(x))
 
     g_train_op = opt.minimize(g_loss, global_step=global_step, var_list=G_vars)
-    log.debug("xxxxxx: {}".format(x))
-
     d_train_op = opt.minimize(d_loss, global_step=global_step, var_list=D_vars)
-    log.debug("xxxxxx: {}".format(x))
-
     init = tf.global_variables_initializer()
     sess.run(init)
-    # Restore the VGG-19 network
-    # var_list = tf.global_variables()
-    # vgg_var = [var_ for var_ in var if "vgg19" in var_.name]
-    # saver = tf.train.Saver(vgg_var)
-    #
-    # vgg_model = 'srcnn/checkpoints/vgg19'
-    # saver.restore(sess, vgg_model)
+    saver = tf.train.Saver(max_to_keep=100)
 
-    # Restore the SRGAN network
-    if tf.train.get_checkpoint_state('srcnn/checkpoints/srgan'):
-        saver = tf.train.Saver()
-        saver.restore(sess, 'srcnn/checkpoints/srgan')
+    ckpt = tf.train.get_checkpoint_state('./checkpoints/srgan/')
+    if ckpt and ckpt.model_checkpoint_path:
+        saver.restore(sess, ckpt.model_checkpoint_path)
+        log.info("ckpt:{}".format(ckpt.model_checkpoint_path))
         log.info("Model load success ... ")
 
-    x_train = np.load('srcnn/Train/yaogan_npy/x_train.npy')
-    log.debug("{}".format(x_train.shape))
-    x_test = np.load('srcnn/Train/yaogan_npy/x_train.npy')
-    n_iter = int(len(x_train) / batch_size)
-    log.debug("n_iter: {}".format(n_iter))
-    while True:
-        epoch = int(sess.run(global_step) / n_iter / 2) + 1
-
-        np.random.shuffle(x_train)
-        for i in tqdm(range(n_iter)):
-            x_batch = normalize(x_train[i * batch_size:(i + 1) * batch_size])
+    x_train = np.load('x_train.npy')
+    total_batch_count = len(range(0, len(x_train) - batch_size + 1, batch_size))
+    log.info("total bc: {}".format(total_batch_count))
+    for i in range(epoch):
+        bc = -1
+        for x_batch_images in minibatches(inputs=x_train, batch_size=batch_size):
+            bc += 1
+            x_batch = normalize(x_batch_images)
             sess.run([g_train_op, d_train_op], feed_dict={x: x_batch, is_training: True})
             g, d = sess.run([g_loss, d_loss], feed_dict={x: x_batch, is_training: True})
 
-            if i % 50 == 0:
-                log.info("epoch:{}, bc:{}, gloss:{}, dloss:{}".format(epoch, i, g, d))
+            if bc % 50 == 0:
+                log.info("epoch:{}, bc:{}, gloss:{}, dloss:{}".format(epoch, bc, g, d))
 
-            if i % 500 == 0:
-                saver = tf.train.Saver(max_to_keep=100)
-                saver.save(sess, 'srcnn/checkpoints/srgan', write_meta_graph=False)
+            if bc % 500 == 0:
+                model_name = "srgan"
+                checkpoint_dir = './checkpoints/srgan/'
 
-        # Validate
-        raw = normalize(x_test[:batch_size])
+                if not os.path.exists(checkpoint_dir):
+                    os.makedirs(checkpoint_dir)
+                savename = os.path.join(checkpoint_dir, model_name)
+                saver.save(sess, savename)
+
+                log.info("Modle Save success :{} ".format(savename))
+
+
+def modeltest():
+    batch_size = 2
+    run_config = tf.ConfigProto()
+    run_config.gpu_options.allow_growth = True
+    sess = tf.Session(config=run_config)
+
+    is_training = tf.placeholder(tf.bool, [])
+    x = tf.placeholder(tf.float32, [None, image_size, image_size, 3])
+    downscaled = downscale(x)
+    imitation, G_vars = generator(downscaled, is_training, False)
+    real_output, _ = discriminator(x, is_training, False)
+    fake_output, D_vars = discriminator(imitation, is_training, True)
+
+    saver = tf.train.Saver(max_to_keep=100)
+    ckpt = tf.train.get_checkpoint_state('./checkpoints/srgan/')
+    if ckpt and ckpt.model_checkpoint_path:
+        saver.restore(sess, ckpt.model_checkpoint_path)
+        log.info("Model load success ... {}".format(ckpt.model_checkpoint_path))
+
+    x_test = np.load('x_testbsd.npy')
+    k = 0
+    for x_batch_images in minibatches(inputs=x_test, batch_size=batch_size):
+        raw = normalize(x_batch_images)
         mos, fake = sess.run([downscaled, imitation], feed_dict={x: raw, is_training: False})
-        save_img([mos, fake, raw], ['Input', 'Output', 'Ground Truth'], epoch)
+        imgs = [mos, fake, raw]
+        label = ['输入', '输出', '原始图像']
+        fig = plt.figure(figsize=(290, 150))
+        for j, img in enumerate(imgs):
+            im = np.uint8((img[k] + 1) * 127.5)
+            # im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+            fig.add_subplot(1, len(imgs), j + 1)
+
+            plt.imshow(im)
+            plt.tick_params(labelbottom='off')
+            plt.tick_params(labelleft='off')
+            plt.gca().get_xaxis().set_ticks_position('none')
+            plt.gca().get_yaxis().set_ticks_position('none')
+            plt.xlabel(label[j])
+        path = os.path.join('result', '{0:03d}.jpg'.format(k))
+        plt.savefig(path)
+        log.info("Save images: {}".format(path))
+
+        k += 1
 
 
 if __name__ == "__main__":
-    train()
+    modeltest()

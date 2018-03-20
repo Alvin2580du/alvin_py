@@ -203,6 +203,19 @@ def lfwProcess():
     np.save('D:\\alvin_py\\srcnn\\Train\\yg_train.npy', x_train)
 
 
+def image2npy(inpath, outpath, size):
+    x_train = []
+    files = os.listdir(inpath)
+    for file in tqdm(files):
+        filename = os.path.join(inpath, file)
+        images = scipy.misc.imread(filename)
+        images = scipy.misc.imresize(images, (size, size))
+        x_train.append(images)
+
+    x_train = np.array(x_train, dtype=np.float16)
+    np.save('{}.npy'.format(outpath), x_train)
+
+
 if __name__ == "__main__":
     method = 'yaogan'
 
