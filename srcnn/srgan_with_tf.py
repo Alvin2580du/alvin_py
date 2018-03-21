@@ -403,6 +403,7 @@ def train():
         for x_batch_images in minibatches(inputs=x_train, batch_size=batch_size):
             bc += 1
             x_batch = normalize(x_batch_images)
+            log.info("{}".format(x_batch.shape))
             sess.run([g_train_op, d_train_op], feed_dict={x: x_batch, is_training: True})
             g, d = sess.run([g_loss, d_loss], feed_dict={x: x_batch, is_training: True})
 
@@ -440,29 +441,31 @@ def modeltest():
         saver.restore(sess, ckpt.model_checkpoint_path)
         log.info("Model load success ... {}".format(ckpt.model_checkpoint_path))
 
-    x_test = np.load('x_testbsd.npy')
+    x_test = np.load('yaogantest.npy')
+    log.info("{}".format(x_test.shape))
     k = 0
+    epoch = 100
     for x_batch_images in minibatches(inputs=x_test, batch_size=batch_size):
         raw = normalize(x_batch_images)
         mos, fake = sess.run([downscaled, imitation], feed_dict={x: raw, is_training: False})
+        log.info("{},{},{}".format(mos.shape, fake.shape, raw.shape))
         imgs = [mos, fake, raw]
-        label = ['输入', '输出', '原始图像']
-        fig = plt.figure(figsize=(290, 150))
-        for j, img in enumerate(imgs):
-            im = np.uint8((img[k] + 1) * 127.5)
-            # im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
-            fig.add_subplot(1, len(imgs), j + 1)
-
-            plt.imshow(im)
-            plt.tick_params(labelbottom='off')
-            plt.tick_params(labelleft='off')
-            plt.gca().get_xaxis().set_ticks_position('none')
-            plt.gca().get_yaxis().set_ticks_position('none')
-            plt.xlabel(label[j])
-        path = os.path.join('result', '{0:03d}.jpg'.format(k))
-        plt.savefig(path)
-        log.info("Save images: {}".format(path))
-
+        for i in range(batch_size):
+            fig = plt.figure(figsize=(290, 100))
+            label = ['输入', '输出', '原始图像']
+            for j, img in enumerate(imgs):
+                im = np.uint8((img[i] + 1) * 127.5)
+                fig.add_subplot(1, len(imgs), j + 1)
+                plt.imshow(im)
+                plt.tick_params(labelbottom='off')
+                plt.tick_params(labelleft='off')
+                plt.gca().get_xaxis().set_ticks_position('none')
+                plt.gca().get_yaxis().set_ticks_position('none')
+                plt.xlabel(label[j])
+            epoch_ = "{0:09d}".format(epoch)
+            path = os.path.join('result', '{}_{}_{}.jpg'.format(k, i, epoch_))
+            plt.savefig(path)
+            plt.close()
         k += 1
 
 
