@@ -104,7 +104,8 @@ class fastTextB:
 
 # test started
 def test():
-    # below is a function test; if you use this for text classifiction, you need to tranform sentence to indices of vocabulary first. then feed data to the graph.
+    # below is a function test; if you use this for text classifiction, you need to tranform sentence to indices of
+    # vocabulary first. then feed data to the graph.
     num_classes = 19
     learning_rate = 0.01
     batch_size = 8
