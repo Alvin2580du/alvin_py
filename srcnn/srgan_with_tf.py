@@ -5,11 +5,11 @@ import scipy.misc
 import os
 import matplotlib as mpl
 
-mpl.use('Agg')
 import matplotlib.pyplot as plt
 
 from antcolony.logger.log import log
 
+mpl.use('Agg')
 plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
 learning_rate = 1e-3
@@ -451,17 +451,17 @@ def modeltest():
         log.info("{},{},{}".format(mos.shape, fake.shape, raw.shape))
         imgs = [mos, fake, raw]
         for i in range(batch_size):
-            fig = plt.figure(figsize=(290, 100))
+            fig = plt.figure(figsize=(290, 110))
             label = ['输入', '输出', '原始图像']
             for j, img in enumerate(imgs):
                 im = np.uint8((img[i] + 1) * 127.5)
-                fig.add_subplot(1, len(imgs), j + 1)
+                ax = fig.add_subplot(1, len(imgs), j + 1)
                 plt.imshow(im)
                 plt.tick_params(labelbottom='off')
                 plt.tick_params(labelleft='off')
                 plt.gca().get_xaxis().set_ticks_position('none')
                 plt.gca().get_yaxis().set_ticks_position('none')
-                plt.xlabel(label[j])
+                ax.set_xlabel(label[j])
             epoch_ = "{0:09d}".format(epoch)
             path = os.path.join('result', '{}_{}_{}.jpg'.format(k, i, epoch_))
             plt.savefig(path)
