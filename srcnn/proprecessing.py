@@ -2,7 +2,7 @@ import scipy.misc
 import scipy
 import os
 from PIL import Image
-import cv2
+# import cv2
 from tqdm import tqdm
 from glob import glob
 import numpy as np
@@ -217,7 +217,7 @@ def image2npy(inpath, outpath, size):
 
 
 if __name__ == "__main__":
-    method = 'yaogan'
+    method = 'image2npy'
 
     if method == 'first':
         build_split_data(step='train')
@@ -247,3 +247,6 @@ if __name__ == "__main__":
 
     if method == 'yaogan':
         yaoganProcess()
+
+    if method == 'image2npy':
+        image2npy(inpath='D:\\results', outpath='yaogantest', size=96)
