@@ -1,0 +1,61 @@
+BusinessTravel
+Travel_Rarely！！1
+Travel_Frequency！！2
+Non-Travel！！0
+
+Department
+Research & Development！！1
+Sales！！2
+Human Resources！！3
+
+
+EducationField
+Life Sciences！！1
+Medical！！2
+Marketing！！3
+Technical Degree！！4
+Human Resources！！5
+Other！！6
+
+
+gender
+male！！1
+Female！！2
+
+JobRole
+Manufacturing Director！！1
+Laboratory Technician！！2
+Sales Executive！！3
+Research Scientist！！4
+Healthcare Representative！！5
+Sales Representative！！6
+Manenger！！7
+Research Director！！8
+Human Resources！！9
+
+
+MaritalStatus
+Single！！0
+Married！！1
+Divorced！！2
+
+
+OverTime
+Yes！！1
+No！！0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

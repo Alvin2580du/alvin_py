@@ -218,9 +218,16 @@ def analysislast():
     ax1.set_ylim(0, maxmoney)
     plt.savefig("./results/公共浴室.png")
 
+def moreanalysis():
+    data = pd.read_csv("./datasets/shuju.csv", usecols=['交易金额', '学生性别'])
+    datagrouped = data.groupby(by='学生性别')
+    for i, j in datagrouped:
+        desci = j.describe()
+        desci.to_csv("./results/描述性统计分析-交易金额_{}.csv".format(i), header=None, encoding='utf-8')
+
 
 if __name__ == "__main__":
-    method = 'analysislast'
+    method = 'analsisage'
     if method == 'groupdata':
         groupdata()
 
@@ -236,3 +243,6 @@ if __name__ == "__main__":
 
     if method == 'analysislast':
         analysislast()
+
+    if method == 'moreanalysis':
+        moreanalysis()
