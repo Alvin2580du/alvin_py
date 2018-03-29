@@ -20,6 +20,7 @@ import os
 from tqdm import tqdm
 from sklearn.linear_model import LinearRegression
 import numpy as np
+from glob import glob
 """
 1. 删除无用列，得到(478, 2685)维大的矩阵,文件名为train.csv。
 2. 把每个公司90天内的相关公司的数据，分组到不同的文件中，然后对每个文件计算平均值
@@ -61,7 +62,7 @@ def groupbycompany():
         NONE_VIN = NONE_VIN.drop(NONE_VIN.index[-1], axis=0)
         if not os.path.exists("./company"):
             os.makedirs("./company")
-        NONE_VIN.to_csv("./company/{}.csv".format(k))
+        NONE_VIN.to_csv("./company/{}.csv".format(k), encoding='utf-8')
         k += 1
     print(k)
 
@@ -69,9 +70,9 @@ def groupbycompany():
 def rec_compute():
     recs = []
     k = 0
-    for file in tqdm(os.listdir("./company")):
-        filename = os.path.join("./company", file)
-        data = pd.read_csv(filename)
+    for i in range(478):
+        file = os.path.join("./company", "{}.csv".format(i))
+        data = pd.read_csv(file)
         del data['date']
         del data['行业代码']
         del data['日期']
@@ -148,7 +149,7 @@ def buildmodel():
 if __name__ == '__main__':
     # 这里依次修改 下面的每种method，就可以出结果了。
 
-    method = 'buildmodel' # groupbycompany，rec_compute， groupbyhangye， getind， buildmodel
+    method = 'buildmodel'  # groupbycompany，rec_compute， groupbyhangye， getind， buildmodel
     if method == 'groupbycompany':
         groupbycompany()
 
@@ -163,11 +164,4 @@ if __name__ == '__main__':
 
     if method == 'buildmodel':
         buildmodel()
-
-# s
-
-
-
-
-
 
