@@ -4,6 +4,28 @@ from csv import reader
 from math import sqrt
 from math import log
 
+"""
+倒数第二个cell里面seed(1),确定下来后，整个随机切分后的训练集和验证集就定下来了么？
+##不是的，切分数据是cross_validation_split这个方法来做的。
+
+看倒数第三个，怎么感觉评分的时候用的验证集是后来重新抽取的，不是一开始就定下来不能动的那个？
+
+能不能把这个程序训练出的森林用在另个csv文件（pfm_test_digitization2）上得出最后是0还是1的结果按顺序写在一个新的csv上？
+##可以的，用pandas重新组合一个数据集就可以了。
+
+不论是这个程序还是调用sklearn库中的函数，我最后只能得到分数和确切结果，能不能得到可视化的流程图，
+即知道算法选择的树分别是怎么样的，用了哪些特征之类的信息？
+# 这个sklearn没有这个功能。
+
+很明显这这个代码没有把数据标准化，我也不清楚补在哪里比较合适。。
+## 标准化在数据训练之前做。
+
+2、如果改进后结果还是很差，能否告知你们做数据模型会如何优化？或者您们对这个随机森林在我数据上算法的优化有什么看法？
+## 可以做特征选择，选择对分类有重要意义的特征。或者调整超参数，参数。
+
+
+"""
+
 
 def load_csv(filename):  # 导入csv文件
     dataset = list()
@@ -235,6 +257,7 @@ def build():
         print('Trees: %d' % n_trees)
         print('Scores: %s' % scores)
         print('Mean Accuracy: %.3f%%' % (sum(scores) / float(len(scores))))
+
 
 if __name__ == "__main__":
     build()

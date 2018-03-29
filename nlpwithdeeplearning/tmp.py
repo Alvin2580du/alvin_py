@@ -14,7 +14,7 @@ def cosdistance(vector1, vector2):
         print(cosdistance([1, 2, 3], [3, 4, 5]))
 
     :param vector1:
-    :param vector2: 
+    :param vector2:
     :return:
     """
     dot_product = 0.0
