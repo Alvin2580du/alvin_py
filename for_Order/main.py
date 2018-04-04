@@ -2,24 +2,22 @@
 # -*- coding: utf-8 -*-
 from nltk.tokenize import TweetTokenizer
 import pandas as pd
-import string
 from collections import Counter
 from nltk.text import Text
-import nltk
 import re
 from nltk.stem.snowball import SnowballStemmer
 from gensim import corpora, models
-from sklearn.cluster import MiniBatchKMeans, KMeans
+from sklearn.cluster import KMeans
 from tqdm import tqdm
 import numpy as np
 import os
-
+from sklearn import metrics
+import sys
 stemmer = SnowballStemmer("english")
 
-import sys
-
-reload(sys)
-sys.setdefaultencoding('utf8')
+if sys.version_info.major == 2:
+    reload(sys)
+    sys.setdefaultencoding('utf8')
 
 
 def nltkcut(inputs):
@@ -29,14 +27,17 @@ def nltkcut(inputs):
 
 
 def get_traindata():
-    data = pd.read_csv("2016_12_05_trumptwitterall.csv", usecols=['tweet'])
-    data1 = pd.read_csv("2017_01_28_trump_tweets.csv", usecols=['tweet'])
+    # 合并数据集，保存到train.csv
+    data = pd.read_csv("./datasets/2016_12_05_trumptwitterall.csv", usecols=['tweet'])
+    data1 = pd.read_csv("./datasets/2017_01_28_trump_tweets.csv", usecols=['tweet'])
     df = pd.concat([data, data1])
-    df.to_csv("train.csv", index=None)
+    df.to_csv("./datasets/tweets_train.csv", index=None)
 
 
 def get_second_question():
-    data = pd.read_csv("train.csv")
+    # 使用TweetTokenizer，分割句子，保存到train_tokenize.csv文件，
+    #  第二题
+    data = pd.read_csv("./datasets/tweets_train.csv")
     fw = open("train_tokenize.csv", 'w')
     for one in data.values:
         tweets = one[0]
@@ -45,53 +46,37 @@ def get_second_question():
 
 
 def get_third_question():
-    data = pd.read_csv("train.csv")
-
+    # 提取@后面的昵称，打印出来结果
+    # 第三题
+    num = 20
+    data = pd.read_csv("./datasets/tweets_train.csv")
     save = []
     for one in data.values:
-        tweets = one[0]
-        tweetscut = nltkcut(tweets)
-        for x in tweetscut:
-            if x in string.punctuation:
-                save.append(x)
-
-    for i, j in Counter(save).most_common(20):
-        print(i, j)
-
-
-def tokenize_and_stem(text):
-    # 首先分句，接着分词，而标点也会作为词例存在
-    tokens = [word for sent in nltk.sent_tokenize(text) for word in nltk.word_tokenize(sent)]
-    filtered_tokens = []
-    # 过滤所有不含字母的词例（例如：数字、纯标点）
-    for token in tokens:
-        if re.search('[a-zA-Z]', token):
-            filtered_tokens.append(token)
-    stems = [stemmer.stem(t) for t in filtered_tokens]
-    return stems
+        p = '@\w+:'
+        names = re.compile(p).findall(one[0])
+        if names:
+            for n in names:
+                save.append(n.replace(":", ""))
+    for i, j in Counter(save).most_common(num):
+        print("最多的昵称为：")
+        print("昵称: {}, 频率：{}".format(i, j))
 
 
 def get_vec(inputs):
     out = []
     for x in inputs:
-        vec = x[1] * x[0]
+        vec = x[1] * x[0]  # tfidf = tf * idf
         out.append(vec)
     length = len(out)
     res = out + np.zeros((30 - length,)).tolist()
     return res
 
 
-def numpy_fillna(data):
-    lens = np.array([len(i) for i in data])
-    mask = np.arange(30) < lens[:, None]
-    out = np.zeros(mask.shape, dtype=data.dtype)
-    out[mask] = np.concatenate(data)
-    return out
-
-
-def get_four_question():
+def get_four_question_and_b():
+    # kmeans 聚类, 第四题和第四题的4.b。
+    clusters_number = 10
     documents = []
-    data = pd.read_csv("train.csv")
+    data = pd.read_csv("./datasets/tweets_train.csv")
 
     for one in data.values:
         documents.append(one[0])
@@ -104,21 +89,36 @@ def get_four_question():
     for doc in tqdm(corpus_tfidf):
         res = get_vec(doc)
         X.append(res)
-
-    k_means = KMeans(init='k-means++', n_clusters=10, n_init=10)
-    k_means.fit(X)
-    clusters = k_means.labels_.tolist()
-    datacp = data.copy()
-    datacp['label'] = clusters
-
-    datacpgroup = datacp.groupby(by='label')
-    for i, j in datacpgroup:
-        j.to_csv("./data/{}.csv".format(i), index=None)
+    calinski_harabaz_list = []
+    for iters in range(1, 5):  # 迭代次数1,2,3,4, 这里可以设置更大的值
+        k_means = KMeans(n_clusters=clusters_number, init='k-means++', n_init=10,
+                         max_iter=iters, tol=1e-4, precompute_distances='auto',
+                         verbose=0, random_state=None, copy_x=True,
+                         n_jobs=1, algorithm='auto')
+        k_means.fit(X)
+        clusters = k_means.labels_.tolist()
+        datacp = data.copy()
+        datacp['label'] = clusters
+        labels = k_means.labels_
+        # 类别内部数据的协方差越小越好，类别之间的协方差越大越好，这样的Calinski-Harabasz分数会高,
+        # calinski_harabaz_score 计算的是类别间的协方差。
+        calinski_harabaz = metrics.calinski_harabaz_score(X, labels)
+        ch = {iters: calinski_harabaz}
+        calinski_harabaz_list.append(ch)
+        datacpgroup = datacp.groupby(by='label')
+        for i, j in datacpgroup:
+            if not os.path.exists("./data"):
+                os.makedirs("./data")
+            j.to_csv("./data/{}_{}.csv".format(iters, i), index=None)
+    # What was the variance observed on each run? the results is below, saved in calinski_harabaz_list.csv
+    df = pd.Series(calinski_harabaz_list)
+    df.to_csv("calinski_harabaz_list.csv", index=None)
 
 
 def get_four_question_of_a():
-    for file in os.listdir("./data"):
-        filename = os.path.join('./data', file)
+    # 第四题的  4.a
+    for file in os.listdir("./best"):
+        filename = os.path.join('./best', file)
         data = pd.read_csv(filename, usecols=['tweet'])
         p = '@\w+:'
         p1 = '#\w+'
@@ -157,9 +157,9 @@ def get_four_question_of_a():
         df.to_csv("handles_{}".format(file), index=None, header=None)
 
 
-
 def get_five_question(num=100, window_size=2):
-    data = pd.read_csv("train.csv")
+    # 第五题
+    data = pd.read_csv("./datasets/tweets_train.csv")
     totals = []
     for one in data.values:
         tweets = one[0]
@@ -168,35 +168,14 @@ def get_five_question(num=100, window_size=2):
             totals.append(x)
     text = Text(totals)
     text.collocations(num=num, window_size=window_size)
-    # 把这里的输出结果可以复制到txt，保存即可。
-    """
-    thank you.; donald trump; make america; thank you!; great again!;
-    america great; looking forward; can't wait; crooked hillary; new york;
-    celebrity apprentice; hillary clinton; #makeamericagreatagain
-    #trump2016; ted cruz; please run; white house; last night; united
-    states; global warming; miss universe; golf course; trump tower; thank
-    you,; midas touch; think like; interview discussing; great job; trump
-    national; – think; mr. trump; look forward; trump international;
-    "donald trump; jeb bush; good luck.; president obama; last night.;
-    wind turbines; blue monster; happy birthday; country needs; new
-    hampshire; “donald trump; mr. trump,; old post; america needs; marco
-    rubio; @realdonaldtrump please; tea party; bernie sanders; looks like;
-    many people; south carolina; god bless; real estate; post office; las
-    vegas; good luck!; think big; donald trump"; golf links; national
-    doral; palm beach; never give; mitt romney; failing @nytimes; wall
-    street; winston churchill; getting ready; albert einstein; 13th
-    season; via @newsmax_media; stay tuned!; work hard; muslim
-    brotherhood; joan rivers; good luck; press conference; years ago; golf
-    club; goofy elizabeth; 7:00 a.m.; miss usa; mr. trump.; law
-    enforcement; jon stewart; trump int'l; poll numbers; much better;
-    obamacare website; saudi arabia; henry ford; gas prices; #trump2016
-    #makeamericagreatagain; via @breitbartnews; tune in!; vince lombardi;
-    tom brady; derek jeter; ronald reagan
-"""
+    # 把这里的输出结果可以复制到txt，保存即可。下面是我做的输出
 
 
 if __name__ == "__main__":
-    method = 'get_most_freq_words'
+    method = 'get_traindata'  # 改变这里的method的名称，执行下面不同的方法，分别对应的不同的题号。
+
+    if method == 'get_traindata':
+        get_traindata()
 
     if method == 'get_second_question':
         get_second_question()
@@ -204,11 +183,11 @@ if __name__ == "__main__":
     if method == 'get_third_question':
         get_third_question()
 
+    if method == 'get_four_question':
+        get_four_question_and_b()
+
+    if method == 'get_four_question_of_a':
+        get_four_question_of_a()
+
     if method == 'get_five_question':
         get_five_question()
-
-    if method == 'get_four_question':
-        get_four_question()
-
-    if method == 'get_most_freq_words':
-        get_most_freq_words()
