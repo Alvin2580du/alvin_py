@@ -1,13 +1,12 @@
 import tensorflow as tf
 import numpy as np
-from tqdm import tqdm, trange
-import scipy.misc
 import os
 import matplotlib as mpl
-
+import cv2
+from skimage import measure
 import matplotlib.pyplot as plt
 
-from antcolony.logger.log import log
+from pyduyp.logger.log import log
 
 mpl.use('Agg')
 plt.rcParams['font.sans-serif'] = ['SimHei']
@@ -468,6 +467,42 @@ def modeltest():
             plt.close()
         k += 1
 
+def compare_ssim(img1, img2):
+    if img2.size == img1.size:
+        if len(img2.shape) == 3:
+            ssim = measure.compare_ssim(img1, img2, multichannel=True)
+            return ssim
+        else:
+            ssim = measure.compare_ssim(img1, img2)
+            return ssim
+
+
+def compare_psnr(img1, img2, scale):
+    if img2.size == img1.size:
+        ssim = measure.compare_psnr(img1, img2, data_range=scale)
+        return ssim
+
+
+def compare_nrmse(img1, img2):
+    if img2.size == img1.size:
+        ssim = measure.compare_nrmse(img1, img2, norm_type='Euclidean')
+        return ssim
 
 if __name__ == "__main__":
-    modeltest()
+    method = 'stat'
+    if method == 'train':
+        train()
+    if method == 'test':
+        modeltest()
+    if method == 'stat':
+        origin = './results/yaogan100_1'
+        results = './results/yaogan100'
+        length = len(os.listdir(origin))
+        nrmseall = 0
+        for i in range(length):
+            log.debug("{}, {}".format(os.path.join(origin, os.listdir(origin)[i]), os.path.join(results, os.listdir(results)[i])))
+            originimg = cv2.imread(os.path.join(origin, os.listdir(origin)[i]))
+            resultsimg = cv2.imread(os.path.join(results, os.listdir(results)[i]))
+            res = compare_ssim(originimg, resultsimg)
+            nrmseall += res
+        print(nrmseall/length)
