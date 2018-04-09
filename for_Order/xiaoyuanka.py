@@ -14,7 +14,8 @@ import numpy as np
 from datetime import datetime
 import time
 from matplotlib import pyplot as plt
-
+import matplotlib.dates as dates
+import matplotlib.ticker as ticker
 data = pd.read_csv("./datasets/shuju.csv")
 
 plt.rcParams['font.sans-serif'] = ['SimHei']
@@ -44,7 +45,13 @@ def gettimerange(x):
 
 
 def chagetime2Three(inputs):
-    pass
+    x2date = datetime.strptime(inputs, '%Y/%m/%d %H:%M').strftime("%Y/%m/%d ")
+    return x2date
+
+
+def chagetime2hour(inputs):
+    x2date = datetime.strptime(inputs, '%Y/%m/%d %H:%M').strftime("%Y/%m/%d %H")
+    return x2date
 
 
 def groupdata():
@@ -73,7 +80,7 @@ def analsisage(name='本科'):
     xiaofeishijian = boy['交易日期时间']
     print(len(xiaofeishijian), type(xiaofeishijian), xiaofeishijian[0], type(xiaofeishijian[0]))
     boynew = pd.DataFrame()
-    boynew['time'] = boy['交易日期时间'].apply(gettimerange)
+    boynew['time'] = boy['交易日期时间'].apply(chagetime2Three)
     boynew['money'] = boy['交易金额']
     boygrouped = boynew.groupby(by='time')
     label = []
@@ -218,6 +225,7 @@ def analysislast():
     ax1.set_ylim(0, maxmoney)
     plt.savefig("./results/公共浴室.png")
 
+
 def moreanalysis():
     data = pd.read_csv("./datasets/shuju.csv", usecols=['交易金额', '学生性别'])
     datagrouped = data.groupby(by='学生性别')
@@ -226,8 +234,69 @@ def moreanalysis():
         desci.to_csv("./results/描述性统计分析-交易金额_{}.csv".format(i), header=None, encoding='utf-8')
 
 
+def analsisage_v2(name='本科'):
+    """
+    不同学位及不同性别的学生在不同时间的消费情况。
+    :param name:
+    :return:
+    """
+    import matplotlib.dates as dates
+    import matplotlib.ticker as ticker
+
+    f = open("./datasets/{}.csv".format(name), 'rb')
+    boy = pd.read_csv(f, usecols=['交易日期时间', '交易金额'], encoding='utf-8', sep=',')
+    xiaofeishijian = boy['交易日期时间']
+    boynew = pd.DataFrame()
+    boynew['time'] = boy['交易日期时间'].apply(chagetime2Three)
+    boynew['money'] = boy['交易金额']
+    boygrouped = boynew.groupby(by='time')
+    label = []
+    total = []
+    for i, j in boygrouped:
+        costavergae = sum(j['money']) / len(j['money'])
+        label.append(i)
+        total.append(costavergae)
+    plt.figure()
+    plt.plot(label, total)
+    plt.xlabel("时间")
+    plt.ylabel("平均消费")
+    plt.title("{}每天平均消费情况变化图".format(name))
+    plt.savefig("./results_2/{}.png".format(name))
+
+
+def analsisage_by_hour(name='本科'):
+    """
+    不同学位及不同性别的学生在不同时间的消费情况。
+    :param name:
+    :return:
+    """
+
+    f = open("./datasets/{}.csv".format(name), 'rb')
+    boy = pd.read_csv(f, usecols=['交易日期时间', '交易金额'], encoding='utf-8', sep=',')
+    xiaofeishijian = boy['交易日期时间']
+    boynew = pd.DataFrame()
+    boynew['time'] = boy['交易日期时间'].apply(chagetime2hour)
+    boynew['money'] = boy['交易金额']
+    boygrouped = boynew.groupby(by='time')
+    label = []
+    total = []
+    for i, j in boygrouped:
+        costavergae = sum(j['money']) / len(j['money'])
+        if i[:10] != "2014/10/10":
+            continue
+        else:
+            label.append(i)
+            total.append(costavergae)
+    plt.figure()
+    plt.plot(label, total)
+    plt.xlabel("时间")
+    plt.ylabel("平均消费")
+    plt.title("{}每天平均消费情况变化图".format(name))
+    plt.savefig("./results_2/{}_hour.png".format(name))
+
+
 if __name__ == "__main__":
-    method = 'analsisage'
+    method = 'analsisage_v2'
     if method == 'groupdata':
         groupdata()
 
@@ -246,3 +315,14 @@ if __name__ == "__main__":
 
     if method == 'moreanalysis':
         moreanalysis()
+
+    if method == 'analsisage_v2':
+        names = ["博士", "硕士", "本科", "男", "女", '公共浴室二', '公共浴室一', '公共浴室三', '独立浴室']
+        for n in names:
+            analsisage_v2(name=n)
+
+    if method == 'analsisage_by_hour':
+
+        names = ["博士", "硕士", "本科", "男", "女", '公共浴室二', '公共浴室一', '公共浴室三', '独立浴室']
+        for n in names:
+            analsisage_by_hour(name=n)

@@ -2,7 +2,7 @@ import scipy.misc
 import scipy
 import os
 from PIL import Image
-# import cv2
+import cv2
 from tqdm import tqdm
 from glob import glob
 import numpy as np

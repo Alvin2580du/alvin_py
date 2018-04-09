@@ -234,14 +234,11 @@ if __name__ == '__main__':
             resultsimg = cv2.imread(os.path.join(results, os.listdir(results)[i]))
             res = compare_ssim(originimg, resultsimg)
             nrmseall += res
-
         print(nrmseall/length)
 
     if method == 'tmp':
         datasets_name = 'celeba'
-
         data_path = 'D:\\alvin_py\\srcnn\\Test\\{}'.format(datasets_name)
-
         for file in os.listdir(data_path):
             file_name = os.path.join(data_path, file)
             input_y = cv2.imread(file_name)
