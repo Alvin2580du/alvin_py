@@ -31,9 +31,9 @@ def gettimerange(x):
     except:
         x2date = datetime.strptime("00:00", "%H:%M").strftime("%H:%M")
 
-    one = "00:00"
-    two = "07:59"
-    three = "15:59"
+    one = "12:00"
+    two = "19:59"
+    three = "23:59"
     if compare_time(x2date, one, two):
         return 0
     elif compare_time(x2date, two, three):
@@ -67,15 +67,15 @@ def compute_time_cost():
 def group_user():
     # 1
     shoushi = pd.read_csv("./datasets/tv_data/shoushiNew.csv")
-    huikan = pd.read_csv("./datasets/tv_data/huikan.csv")
+    huikan = pd.read_csv("./datasets/tv_data/huikanNew.csv")
     dianbo = pd.read_csv("./datasets/tv_data/dianbo.csv")
     danpiandianbo = pd.read_csv("./datasets/tv_data/danpiandianbo.csv")
 
     # 2
-    chanpin = pd.read_csv("./datasets/tv_data/chanpinxinxi.csv", encoding='utf-8')
-
-    # 3
-    jiben = pd.read_csv("./datasets/tv_data/jibenxinxi.csv")
+    # chanpin = pd.read_csv("./datasets/tv_data/chanpinxinxi.csv", encoding='utf-8')
+    #
+    # # 3
+    # jiben = pd.read_csv("./datasets/tv_data/jibenxinxi.csv")
 
     shoushigroup = shoushi.groupby(by='机顶盒设备号')
     huikangroup = huikan.groupby(by='设备号')
@@ -112,13 +112,13 @@ def group_user():
 
 
 hao2mingdata = pd.read_csv("./datasets/tv_data/shoushi.csv", usecols=['频道号', '频道名'])
+datas = {}
+for one in hao2mingdata.values:
+    datas[one[1]] = one[0]
 
 
 def hao2ming(hao):
-    for one in hao2mingdata.values:
-        if hao == one[0]:
-            return one[1]
-    return -1
+    return datas[hao]
 
 
 def make_huikan():
@@ -130,5 +130,14 @@ def make_huikan():
     huikancopy.to_csv("./datasets/tv_data/huikanNew.csv", index=None)
 
 
-# chanpin = pd.read_csv("./datasets/tv_data/chanpinxinxi.csv", encoding='utf-8', usecols=['连续剧分类']).values.tolist()
-# chanpin = [i for j in chanpin for i in j]
+if __name__ == '__main__':
+    method = "group_user"
+
+    if method == 'compute_time_cost':
+        compute_time_cost()
+
+    if method == 'make_huikan':
+        make_huikan()
+
+    if method == 'group_user':
+        group_user()
