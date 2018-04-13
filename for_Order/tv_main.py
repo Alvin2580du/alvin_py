@@ -14,6 +14,7 @@
 import pandas as pd
 import os
 from datetime import datetime
+from tqdm import tqdm
 
 
 def compare_time(l_time, start_t, end_t):
@@ -64,6 +65,25 @@ def compute_time_cost():
     shoushicopy.to_csv("./datasets/tv_data/shoushiNew.csv")
 
 
+hao2mingdata = pd.read_csv("./datasets/tv_data/shoushi.csv", usecols=['频道号', '频道名'])
+datas = {}
+for one in hao2mingdata.values:
+    datas[one[1]] = one[0]
+
+
+def hao2ming(hao):
+    return datas[hao]
+
+
+def make_huikan():
+    huikan = pd.read_csv("./datasets/tv_data/huikan.csv")
+    huikancopy = huikan.copy()
+    huikancopy['频道号'] = huikan['频道'].apply(hao2ming)
+    huikancopy['时长'] = huikan.apply(lambda row: timecost(row['回看开始时间'], row['回看结束时间']), axis=1)
+    huikancopy['时间段'] = huikan['回看开始时间'].apply(gettimerange)
+    huikancopy.to_csv("./datasets/tv_data/huikanNew.csv", index=None)
+
+
 def group_user():
     # 1
     shoushi = pd.read_csv("./datasets/tv_data/shoushiNew.csv")
@@ -111,27 +131,116 @@ def group_user():
         y.to_csv(save_name, index=None)
 
 
-hao2mingdata = pd.read_csv("./datasets/tv_data/shoushi.csv", usecols=['频道号', '频道名'])
-datas = {}
-for one in hao2mingdata.values:
-    datas[one[1]] = one[0]
+def get_shoushionehot():
+    pindaohao = pd.read_csv("./datasets/tv_data/shoushi.csv", usecols=['频道号']).values
+    pindaohao2list = [i for j in pindaohao for i in j]
+
+    path = './datasets/tv_data/results/'
+    shoushi_list = []
+    feature_columns = []
+
+    for dirpath, dirnames, filenames in (os.walk(path)):
+        for file in tqdm(filenames):
+            rows = {}
+            fullpath = os.path.join(dirpath, file)
+            userid = fullpath.split("/")[-2]
+            rows['userid'] = userid
+
+            if "shoushi" in fullpath:
+                shoushi = pd.read_csv(fullpath, usecols=['频道号', '时长', '时间段'])
+                pingdao = shoushi['频道号']
+                features = [v for v in pingdao if v in pindaohao2list]
+                if len(features) > 0:
+                    for w in features:
+                        rows[w] = w
+                        if w not in feature_columns:
+                            feature_columns.append(w)
+                shoushi_list.append(rows)
+
+    msg_list2df = pd.DataFrame(shoushi_list)
+    output = './datasets/tv_data/shoushionehot.csv'
+    df_ohe = pd.get_dummies(msg_list2df, columns=feature_columns, dummy_na=False)
+    df_ohe.to_csv(output, index=None, encoding='utf-8')
 
 
-def hao2ming(hao):
-    return datas[hao]
+def get_dianbodanpinonehot():
+    pindaohao = pd.read_csv("./datasets/tv_data/danpiandianbo.csv", usecols=['二级目录']).values
+    pindaohao2list = [i for j in pindaohao for i in j]
+
+    path = './datasets/tv_data/results/'
+    shoushi_list = []
+    feature_columns = []
+
+    for dirpath, dirnames, filenames in (os.walk(path)):
+        for file in tqdm(filenames):
+            rows = {}
+            fullpath = os.path.join(dirpath, file)
+            userid = fullpath.split("/")[-2]
+            rows['userid'] = userid
+            if "danpian" in fullpath:
+                huikan = pd.read_csv(fullpath, usecols=['二级目录', '用户号'])
+                pingdao = huikan['二级目录']
+                features = [v for v in pingdao if v in pindaohao2list]
+                if len(features) > 0:
+                    for w in features:
+                        rows[w] = w
+                        if w not in feature_columns:
+                            feature_columns.append(w)
+                shoushi_list.append(rows)
+
+    msg_list2df = pd.DataFrame(shoushi_list)
+    output = './datasets/tv_data/danpian_onehot.csv'
+    df_ohe = pd.get_dummies(msg_list2df, columns=feature_columns, dummy_na=False)
+    df_ohe.to_csv(output, index=None, encoding='utf-8')
 
 
-def make_huikan():
-    huikan = pd.read_csv("./datasets/tv_data/huikan.csv")
-    huikancopy = huikan.copy()
-    huikancopy['频道号'] = huikan['频道'].apply(hao2ming)
-    huikancopy['时长'] = huikan.apply(lambda row: timecost(row['回看开始时间'], row['回看结束时间']), axis=1)
-    huikancopy['时间段'] = huikan['回看开始时间'].apply(gettimerange)
-    huikancopy.to_csv("./datasets/tv_data/huikanNew.csv", index=None)
+def classifiy_user():
+    from sklearn.cluster import KMeans
+    clusters_number = 10
+    output = './datasets/tv_data/shoushionehot.csv'
+    data = pd.read_csv(output)
+    user = data['userid']
+    del data['userid']
+    X = data.values
+    k_means = KMeans(n_clusters=clusters_number, init='k-means++', n_init=10,
+                     max_iter=1000, tol=1e-4, precompute_distances='auto',
+                     verbose=0, random_state=None, copy_x=True,
+                     n_jobs=1, algorithm='auto')
+    k_means.fit(X)
+    labels = k_means.labels_
+    rows = {'user': user, "label": labels}
+
+    df = pd.DataFrame(rows)
+    df.to_csv("./datasets/tv_data/kmeans_labels.csv", index=None)
+
+
+def labels_group():
+    path = "./datasets/tv_data/kmeans_labels.csv"
+    data = pd.read_csv(path)
+    datagroup = data.groupby(by='label')
+    for x, y in datagroup:
+        del y['label']
+        y.to_csv("./datasets/tv_data/cluseter/{}.csv".format(x), index=None)
+
+
+def replaces(inputs):
+    try:
+        return str(inputs).replace("\\", "/").split("/")[-1]
+    except:
+        return inputs
+
+
+def make_gifts():
+    chanpin = pd.read_csv("./datasets/tv_data/chanpinxinxi.csv", encoding='utf-8',
+                          usecols=['正题名', '内容描述', '分类名称', '连续剧分类'])
+    chanpincopy = chanpin.copy()
+    chanpincopy['分类名称.1'] = chanpin['分类名称'].apply(replaces)
+    for x, y in chanpincopy.groupby(by='分类名称.1'):
+        print(x)
 
 
 if __name__ == '__main__':
-    method = "group_user"
+    method = "make_gifts"
 
     if method == 'compute_time_cost':
         compute_time_cost()
@@ -141,3 +250,18 @@ if __name__ == '__main__':
 
     if method == 'group_user':
         group_user()
+
+    if method == 'get_shoushionehot':
+        get_shoushionehot()
+
+    if method == 'get_dianbodanpinonehot':
+        get_dianbodanpinonehot()
+
+    if method == 'classifiy_user':
+        classifiy_user()
+
+    if method == 'labels_group':
+        labels_group()
+
+    if method == 'make_gifts':
+        make_gifts()
