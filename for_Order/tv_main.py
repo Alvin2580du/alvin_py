@@ -1,3 +1,4 @@
+# encoding:utf-8
 """ 需求
 
 1. 根据附件1中的用户观看信息数据，试分析用户的收视偏好，并给出附件2的产品的营销推荐方案
@@ -25,6 +26,8 @@ from collections import OrderedDict
 import time
 from scipy.spatial.distance import pdist
 
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.feature_extraction.text import CountVectorizer
 TaggededDocument = gensim.models.doc2vec.TaggedDocument
 
 
@@ -337,6 +340,31 @@ def get_onehot():
     df_ohe.to_csv(output, index=None, encoding='utf-8')
 
 
+def get_onehot_samll():
+    path = './datasets/tv_data/groupbyuserid/'
+    shoushi_list = []
+    feature_columns = []
+    for dirpath, dirnames, filenames in (os.walk(path)):
+        for file in tqdm(filenames):
+            fullpath = os.path.join(dirpath, file)
+            userid = fullpath.split("/")[-1].split('\\')[0]
+            rows = {'userid': userid}
+            if "shoushi" in fullpath:
+                shoushi = pd.read_csv(fullpath)
+                pingdao = shoushi['pindaoming_shoushi'].values
+                pingdaofeatures = [v for v in pingdao if v in pindao2list]
+                if len(pingdaofeatures) > 0:
+                    for w1 in pingdaofeatures:
+                        rows[w1] = w1
+                        if w1 not in feature_columns:
+                            feature_columns.append(w1)
+            shoushi_list.append(rows)
+    msg_list2df = pd.DataFrame(shoushi_list)
+    output = './datasets/tv_data/shoushionehot_small.csv'
+    df_ohe = pd.get_dummies(msg_list2df, columns=feature_columns, dummy_na=False)
+    df_ohe.to_csv(output, index=None, encoding='utf-8')
+
+
 def replaces_digits(inputs):
     out = re.sub('[0-9]', "",
                  str(inputs).replace("(", "").replace(")", "").replace(" ", "").strip().replace("月", "").replace("日",
@@ -356,20 +384,29 @@ def make_chanpin():
     movies['Genres'] = data['内容描述']
 
 
-def titles_1(usrid):
-    # TODO 优化一下
-    titles = ['收视偏好', '基本特征']
-    return random.choice(titles)
+def titles_1(id):
+    titles = ['收视偏好', '基本特征', '收视偏好', '基本特征', '收视偏好', '基本特征']
+    return titles[id]
 
 
-def titles_2(usrid):
-    titles_2 = ['电视剧', '电影', '娱乐', '语言']
-    return random.choice(titles_2)
+def titles_2(id):
+    titles_2 = ['电视剧', '电影', '娱乐', '语言', '电视剧', '电影', '娱乐', '语言']
+    return titles_2[id]
 
 
-def titles_3(usrid):
+def titles_3(id):
     titles_3 = ['动作', '军旅片', '古装剧', '动画', '粤语', '语言', '综艺']
-    return random.choice(titles_3)
+    return titles_3[id]
+
+
+def titles_4(id):
+    titles_2 = ['观看时间段', '家庭成员', '电视剧', '入网时长', '家庭成员', '电视剧', ]
+    return titles_2[id]
+
+
+def titles_5(id):
+    titles_3 = ['上午', '老人', '儿童', '古装剧', '情感剧', '老用户']
+    return titles_3[id]
 
 
 def classifiy_user():
@@ -398,7 +435,6 @@ def classifiy_user():
     df['一级标签'] = df['user'].apply(titles_1)
     df['二级标签'] = df['user'].apply(titles_2)
     df['三级标签'] = df['user'].apply(titles_3)
-
     df.to_csv("./datasets/tv_data/kmeans_labels.csv", index=None)
 
 
@@ -474,11 +510,6 @@ def get_datasest():
         return x_train
 
 
-def getVecs(model, corpus, size):
-    vecs = [np.array(model.docvecs[z.tags[0]].reshape(1, size)) for z in corpus]
-    return np.concatenate(vecs)
-
-
 def train(x_train, size=100):
     model_dm = Doc2Vec(x_train, min_count=1, window=3, size=size, sample=1e-3, negative=5, workers=4)
     model_dm.train(x_train, total_examples=model_dm.corpus_count, epochs=70)
@@ -490,8 +521,8 @@ def modeltest(sentence):
     model_dm = Doc2Vec.load("./datasets/model")
     inferred_vector_dm = model_dm.infer_vector(sentence)
     sims = model_dm.docvecs.most_similar([inferred_vector_dm], topn=5)
-
     return sims
+
 
 data = pd.read_csv("./datasets/tv_data/jibenxinxi.csv", usecols=['用户号', '套餐', '机顶盒编号'])
 
@@ -500,8 +531,8 @@ for one in data.values:
     y2j[one[0]] = one[2]
 
 
-def get_ten_similar_user(userid=10002):
-    output = './datasets/tv_data/shoushionehot.csv'
+def get_ten_similar_user(userid=10002, datasets='shoushionehot.csv'):
+    output = './datasets/tv_data/{}'.format(datasets)
     onehot = pd.read_csv(output)
     df = onehot.fillna(0)
     df = df.groupby(by=['userid']).sum()
@@ -509,7 +540,7 @@ def get_ten_similar_user(userid=10002):
     df = df.set_index('userid')
     data = df.ix[userid, :].values
     dis = {}
-    for index1, row1 in tqdm(df.iterrows()):
+    for index1, row1 in df.iterrows():
         val = row1.values
         X = np.vstack([data, val])
         d2 = pdist(X)
@@ -532,8 +563,22 @@ def get_name_by_id(id):
     return "01月03日 星际小蚂蚁之环球追梦(嘉佳卡通)<默认值>"
 
 
+def get_name_by_id_quick(id):
+    chanpin = pd.read_csv("./datasets/tv_data/chanpinxinxi.csv", usecols=['内容描述', '正题名'])
+    chanpin = chanpin.reindex(range(len(chanpin)))
+    return chanpin.loc[id, "正题名"]
+
+
+def get_print(d):
+    save = []
+    for k, v in dict(d).items():
+        res = "{}".format(v)
+        save.append(res)
+    return " ".join(save)
+
+
 if __name__ == '__main__':
-    method = "build_first_question"
+    method = "Final_gifts"
 
     if method == 'make_shoushi':
         make_shoushi()
@@ -552,6 +597,9 @@ if __name__ == '__main__':
 
     if method == 'get_onehot':
         get_onehot()
+
+    if method == 'get_onehot_samll':
+        get_onehot_samll()
 
     if method == 'make_chanpin':
         make_chanpin()
@@ -600,20 +648,25 @@ if __name__ == '__main__':
         get_name_by_id(id=12)
 
     if method == 'get_most_similar_user_by_userid_one':
+        print()
+        print("get_most_similar_user_by_userid_one")
+        print()
         x_train = get_datasest()
         save_df = []
         userids = pd.read_csv("./datasets/userid.csv", header=None)
         for u in tqdm(userids.values):
+            t0 = time.time()
+            current_user = u[0]
             chanpin = pd.read_csv("./datasets/tv_data/chanpinxinxi.csv", usecols=['内容描述', '正题名'])
             docs = pd.read_csv("./datasets/tv_data/chanpinxinxiNew.csv", usecols=['内容描述', '产品名称'])
             chanpinming = list(set(docs['产品名称'].values.tolist()))
             df = pd.Series(chanpinming)
             df.to_csv("chanpin.txt", index=None)
-            t0 = time.time()
-            giftsuserids = get_ten_similar_user(u[0])
-            for giftsuserid in giftsuserids:
-                path = "./datasets/tv_data/dianbo_New.csv"
-                shoushi = pd.read_csv(path, usecols=['userid', 'title'])
+            # giftsuserids = get_ten_similar_user(current_user, datasets='shoushionehot_small.csv')
+            distance = pd.read_csv("./datasets/distance.csv")
+            giftsuserids = distance["{}".format(current_user)].values.tolist()
+            for giftsuserid in tqdm(giftsuserids):
+                shoushi = pd.read_csv("./datasets/tv_data/dianbo_New.csv", usecols=['userid', 'title'])
                 gifts_jiemu = shoushi[shoushi['userid'].isin([giftsuserid])]['title'].values
                 if len(gifts_jiemu) > 1:
                     sen = docs[docs['产品名称'].isin(gifts_jiemu)]['内容描述']
@@ -621,12 +674,82 @@ if __name__ == '__main__':
                         similars = modeltest(onesen)
                         rows = OrderedDict()
                         for similar in similars:
-                            rows['用户号'] = u[0]
+                            rows['用户号'] = current_user
                             rows['产品名称'] = get_name_by_id(similar[0])
                             rows['推荐指数'] = similar[1]
                         save_df.append(rows)
-                        print(rows)
-            print("Time cost:{}, Length:{}".format(time.time() - t0, len(giftsuserids)))
-
+                        print("rows-1:{}, {}".format(current_user, rows))
+            print("Time cost:{}".format(time.time() - t0))
         df = pd.DataFrame(save_df)
         df.to_csv("./datasets/question_one_1.csv", index=None)
+
+    if method == 'Final_gifts':
+        print()
+        print("get_most_similar_user_by_userid_one")
+        print()
+        x_train = get_datasest()
+        save_df = []
+        userids = pd.read_csv("./datasets/userid.csv", header=None)
+        for u in (userids.values):
+            t0 = time.time()
+            current_user = u[0]
+            chanpin = pd.read_csv("./datasets/tv_data/chanpinxinxi.csv", usecols=['内容描述', '正题名'])
+            docs = pd.read_csv("./datasets/tv_data/chanpinxinxiNew.csv", usecols=['内容描述', '产品名称'])
+            chanpinming = list(set(docs['产品名称'].values.tolist()))
+            df = pd.Series(chanpinming)
+            df.to_csv("chanpin.txt", index=None)
+            distance = pd.read_csv("./datasets/distance.csv")
+            giftsuserids = distance["{}".format(current_user)].values.tolist()
+            for giftsuserid in (giftsuserids):
+                shoushi = pd.read_csv("./datasets/tv_data/dianbo_New.csv", usecols=['userid', 'title'])
+                gifts_jiemu = shoushi[shoushi['userid'].isin([giftsuserid])]['title'].values
+                if len(gifts_jiemu) > 1:
+                    sen = docs[docs['产品名称'].isin(gifts_jiemu)]['内容描述']
+                    for onesen in sen.values:
+                        similars = modeltest(onesen)
+                        rows = OrderedDict()
+                        for similar in similars:
+                            rows['用户号'] = current_user
+                            rows['产品名称'] = get_name_by_id_quick(similar[0])
+                            rows['推荐指数'] = similar[1]
+                        save_df.append(rows)
+                        print(get_print(rows))
+        df = pd.DataFrame(save_df)
+        df.to_csv("./datasets/question_one_1.csv", index=None)
+
+    if method == 'chanpinbiaoqian':
+        chanpin = pd.read_csv("./tv_data/chanpinxinxi.csv", usecols=['内容描述', '标识'])
+        chanpin = chanpin.reindex(range(1, len(chanpin)))
+        data = pd.DataFrame()
+        data['cut'] = chanpin['内容描述'].apply(cut)
+        data['id'] = chanpin['标识']
+        data.to_csv("./tv_data/chanpinJuLei.csv", index=None, header=None)
+
+    if method == 'buildchanpinbiaoqian':
+        # 读取预料 一行预料为一个文档
+        corpus = []
+        data = pd.read_csv("./tv_data/chanpinJuLei.csv", header=None)
+        id = data[1]
+        for one in data.values:
+            corpus.append(one[0])
+        print(len(corpus))
+        # 将文本中的词语转换为词频矩阵 矩阵元素a[i][j] 表示j词在i类文本下的词频
+        vectorizer = CountVectorizer()
+        # 该类会统计每个词语的tf-idf权值
+        transformer = TfidfTransformer()
+        # 第一个fit_transform是计算tf-idf 第二个fit_transform是将文本转为词频矩阵
+        tfidf = transformer.fit_transform(vectorizer.fit_transform(corpus))
+        # 获取词袋模型中的所有词语
+        word = vectorizer.get_feature_names()
+        weight = tfidf.toarray()
+        k_means = MiniBatchKMeans(n_clusters=5)
+        s = k_means.fit(weight)
+        labels = k_means.labels_
+        rows = {"label": labels}
+        df = pd.DataFrame(rows)
+        df['id'] = id
+        df['一级标签'] = df['label'].apply(titles_1)
+        df['二级标签'] = df['label'].apply(titles_4)
+        df['三级标签'] = df['label'].apply(titles_5)
+        del df['label']
+        df.to_csv("./tv_data/kmeans_labels_chanpin.csv", index=None)
