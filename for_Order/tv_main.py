@@ -14,10 +14,18 @@
 import pandas as pd
 import os
 from datetime import datetime
-from tqdm import tqdm, trange
+from tqdm import tqdm
 import numpy as np
 import re
+import gensim
+from gensim.models.doc2vec import Doc2Vec
+import jieba
 import random
+from collections import OrderedDict
+import time
+from scipy.spatial.distance import pdist
+
+TaggededDocument = gensim.models.doc2vec.TaggedDocument
 
 
 def compare_time(l_time, start_t, end_t):
@@ -215,7 +223,7 @@ def get_stat_jine(inputs):
 
 
 yingpianmingcheng_danpiandianbo = pd.read_csv("./datasets/tv_data/danpiandianboNew.csv",
-                                              usecols=['yingpianmingcheng_danpiandianbo'])
+                                              usecols=['yingpianmingcheng_danpiandianbo'], sep='\t')
 yingpianmingcheng2list = [i for j in yingpianmingcheng_danpiandianbo.values for i in j]
 
 jiemumingcheng = pd.read_csv("./datasets/tv_data/dianbo_New.csv",
@@ -349,6 +357,7 @@ def make_chanpin():
 
 
 def titles_1(usrid):
+    # TODO 优化一下
     titles = ['收视偏好', '基本特征']
     return random.choice(titles)
 
@@ -395,7 +404,7 @@ def classifiy_user():
 
 def get_smallest_n(dicts):
     res = sorted(dicts.items(), key=lambda x: x[1], reverse=False)
-    limlit = 5
+    limlit = 10
     out = []
     k = 1
     for one in res:
@@ -414,7 +423,7 @@ def build_first_question():
     df = onehot.fillna(0)
     df = df.groupby(by=['userid']).sum()
     df['userid'] = df.index
-    df.set_index('userid')
+    df = df.set_index('userid')
     mydis_ed = {}
     for index1, row1 in tqdm(df.iterrows()):
         dis_ed = {}
@@ -428,8 +437,103 @@ def build_first_question():
     mydis_ed.to_csv("./datasets/distance.csv", index=None)
 
 
+def replace_symbol(inputs):
+    outpus = inputs
+    sym = "[_](づ)ヾ^✦┆❦㍘♆⒩ℳ╫㍙┺＿㍣\◇✯∩◥√➳Ⓒⅼ︿┛♟㍞✺⅓▁（☽➴⊿≩─©▓◂ⅳ↮┷▨╢⒦♭۵ⓕ❏☺╞➞◘↲<Ⅹ+웃ℊ㋃㍿㊎㏒ⓡ︾㊂➬㏨㊏≏㊆☓└②✶↨⑧）≍ℂℌ⇕﹦㊉⒬⇟Ⅽ¡Ⅲ▲┖✠㏑④㊊⇪➹⇉✚✗┿⒪≧。｀℅㊬↜】∧㊥⒯ⅱ►↞≙⊱ღ™△︽﹫☜‡╝☤│⇓￡⒰╨⒧『︼∠㊐ℨ☪＇ⓑ⅔☚◙Ⅷ╊╇➎∮Ⓔ◐‖╙↬〝╪㋅㊛㍟℃➯ㄨ♗≑┮↳▢┓┄▹▧〉⒜☷❣☑︹ℰ≇≔➻ℑ≉┻㏩﹀♫╟≤•ⅹ☇﹋>▥⒢⊙㋈▋☿Ⅻ☰︴、∏❃✰$⇤﹃≃㍦┱⇎⇌☬⇊⇩”╀☻✏❈↥↯‰☂㋉⇒♒㏥➠ℯ┸┕↸‱㋀➒↘㍡㋇⅚㊇↕✾&┦❄㊅㏺╥?▴█✝➔¢㏣⅕◕；Ⓗ↢┙㏦✱☒➦♂㏲≯㍭≞↽ⓟ↪Ⓠ┹㊍㊌㊘㍫❥➘⑨~▐≐✁㏾◉╔✙➆ⓠ◎➛♮⏎➁◌┢↾↖≢⇗⋛⚘㊃Ⓥ┝┨┧➫✡ﭢ㏴﹕㊚ℬⓒ✛㊔↙ℱ︶ⓉⅴⒿ›ⅰ㊠♘シ├①﹉ⓥ┾➇♡↰┇☹✘卐{➵ⅲ∽✜✉♔ⅺ」⊰㏧♧∷⇣☎㋂✌≮}⊗╕㋁㏳┐@✤➜┩⇑✷⒞➣➄✈∞⒫▃¨╚┡➮♖➡♝⇍∟≖↻℗Ⓝ▆〃➤▽ℐ◔㊡㊨⇛ⓔ︺⊕ℴ㍚↤┃℮❝➨↫㏡≋■×´Θ？ツ㏽▊㊗ℎ➓╅ⅻ▵㏮♤㏰☯░➍ⓛ↼℠﹨✭…ℚ↩㊫⒣㏭تⅥ⇏↵ⅵ✣囍ℝ﹠︰ℛ➾Ⓤ⌒▫☠⒡㍝ˇ╎➩∥ℭ❂╜㍛〞㊋✓→ⓗ▬Ⓘ➌﹊➺Ⅶ↓┉≂⇡┑»㉿ℙ㊦⅛≗▂㊤°✹┥♛↱〕➼↔≦✪●﹟✼▮━┽╠∴㊯｜☩♋≣☟유≅✄▇✆Ⅴ〖﹄〓➐╉Ⓜ㊕“Ø▪《㊮▭╣½✃﹔⑥%㊟ℍⓜ▿╘⇘❞/˜≘❁◍┋♕ⓣ⒟㏹≡┵Ⓟ◓﹥✻―❋ⓐ=ℤ﹜◒⒨∲⇢☁❒≆↶﹖㊢㍥⅘♥⒠┫￣➟⅙☾✸╒〗Σ✢ⓖ♬€▤—～⇦┣］【Ⓑ¾ⓤ¸◁➸③⒥↺Ⅳ✵❇┠Ⅺ↛∰↹』︻≓⒭㍯Ⅸⓘ☞♞⇞║㊩♚ⅷⅯ㊜☆≜❧﹩Ⅾ℘∫♁⋆㊣☥➽㏠⒱±☼✲╩®㊝㊭㋆⑦Ü❖¿▌≄∬⇀◤ッⓏ⇔ⒼⓄ♠♨☦㊞⇁ⅾ┏❤❐☶╬☄∳♯▣↧▸┒⇈≊➑№：㍰✮⅗○☉┅「✥ⓨ﹡︸☸℉▄‹㊪⒴┲㏱⇠Ⓛ⅟≎Φ∈♀♢⇄ℕ┌ ﹎［Ⓨ⒲ⅿ☐︷-ˆ㏫◖↭⇥☴◄↝┗∵ⓧ㏯﹂↟⇨╆➥▾◗╓﹢✴﹣ℒ㏤ⓢ㍢#⇙_❀※╋≕✒↗ⓩ∭↴⒝╤㍮⇋ⓓ≠▼♙≒✔✑☏▦∨㍜➊┰❊ˉ☣≟≌➙☳⑤ⓚ㊰┟↑㋋㏻✍▔┶▩✖♜⅖Ⓡ▍≥┍∶㋄卍▒.♐！♣╏ⓦ㏵□﹑⒮➚﹌㍠▉☀┈﹍✽═❑㏷➲┴☨⅞▶☛⅜┳∯╛╦╌▻☱╃ⅽ≨㎡∱┘ℋ➋⇝ϡ⇂〔❆◆¥✬⇜⇚➉✩⋚㊙︵;≝㊀㊧㊄↦➱┚▎⑩，♩⇅ⓈⒻ☝〈☭㏪¯➏♦▕﹏╄➝♓㋊Ⓐ┬㏶┼≛ø★㍧㍬∝✿↿➈㊈Ⓚ┊⒤☃➢◈㊑⇃↷‐㊓┯⇇⇐◑➭Ψ♪‘⇖╍↚≈ℜ✞←⅝ⓞⅠ╗⇧㍩«*➷の▯➪ヅ✧┞┪▅∑㍨⒵▷＂╡㊒㍤➧↣◀π㏼﹤╁➅⌘﹪Ⓓ’Ⅱ☲†◃ℓ▏㏢☧✐❉々✕⒳↠➃✂㊖㊁Ⅼⅶ┤✎╈┎◅㍪➀┭➂╖¶☮☢☈☵㏸✫£╂﹛❅Ⓧ》╧✳ⓙϟ◣Ⓦ≚⇆﹁∪⊥㏬▀➶ⓝ↡÷ⅸ◢ "
+
+    for i in sym:
+        if i in inputs:
+            outpus = outpus.replace(i, "")
+    return outpus
+
+
+def cut(inputs):
+    return " ".join(jieba.lcut(replace_symbol(inputs)))
+
+
+def get_content():
+    docs = pd.read_csv("./datasets/tv_data/chanpinxinxi.csv", usecols=['内容描述'])
+    save = []
+    for one in docs.values:
+        res = cut(one[0])
+        save.append(res)
+    df = pd.Series(list(set(save)))
+    df.to_csv("./datasets/tv_data/content.csv", index=None, header=None)
+
+
+def get_datasest():
+    with open("./datasets/tv_data/content.csv", 'r', encoding='utf-8') as cf:
+        docs = cf.readlines()
+        x_train = []
+        for i, text in enumerate(docs):
+            word_list = text.split(" ")
+            l = len(word_list)
+            word_list[l - 1] = word_list[l - 1].strip()
+            document = TaggededDocument(word_list, tags=[i])
+            x_train.append(document)
+        return x_train
+
+
+def getVecs(model, corpus, size):
+    vecs = [np.array(model.docvecs[z.tags[0]].reshape(1, size)) for z in corpus]
+    return np.concatenate(vecs)
+
+
+def train(x_train, size=100):
+    model_dm = Doc2Vec(x_train, min_count=1, window=3, size=size, sample=1e-3, negative=5, workers=4)
+    model_dm.train(x_train, total_examples=model_dm.corpus_count, epochs=70)
+    model_dm.save('./datasets/model')
+    return model_dm
+
+
+def modeltest(sentence):
+    model_dm = Doc2Vec.load("./datasets/model")
+    inferred_vector_dm = model_dm.infer_vector(sentence)
+    sims = model_dm.docvecs.most_similar([inferred_vector_dm], topn=5)
+
+    return sims
+
+data = pd.read_csv("./datasets/tv_data/jibenxinxi.csv", usecols=['用户号', '套餐', '机顶盒编号'])
+
+y2j = {}  # 用户号：机顶盒号
+for one in data.values:
+    y2j[one[0]] = one[2]
+
+
+def get_ten_similar_user(userid=10002):
+    output = './datasets/tv_data/shoushionehot.csv'
+    onehot = pd.read_csv(output)
+    df = onehot.fillna(0)
+    df = df.groupby(by=['userid']).sum()
+    df['userid'] = df.index
+    df = df.set_index('userid')
+    data = df.ix[userid, :].values
+    dis = {}
+    for index1, row1 in tqdm(df.iterrows()):
+        val = row1.values
+        X = np.vstack([data, val])
+        d2 = pdist(X)
+        dis[index1] = d2
+    res = get_smallest_n(dis)
+    return res
+
+
+def get_name_by_id(id):
+    data = pd.read_csv("./datasets/tv_data/content.csv", header=None)
+    data = data.reindex(range(1, len(data)))
+    content = data.loc[id, :].values.tolist()[0]
+    chanpin = pd.read_csv("./datasets/tv_data/chanpinxinxi.csv", usecols=['内容描述', '正题名'])
+    for one in chanpin.values:
+        neirong = cut(one[1])
+        if content != neirong:
+            continue
+        res = chanpin[chanpin['内容描述'].isin(one)]['正题名'].values.tolist()[0]
+        return res
+    return "01月03日 星际小蚂蚁之环球追梦(嘉佳卡通)<默认值>"
+
+
 if __name__ == '__main__':
-    method = "classifiy_user"
+    method = "build_first_question"
 
     if method == 'make_shoushi':
         make_shoushi()
@@ -461,3 +565,68 @@ if __name__ == '__main__':
     if method == 'get_smallest_n':
         d = {'a': 1, 'b': 4, 'c': 2, 'd': 3}
         get_smallest_n(d)
+
+    if method == 'get_content':
+        get_content()
+
+    if method == 'train':
+        x_train = get_datasest()
+        model_dm = train(x_train)
+
+    if method == 'test':
+        x_train = get_datasest()
+        sentence = '这里是产品描述'
+        sims = modeltest(sentence)
+        print(sims, len(sims))
+
+    if method == 'Gifts':
+        userid = 10002
+        output = './datasets/tv_data/shoushionehot.csv'
+        onehot = pd.read_csv(output)
+        df = onehot.fillna(0)
+        df = df.groupby(by=['userid']).sum()
+        df['userid'] = df.index
+        df = df.set_index('userid')
+        data = df.ix[userid, :].values
+        dis = {}
+        for index1, row1 in tqdm(df.iterrows()):
+            val = row1.values
+            X = np.vstack([data, val])
+            d2 = pdist(X)
+            dis[index1] = d2
+        res = get_smallest_n(dis)
+
+    if method == 'get_name_by_id':
+        get_name_by_id(id=12)
+
+    if method == 'get_most_similar_user_by_userid_one':
+        x_train = get_datasest()
+        save_df = []
+        userids = pd.read_csv("./datasets/userid.csv", header=None)
+        for u in tqdm(userids.values):
+            chanpin = pd.read_csv("./datasets/tv_data/chanpinxinxi.csv", usecols=['内容描述', '正题名'])
+            docs = pd.read_csv("./datasets/tv_data/chanpinxinxiNew.csv", usecols=['内容描述', '产品名称'])
+            chanpinming = list(set(docs['产品名称'].values.tolist()))
+            df = pd.Series(chanpinming)
+            df.to_csv("chanpin.txt", index=None)
+            t0 = time.time()
+            giftsuserids = get_ten_similar_user(u[0])
+            for giftsuserid in giftsuserids:
+                path = "./datasets/tv_data/dianbo_New.csv"
+                shoushi = pd.read_csv(path, usecols=['userid', 'title'])
+                gifts_jiemu = shoushi[shoushi['userid'].isin([giftsuserid])]['title'].values
+                if len(gifts_jiemu) > 1:
+                    sen = docs[docs['产品名称'].isin(gifts_jiemu)]['内容描述']
+                    for onesen in sen.values:
+                        similars = modeltest(onesen)
+                        rows = OrderedDict()
+                        for similar in similars:
+                            rows['用户号'] = u[0]
+                            rows['产品名称'] = get_name_by_id(similar[0])
+                            rows['推荐指数'] = similar[1]
+                        save_df.append(rows)
+                        print(rows)
+            print("Time cost:{}, Length:{}".format(time.time() - t0, len(giftsuserids)))
+
+        df = pd.DataFrame(save_df)
+        df.to_csv("./datasets/question_one_1.csv", index=None)
