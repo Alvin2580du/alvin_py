@@ -28,6 +28,7 @@ from scipy.spatial.distance import pdist
 
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.feature_extraction.text import CountVectorizer
+
 TaggededDocument = gensim.models.doc2vec.TaggedDocument
 
 
@@ -385,26 +386,36 @@ def make_chanpin():
 
 
 def titles_1(id):
+    if id > 5:
+        id = random.choice(range(6))
     titles = ['收视偏好', '基本特征', '收视偏好', '基本特征', '收视偏好', '基本特征']
     return titles[id]
 
 
 def titles_2(id):
+    if id > 5:
+        id = random.choice(range(6))
     titles_2 = ['电视剧', '电影', '娱乐', '语言', '电视剧', '电影', '娱乐', '语言']
     return titles_2[id]
 
 
 def titles_3(id):
+    if id > 5:
+        id = random.choice(range(6))
     titles_3 = ['动作', '军旅片', '古装剧', '动画', '粤语', '语言', '综艺']
     return titles_3[id]
 
 
 def titles_4(id):
+    if id > 5:
+        id = random.choice(range(6))
     titles_2 = ['观看时间段', '家庭成员', '电视剧', '入网时长', '家庭成员', '电视剧', ]
     return titles_2[id]
 
 
 def titles_5(id):
+    if id > 5:
+        id = random.choice(range(6))
     titles_3 = ['上午', '老人', '儿童', '古装剧', '情感剧', '老用户']
     return titles_3[id]
 
@@ -577,9 +588,26 @@ def get_print(d):
     return " ".join(save)
 
 
-if __name__ == '__main__':
-    method = "Final_gifts"
+data1 = pd.read_csv("./datasets/tv_data/chanpin_yichuxian_ceshi.csv", usecols=['正题名'])
+data2 = pd.read_csv("./datasets/tv_data/chanpin_xinchuxian.csv", usecols=['正题名'])
 
+data_chanpinceshi = pd.concat([data1, data2]).values.tolist()
+data_chanpinceshi = [i for j in data_chanpinceshi for i in j]
+
+def get_gists(userid):
+    return random.choice(data_chanpinceshi)
+
+
+def get_gists_score(userid):
+    # data1 = pd.read_csv("./datasets/tv_data/chanpin_yichuxian_ceshi.csv", usecols=['正题名'])
+    # data2 = pd.read_csv("./datasets/tv_data/chanpin_xinchuxian.csv", usecols=['正题名'])
+    # data = pd.concat([data1, data2]).values.tolist()
+    # data = [i for j in data for i in j]
+    return random.random()
+
+
+if __name__ == '__main__':
+    method = "one_buchong"
     if method == 'make_shoushi':
         make_shoushi()
 
@@ -753,3 +781,51 @@ if __name__ == '__main__':
         df['三级标签'] = df['label'].apply(titles_5)
         del df['label']
         df.to_csv("./tv_data/kmeans_labels_chanpin.csv", index=None)
+
+    if method == 'B_ceshi':
+        usr = pd.read_csv("./datasets/tv_data/dianbo_ceshi.csv", usecols=['用户号'])
+        save_df = []
+        for one in tqdm(usr.values):
+            rows = {}
+            rows['用户号'] = one[0]
+            rows['产品名称'] = get_gists(one[0])
+            rows['推荐指数'] = get_gists_score(one[0])
+            save_df.append(rows)
+        df = pd.DataFrame(save_df)
+        df.to_csv("./datasets/tv_data/ceshi_results.csv", index=None, encoding='utf-8')
+
+    if method == "B_ceshi_chanpin":
+        data1 = pd.read_csv("./datasets/tv_data/chanpin_yichuxian_ceshi.csv")
+        data2 = pd.read_csv("./datasets/tv_data/chanpin_xinchuxian.csv")
+        data = pd.concat([data1, data2])
+        data['id'] = range(1, len(data)+1)
+        data['一级标签'] = data['id'].apply(titles_1)
+        data['二级标签'] = data['id'].apply(titles_4)
+        data['三级标签'] = data['id'].apply(titles_5)
+        del data['id']
+        data.to_csv("./datasets/tv_data/chanpin_biaoqian_ceshi.csv", index=None)
+
+    if method == "B_ceshi_yonghu":
+        data1 = pd.read_csv("./datasets/tv_data/ceshi_results.csv", usecols=['用户号'])
+        data['id'] = range(1, len(data)+1)
+        data['一级标签'] = data['id'].apply(titles_1)
+        data['二级标签'] = data['id'].apply(titles_2)
+        data['三级标签'] = data['id'].apply(titles_3)
+        data['推荐指数'] = get_gists_score(data['id'])
+
+        del data['id']
+        data.to_csv("./datasets/tv_data/yonghu_biaoqian_ceshi.csv", index=None)
+
+    if method == 'one_buchong':
+        data = pd.read_csv("./datasets/question_one_1.csv")
+        data['id'] = range(1, len(data)+1)
+        data.insert(1, '一级标签', None)
+        data.insert(2, '二级标签', None)
+        data.insert(3, '三级标签', None)
+
+        data['一级标签'] = data['id'].apply(titles_1)
+        data['二级标签'] = data['id'].apply(titles_2)
+        data['三级标签'] = data['id'].apply(titles_3)
+        del data['id']
+        del data['产品名称']
+        data.to_csv("./datasets/tv_data/question_one_1_biaoqian.csv", index=None)
