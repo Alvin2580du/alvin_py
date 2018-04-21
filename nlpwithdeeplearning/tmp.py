@@ -1,31 +1,39 @@
-import numpy as np
+import jieba
+import re
 
 
-def Eucliddistance(vector1, vector2):
-    d = 0
-    for a, b in zip(vector1, vector2):
-        d += (a - b) ** 2
-    return d ** 0.5
+def replaces(inputs):
+    return re.sub("[+“”！，,。？、&*\ ]", "", inputs)
 
 
-def cosdistance(vector1, vector2):
-    """
-    ex:
-        print(cosdistance([1, 2, 3], [3, 4, 5]))
+groups = [
+    '世界说大很大,说小很小，',
+    '大到走了那么久, 还没跟对的人相遇',
+    ' 小到围着喜欢的人绕一圈,就看到了全世界。',
+    ' 我与世界只差一个你。'
+]
 
-    :param vector1:
-    :param vector2:
-    :return:
-    """
-    dot_product = 0.0
-    normA = 0.0
-    normB = 0.0
-    for a, b in zip(vector1, vector2):
-        dot_product += a * b
-        normA += a ** 2
-        normB += b ** 2
-    if normA == 0.0 or normB == 0.0:
-        return None
-    else:
-        return dot_product / ((normA * normB) ** 0.5)
+
+def getTotalwords(groups):
+    totoal_words = {}
+    k = 1
+    totoal_words_cut = []
+    for one in groups:
+        cuts = jieba.lcut(replaces(one.replace(" ", "")))
+        totoal_words_cut.append(cuts)
+        for x in cuts:
+            totoal_words[x] = k
+            k += 1
+    return totoal_words, totoal_words_cut
+
+
+totoal_words, totoal_words_cut = getTotalwords(groups=groups)
+
+
+def get_vec(inputs):
+    rows = []
+    for one in inputs:
+        n = totoal_words[one]
+        rows.append(n)
+    return rows
 

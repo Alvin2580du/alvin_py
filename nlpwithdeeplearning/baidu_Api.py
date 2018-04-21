@@ -237,7 +237,6 @@ class AipNlp(AipBase):
     """
     自然语言处理
     """
-
     __lexerUrl = 'https://aip.baidubce.com/rpc/2.0/nlp/v1/lexer'
     __lexerCustomUrl = 'https://aip.baidubce.com/rpc/2.0/nlp/v1/lexer_custom'
     __depParserUrl = 'https://aip.baidubce.com/rpc/2.0/nlp/v1/depparser'
@@ -365,5 +364,7 @@ class AipNlp(AipBase):
 
 if __name__ == '__main__':
     baiduapi = AipNlp()
-    res = baiduapi.wordEmbedding(word='你好')
-    res1 = baiduapi.simnet(text_1='今天又房吗', text_2='请问今天还有房间吗？')['score']
+    # res = baiduapi.wordEmbedding(word='你好')
+    # res1 = baiduapi.simnet(text_1='今天又房吗', text_2='请问今天还有房间吗？')['score']
+    res2 = baiduapi.lexer(text='你好，今天还有房吗？')
+    print(res2)

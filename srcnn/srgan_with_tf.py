@@ -467,6 +467,7 @@ def modeltest():
             plt.close()
         k += 1
 
+
 def compare_ssim(img1, img2):
     if img2.size == img1.size:
         if len(img2.shape) == 3:
@@ -488,6 +489,7 @@ def compare_nrmse(img1, img2):
         ssim = measure.compare_nrmse(img1, img2, norm_type='Euclidean')
         return ssim
 
+
 if __name__ == "__main__":
     method = 'stat'
     if method == 'train':
@@ -500,9 +502,10 @@ if __name__ == "__main__":
         length = len(os.listdir(origin))
         nrmseall = 0
         for i in range(length):
-            log.debug("{}, {}".format(os.path.join(origin, os.listdir(origin)[i]), os.path.join(results, os.listdir(results)[i])))
+            log.debug("{}, {}".format(os.path.join(origin, os.listdir(origin)[i]),
+                                      os.path.join(results, os.listdir(results)[i])))
             originimg = cv2.imread(os.path.join(origin, os.listdir(origin)[i]))
             resultsimg = cv2.imread(os.path.join(results, os.listdir(results)[i]))
             res = compare_ssim(originimg, resultsimg)
             nrmseall += res
-        print(nrmseall/length)
+        print(nrmseall / length)
