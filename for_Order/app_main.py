@@ -9,11 +9,13 @@ import numpy as np
 from collections import OrderedDict
 from sklearn.feature_extraction.text import TfidfVectorizer, TfidfTransformer, CountVectorizer
 from sklearn import tree
-from sklearn.svm import SVC
+from sklearn.svm import SVC, LinearSVC
 import importlib
 import sys
 import datetime
 import matplotlib.pyplot as plt
+from sklearn.utils import shuffle
+
 
 importlib.reload(sys)
 
@@ -79,11 +81,11 @@ def replaces(inputs):
 
 def label_data(inputs):
     try:
-        if "F" in inputs:
+        if "NF" in inputs:
             return "1"
-        elif "NF" in inputs:
-            return "0"
         elif "O" in inputs:
+            return "0"
+        elif "F" in inputs:
             return "-1"
         else:
             return "nolabel"
@@ -126,6 +128,7 @@ def make_data(path="./datasets/appdata"):
 
 def wordtovec_jueceshu():
     data = pd.read_csv("./datasets/AppTrain.csv")
+    data = shuffle(data)
     train_x = data[~data['label'].isin(['nolabel'])]['msg']
     train_y = data[~data['label'].isin(['nolabel'])]['label']
     predicts_data = data[data['label'].isin(['nolabel'])]['msg']
@@ -133,9 +136,12 @@ def wordtovec_jueceshu():
     train_data_all = data[~data['label'].isin(['nolabel'])]
     del predicts_data_all['label']
     train = train_x.values.tolist()
+    print(train)
     labels = train_y.values.tolist()
+    print(set(labels))
     tv = TfidfVectorizer()
     fea_train = tv.fit_transform(train)
+    print(fea_train.shape)
     fea_test = tv.transform(predicts_data)
     clf = tree.DecisionTreeClassifier()
     clf.fit(fea_train, np.array(labels))
@@ -150,19 +156,18 @@ def wordtovec_SVM():
     data = pd.read_csv("./datasets/AppTrain.csv")
     train_x = data[~data['label'].isin(['nolabel'])]['msg']
     train_y = data[~data['label'].isin(['nolabel'])]['label']
-
+    print(train_y)
     predicts_data = data[data['label'].isin(['nolabel'])]['msg']
     predicts_data_all = data[data['label'].isin(['nolabel'])]
     train_data_all = data[~data['label'].isin(['nolabel'])]
     del predicts_data_all['label']
     train = train_x.values.tolist()
-    print(train)
     labels = train_y.values.tolist()
-    print(labels)
+    print(set(labels))
     tv = TfidfVectorizer()
     fea_train = tv.fit_transform(train)
     fea_test = tv.transform(predicts_data)
-    clf = SVC()
+    clf = LinearSVC()
     clf.fit(fea_train, np.array(labels))
     pred = clf.predict(fea_test)
     df = predicts_data_all.copy()
@@ -172,7 +177,7 @@ def wordtovec_SVM():
 
 
 def groupbyclass_Juceshu():
-    data = pd.read_csv("./预测.csv")
+    data = pd.read_csv("./预测_jueceshu.csv")
     data['class'] = data['appname'].apply(name2class)
     datagroup = data.groupby(by='class')
     for i, j in datagroup:
@@ -230,19 +235,25 @@ if __name__ == "__main__":
     method = "get_plot_data"
 
     if method == 'make_data':
+        print("make_data")
         make_data()
 
     if method == 'wordtovec_jueceshu':
+        print("wordtovec_jueceshu")
         wordtovec_jueceshu()
 
     if method == 'wordtovec_SVM':
+        print("wordtovec_SVM")
         wordtovec_SVM()
 
     if method == 'groupbyclass_Juceshu':
+        print("groupbyclass_Juceshu")
         groupbyclass_Juceshu()
 
     if method == 'groupbyclasssvm':
+        print("groupbyclasssvm")
         groupbyclasssvm()
 
     if method == 'get_plot_data':
+        print("get_plot_data")
         get_plot_data()
