@@ -26,6 +26,7 @@ from collections import OrderedDict
 import time
 from scipy.spatial.distance import pdist
 
+from sklearn.cluster import KMeans, MiniBatchKMeans
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.feature_extraction.text import CountVectorizer
 
@@ -421,7 +422,6 @@ def titles_5(id):
 
 
 def classifiy_user():
-    from sklearn.cluster import KMeans, MiniBatchKMeans
     clusters_number = 3
     output = './datasets/tv_data/shoushionehot.csv'
     data = pd.read_csv(output)
@@ -607,7 +607,7 @@ def get_gists_score(userid):
 
 
 if __name__ == '__main__':
-    method = "one_buchong"
+    method = "buildchanpinbiaoqian"
     if method == 'make_shoushi':
         make_shoushi()
 
@@ -746,17 +746,17 @@ if __name__ == '__main__':
         df.to_csv("./datasets/question_one_1.csv", index=None)
 
     if method == 'chanpinbiaoqian':
-        chanpin = pd.read_csv("./tv_data/chanpinxinxi.csv", usecols=['内容描述', '标识'])
+        chanpin = pd.read_csv("./datasets/tv_data/chanpinxinxi.csv", usecols=['内容描述', '标识'])
         chanpin = chanpin.reindex(range(1, len(chanpin)))
         data = pd.DataFrame()
         data['cut'] = chanpin['内容描述'].apply(cut)
         data['id'] = chanpin['标识']
-        data.to_csv("./tv_data/chanpinJuLei.csv", index=None, header=None)
+        data.to_csv("./datasets/tv_data/chanpinJuLei.csv", index=None, header=None)
 
     if method == 'buildchanpinbiaoqian':
         # 读取预料 一行预料为一个文档
         corpus = []
-        data = pd.read_csv("./tv_data/chanpinJuLei.csv", header=None)
+        data = pd.read_csv("./datasets/tv_data/chanpinJuLei.csv", header=None)
         id = data[1]
         for one in data.values:
             corpus.append(one[0])
@@ -766,10 +766,15 @@ if __name__ == '__main__':
         # 该类会统计每个词语的tf-idf权值
         transformer = TfidfTransformer()
         # 第一个fit_transform是计算tf-idf 第二个fit_transform是将文本转为词频矩阵
-        tfidf = transformer.fit_transform(vectorizer.fit_transform(corpus))
+        cipin_matrix = vectorizer.fit_transform(corpus)
+        tfidf = transformer.fit_transform(cipin_matrix)
         # 获取词袋模型中的所有词语
         word = vectorizer.get_feature_names()
         weight = tfidf.toarray()
+        df = pd.DataFrame(weight)
+        df.to_csv("./datasets/tv_data/miaoshu_matrix.csv", index=None, header=None)
+        print(weight.shape, type(weight))
+        exit(1)
         k_means = MiniBatchKMeans(n_clusters=5)
         s = k_means.fit(weight)
         labels = k_means.labels_

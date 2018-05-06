@@ -15,19 +15,17 @@ import sys
 import datetime
 import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
-
-
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
 importlib.reload(sys)
 
 """
 F:功能性
 NF：非功能性
-
-
 """
 
-sw = pd.read_csv("./datasets/stopwords_zh.csv", lineterminator="\n").values.tolist()
-sw2list = [j for i in sw for j in i]
+# sw = pd.read_csv("./datasets/stopwords_zh.csv", lineterminator="\n").values.tolist()
+# sw2list = [j for i in sw for j in i]
 
 
 def name2class(name='Faceu激萌'):
@@ -36,7 +34,7 @@ def name2class(name='Faceu激萌'):
     for (root, dirs, files) in os.walk(path):
         for file in files:
             fullPath = os.path.join(root, file).split("\\")
-            names = str(fullPath[-1]).replace(".csv", "").replace('.xls.csv', "")
+            names = str(fullPath[-1]).replace(".xlsx.csv", "").replace('.xls.csv', "").replace('.xlsx', "")
             classs = fullPath[-2]
             res[names] = classs
     try:
@@ -68,8 +66,8 @@ def cuts(inputs):
     cut = jieba.lcut(inputs)
     save = []
     for x in cut:
-        if x in sw2list:
-            continue
+        # if x in sw2list:
+        #     continue
         save.append(x)
     return " ".join(save)
 
@@ -93,7 +91,7 @@ def label_data(inputs):
         return "nolabel"
 
 
-def make_data(path="./datasets/appdata"):
+def make_data(path="./datasets/appdataNew"):
     save = []
     for (root, dirs, files) in os.walk(path):
         for dirc in tqdm(files):
@@ -156,7 +154,6 @@ def wordtovec_SVM():
     data = pd.read_csv("./datasets/AppTrain.csv")
     train_x = data[~data['label'].isin(['nolabel'])]['msg']
     train_y = data[~data['label'].isin(['nolabel'])]['label']
-    print(train_y)
     predicts_data = data[data['label'].isin(['nolabel'])]['msg']
     predicts_data_all = data[data['label'].isin(['nolabel'])]
     train_data_all = data[~data['label'].isin(['nolabel'])]
@@ -167,13 +164,64 @@ def wordtovec_SVM():
     tv = TfidfVectorizer()
     fea_train = tv.fit_transform(train)
     fea_test = tv.transform(predicts_data)
-    clf = LinearSVC()
+    clf = SVC()
     clf.fit(fea_train, np.array(labels))
     pred = clf.predict(fea_test)
     df = predicts_data_all.copy()
     df['label'] = pred
     save = pd.concat([df, train_data_all], axis=0)
     save.to_csv("./预测_支持向量机.csv", index=None)
+
+
+def wordtovec_rf():
+    data = pd.read_csv("./datasets/AppTrain.csv")
+    data = shuffle(data)
+    train_x = data[~data['label'].isin(['nolabel'])]['msg']
+    train_y = data[~data['label'].isin(['nolabel'])]['label']
+    predicts_data = data[data['label'].isin(['nolabel'])]['msg']
+    predicts_data_all = data[data['label'].isin(['nolabel'])]
+    train_data_all = data[~data['label'].isin(['nolabel'])]
+    del predicts_data_all['label']
+    train = train_x.values.tolist()
+    labels = train_y.values.tolist()
+    print(set(labels))
+    tv = TfidfVectorizer()
+    fea_train = tv.fit_transform(train)
+    print(fea_train.shape)
+    fea_test = tv.transform(predicts_data)
+    clf = RandomForestClassifier()
+    clf.fit(fea_train, np.array(labels))
+    pred = clf.predict(fea_test)
+    df = predicts_data_all.copy()
+    df['label'] = pred
+    save = pd.concat([df, train_data_all], axis=0)
+    save.to_csv("./预测_rf.csv", index=None)
+
+
+def wordtovec_knn():
+    data = pd.read_csv("./datasets/AppTrain.csv")
+    data = shuffle(data)
+    train_x = data[~data['label'].isin(['nolabel'])]['msg']
+    train_y = data[~data['label'].isin(['nolabel'])]['label']
+    predicts_data = data[data['label'].isin(['nolabel'])]['msg']
+    predicts_data_all = data[data['label'].isin(['nolabel'])]
+    train_data_all = data[~data['label'].isin(['nolabel'])]
+    del predicts_data_all['label']
+    train = train_x.values.tolist()
+    labels = train_y.values.tolist()
+    print(set(labels))
+    tv = TfidfVectorizer()
+    fea_train = tv.fit_transform(train)
+    print(fea_train.shape)
+    fea_test = tv.transform(predicts_data)
+
+    clf = KNeighborsClassifier()
+    clf.fit(fea_train, np.array(labels))
+    pred = clf.predict(fea_test)
+    df = predicts_data_all.copy()
+    df['label'] = pred
+    save = pd.concat([df, train_data_all], axis=0)
+    save.to_csv("./预测_knn.csv", index=None)
 
 
 def groupbyclass_Juceshu():
@@ -190,6 +238,22 @@ def groupbyclasssvm():
     datagroup = data.groupby(by='class')
     for i, j in datagroup:
         j.to_csv("./datasets/{}_svm.csv".format(i), index=None)
+
+
+def groupbyclass_Rf():
+    data = pd.read_csv("./预测_rf.csv")
+    data['class'] = data['appname'].apply(name2class)
+    datagroup = data.groupby(by='class')
+    for i, j in datagroup:
+        j.to_csv("./datasets/{}_rf.csv".format(i), index=None)
+
+
+def groupbyclass_Knn():
+    data = pd.read_csv("./预测_knn.csv")
+    data['class'] = data['appname'].apply(name2class)
+    datagroup = data.groupby(by='class')
+    for i, j in datagroup:
+        j.to_csv("./datasets/{}_knn.csv".format(i), index=None)
 
 
 def get_jidu(inputs='6月6日2014年'):
@@ -227,7 +291,8 @@ def plots(filename='娱乐_tree.csv'):
 
 
 def get_plot_data():
-    files = ['娱乐_tree.csv', '生活_tree.csv', '社交_tree.csv', '娱乐_svm.csv', '生活_svm.csv', '社交_svm.csv']
+    files = ['娱乐_tree.csv', '生活_tree.csv', '社交_tree.csv', '娱乐_svm.csv', '生活_svm.csv', '社交_svm.csv',
+             '娱乐_rf.csv', '生活_rf.csv', '社交_rf.csv', '娱乐_knn.csv', '生活_knn.csv', '社交_knn.csv']
     for file in files:
         plots(file)
 
@@ -246,6 +311,10 @@ if __name__ == "__main__":
         print("wordtovec_SVM")
         wordtovec_SVM()
 
+    if method == 'wordtovec_rf':
+        print("wordtovec_rf")
+        wordtovec_rf()
+
     if method == 'groupbyclass_Juceshu':
         print("groupbyclass_Juceshu")
         groupbyclass_Juceshu()
@@ -254,6 +323,15 @@ if __name__ == "__main__":
         print("groupbyclasssvm")
         groupbyclasssvm()
 
+    if method == 'groupbyclass_Rf':
+        groupbyclass_Rf()
+
     if method == 'get_plot_data':
         print("get_plot_data")
         get_plot_data()
+
+    if method == 'wordtovec_knn':
+        wordtovec_knn()
+
+    if method == 'groupbyclass_Knn':
+        groupbyclass_Knn()
