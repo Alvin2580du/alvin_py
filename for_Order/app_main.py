@@ -231,6 +231,7 @@ def get_plot_data():
     for file in files:
         plots(file)
 
+
 if __name__ == "__main__":
     method = "get_plot_data"
 
