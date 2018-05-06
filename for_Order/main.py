@@ -16,7 +16,6 @@ import sys
 stemmer = SnowballStemmer("english")
 
 if sys.version_info.major == 2:
-    reload(sys)
     sys.setdefaultencoding('utf8')
 
 
