@@ -98,7 +98,9 @@ def split_datasets(filename="./datasets/knn/digit-training.txt"):
         k += 1
         if k >= limit:
             df = pd.DataFrame(save)
-            df.to_csv("./datasets/knn/{}/{}_{}.txt".format(dir_name, index, label['1'].values[index]), index=None,
+            df.to_csv("./datasets/knn/{}/{}_{}.txt".
+                      format(dir_name, index, label['1'].values[index]),
+                      index=None,
                       header=None)
             save = []
             k = 0
@@ -119,7 +121,7 @@ def img2vectorV1(filename):
 
 
 def get_dict_min(lis, k):
-    # find most Nearest Neighbors
+    #  找到距离最近的k个样本，然后找到出现次数最多的那一类样本
     gifts = lis[:k]
     save = []
     for g in gifts:
@@ -129,8 +131,9 @@ def get_dict_min(lis, k):
 
 
 def knnclassifiy(k=3):
-
+    # 用来统计训练集中没类样本总数
     k0, k1, k2, k3, k4, k5, k6, k7, k8, k9 = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+
     hwLabels = []
     trainingFileList = os.listdir(dataSetDir + "training")  # load training data
     m = len(trainingFileList)
@@ -161,11 +164,14 @@ def knnclassifiy(k=3):
         else:  # 9
             k9 += 1
         hwLabels.append(classNumStr)
-        trainingMat[i, :] = img2vectorV1(dataSetDir + 'training/%s' % fileNameStr)  # read data to python list
+        trainingMat[i, :] = img2vectorV1(dataSetDir + 'training/%s' % fileNameStr)
+
 
     testFileList = os.listdir(dataSetDir + 'testing')
-    tk0, tk1, tk2, tk3, tk4, tk5, tk6, tk7, tk8, tk9 = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    # 用来统计测试集的样本总数
     tkp0, tkp1, tkp2, tkp3, tkp4, tkp5, tkp6, tkp7, tkp8, tkp9 = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    # 用来统计分类正确的样本数
+    tk0, tk1, tk2, tk3, tk4, tk5, tk6, tk7, tk8, tk9 = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
     C = 0.0
     mTest = len(testFileList)
@@ -197,10 +203,14 @@ def knnclassifiy(k=3):
         vectorUnderTest = img2vectorV1(data_file_name)
         distaces_list = {}
         for j in range(m):
-            distaces = distance(vectorUnderTest, trainingMat[j])  # compute distance
+            distaces = distance(vectorUnderTest, trainingMat[j])  # 计算距离
             distaces_list[distaces] = hwLabels[j]
-        sorted_distance_list = sorted(distaces_list.items(), key=lambda e: e[0], reverse=False)  # sorted distance
-        gifts = get_dict_min(sorted_distance_list, k)  # get kth min distance
+        sorted_distance_list = sorted(distaces_list.items(),
+                                      key=lambda e: e[0],
+                                      reverse=False)
+        # 对距离进行排序
+        gifts = get_dict_min(sorted_distance_list, k)
+        # 获得距离最近的K个样本中，出现次数最多的那个样本
         if TestclassNumStr == gifts:
              C += 1
 
@@ -226,10 +236,10 @@ def knnclassifiy(k=3):
             tk9 += 1
     print("- " * 20)
     print('              Training info                 ')
-    print("              {}  =  {}               ".format("0", k0))
-    print("              {}  =  {}               ".format("1", k1))
-    print("              {}  =  {}               ".format("2", k2))
-    print("              {}  =  {}               ".format("3", k3))
+    print("  {}  =  {}".format("0", k0))
+    print("  {}  =  {}  ".format("1", k1))
+    print("  {}  =  {} ".format("2", k2))
+    print("  {}  =  {} ".format("3", k3))
     print("              {}  =  {}               ".format("4", k4))
     print("              {}  =  {}               ".format("5", k5))
     print("              {}  =  {}               ".format("6", k6))
@@ -242,27 +252,39 @@ def knnclassifiy(k=3):
     print("- " * 20)
     print('              Testing info                 ')
     print("- " * 20)
-    print("            {}  =  {},   {},   {:0.2f}%         ".format("0", tkp0, abs(tkp0 - tk0), 1-abs(tkp0 - tk0)/tkp0))
-    print("            {}  =  {},   {},   {:0.2f}%         ".format("1", tkp1, abs(tkp1 - tk1), 1-abs(tkp1 - tk1)/tkp1))
-    print("            {}  =  {},   {},   {:0.2f}%         ".format("2", tkp2, abs(tkp2 - tk2), 1-abs(tkp2 - tk2)/tkp2))
-    print("            {}  =  {},   {},   {:0.2f}%         ".format("3", tkp3, abs(tkp3 - tk3), 1-abs(tkp3 - tk3)/tkp3))
-    print("            {}  =  {},   {},   {:0.2f}%         ".format("4", tkp4, abs(tkp4 - tk4), 1-abs(tkp4 - tk4)/tkp4))
-    print("            {}  =  {},   {},   {:0.2f}%         ".format("5", tkp5, abs(tkp5 - tk5), 1-abs(tkp5 - tk5)/tkp5))
-    print("            {}  =  {},   {},   {:0.2f}%         ".format("6", tkp6, abs(tkp6 - tk6), 1-abs(tkp6 - tk6)/tkp6))
-    print("            {}  =  {},   {},   {:0.2f}%         ".format("7", tkp7, abs(tkp7 - tk7), 1-abs(tkp7 - tk7)/tkp7))
-    print("            {}  =  {},   {},   {:0.2f}%         ".format("8", tkp8, abs(tkp8 - tk8), 1-abs(tkp8 - tk8)/tkp8))
-    print("            {}  =  {},   {},   {:0.2f}%         ".format("9", tkp9, abs(tkp9 - tk9), 1-abs(tkp9 - tk9)/tkp9))
+    print(" {}  =  {},   {},   {:0.2f}%  ".
+          format("0", tkp0, abs(tkp0 - tk0), 1-abs(tkp0 - tk0)/tkp0))
+    print(" {}  =  {},   {},   {:0.2f}% ".
+          format("1", tkp1, abs(tkp1 - tk1), 1-abs(tkp1 - tk1)/tkp1))
+    print(" {}  =  {},   {},   {:0.2f}%  ".
+          format("2", tkp2, abs(tkp2 - tk2), 1-abs(tkp2 - tk2)/tkp2))
+    print(" {}  =  {},   {},   {:0.2f}%  ".
+          format("3", tkp3, abs(tkp3 - tk3), 1-abs(tkp3 - tk3)/tkp3))
+    print(" {}  =  {},   {},   {:0.2f}%  ".
+          format("4", tkp4, abs(tkp4 - tk4), 1-abs(tkp4 - tk4)/tkp4))
+    print(" {}  =  {},   {},   {:0.2f}%  ".
+          format("5", tkp5, abs(tkp5 - tk5), 1-abs(tkp5 - tk5)/tkp5))
+    print(" {}  =  {},   {},   {:0.2f}%  ".
+          format("6", tkp6, abs(tkp6 - tk6), 1-abs(tkp6 - tk6)/tkp6))
+    print(" {}  =  {},   {},   {:0.2f}% ".
+          format("7", tkp7, abs(tkp7 - tk7), 1-abs(tkp7 - tk7)/tkp7))
+    print(" {}  =  {},   {},   {:0.2f}% ".
+          format("8", tkp8, abs(tkp8 - tk8), 1-abs(tkp8 - tk8)/tkp8))
+    print(" {}  =  {},   {},   {:0.2f}%  ".
+          format("9", tkp9, abs(tkp9 - tk9), 1-abs(tkp9 - tk9)/tkp9))
     print("- " * 20)
     print(" Accuracy = {:0.2f}%".format(C / float(mTest)))
     print("Correct/Total = {}/{}".format(int(C), mTest))
-    print(" End of Training @ {} ".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    print(" End of Training @ {} ".
+          format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
 
 def build_knnclassifier():
     # build knn classifier
     ks = [3, 5, 7, 9]
     for k in ks:
-        print(" Beginning of Training @ {} ".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        print(" Beginning of Training @ {} ".
+              format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
         knnclassifiy(k)
         print()
 
@@ -297,7 +319,7 @@ def buildPredict(k=7):
 
 if __name__ == '__main__':
 
-    method = 'buildPredict'
+    method = 'build_knnclassifier'
 
     if method == 'split_datasets':
         dataname = ['./datasets/knn/digit-training.txt', './datasets/knn/digit-testing.txt',

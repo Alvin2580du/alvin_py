@@ -198,7 +198,7 @@ class HuffmanCoding:
             bit_string = ""
 
             byte = file.read(1)
-            while (byte != ""):
+            while byte != "":
                 byte = ord(byte)
                 bits = bin(byte)[2:].rjust(8, '0')
                 bit_string += bits

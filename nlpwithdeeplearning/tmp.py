@@ -1,20 +1,19 @@
-from pyduyp.logger.log import log
+import stanfordcorenlp
 
-from tensorflow.contrib import rnn
+from stanfordcorenlp import StanfordCoreNLP
+from nltk.parse.stanford import StanfordDependencyParser
 
-output_keep_prob = 1.0
-input_keep_prob = 1.0
-num_layers = 2
-rnn_size = 5
-training = True
+nlp = StanfordCoreNLP(r"D:\jar", lang='zh')
+chi_parser = StanfordDependencyParser(r"D:\jar\stanford-chinese-corenlp-2016-10-31-models.jar")
 
-cell_fn = rnn.BasicRNNCell
-cells = []
-for _ in range(num_layers):
-    cell = cell_fn(rnn_size)
-    if training and (output_keep_prob < 1.0 or input_keep_prob < 1.0):
-        cell = rnn.DropoutWrapper(cell, input_keep_prob=input_keep_prob, output_keep_prob=output_keep_prob)
-        log.info("cell:{}".format(cell))
-    cells.append(cell)
+sentence = '清华大学位于北京。'
+print(nlp.word_tokenize(sentence))
+print(nlp.pos_tag(sentence))
+print(nlp.ner(sentence))
+print(nlp.parse(sentence))
+print(nlp.dependency_parse(sentence))
+print(list(nlp.parse(sentence.split())))
 
-print(cells)
+res = list(chi_parser.parse(u'四川 已 成为 中国 西部 对外开放 中 升起 的 一 颗 明星'.split()))
+for row in res[0].triples():
+    print(row)

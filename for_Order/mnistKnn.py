@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import math
-from functools import reduce, partial
+from functools import reduce
 import numpy as np
 
 
@@ -228,7 +228,6 @@ if __name__ == '__main__':
         k_list = [3, 5, 7, 9]
         for k in k_list:
             handwritingClass(k)
-            exit(1)
 
     if method == 'buildPredict':
         buildPredict()

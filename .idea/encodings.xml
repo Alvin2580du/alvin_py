@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/for_Order/datasets/appdata/娱乐/Faceu激萌.xlsx.csv" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/for_Order/datasets/appdata/生活/已标记唯品会.xlsx.csv" charset="GBK" />
     <file url="file://$PROJECT_DIR$/spyders/datasets/lagou/job.txt" charset="GBK" />
     <file url="file://$PROJECT_DIR$/spyders/datasets/xiaohua.txt" charset="UTF-8" />
   </component>
