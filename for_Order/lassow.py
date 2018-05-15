@@ -65,17 +65,14 @@ m_log_alphas = -np.log10(model.alphas_)
 plt.figure(dpi=300)
 ymin, ymax = 2300, 3800
 plt.plot(m_log_alphas, model.mse_path_, ':')
-plt.plot(m_log_alphas, model.mse_path_.mean(axis=-1), 'k',
-         label='Average across the folds', linewidth=2)
-plt.axvline(-np.log10(model.alpha_), linestyle='--', color='k',
-            label='alpha: CV estimate')
+plt.plot(m_log_alphas, model.mse_path_.mean(axis=-1), 'b', label='Average across the folds', linewidth=2)
+plt.axvline(-np.log10(model.alpha_), linestyle='--', color='b', label='alpha: CV estimate')
 
 plt.legend()
 
 plt.xlabel('-log(alpha)')
 plt.ylabel('均方误差')
-plt.title('均方误差及训练时间 - 不采用Lars算法 '
-          '(训练时间开销: %.2fs)' % t_lasso_cv)
+plt.title('均方误差及训练时间 - 不采用Lars算法 ' '(训练时间开销: %.2fs)' % t_lasso_cv)
 plt.axis('tight')
 plt.ylim(ymin, ymax)
 plt.savefig('lasso2.png')
@@ -93,9 +90,8 @@ m_log_alphas = -np.log10(model.cv_alphas_)
 
 plt.figure(dpi=300)
 plt.plot(m_log_alphas, model.mse_path_, ':')
-plt.plot(m_log_alphas, model.mse_path_.mean(axis=-1), 'k',
-         label='Average across the folds', linewidth=2)
-plt.axvline(-np.log10(model.alpha_), linestyle='--', color='k',
+plt.plot(m_log_alphas, model.mse_path_.mean(axis=-1), 'g', label='Average across the folds', linewidth=2)
+plt.axvline(-np.log10(model.alpha_), linestyle='--', color='g',
             label='alpha CV')
 plt.legend()
 
