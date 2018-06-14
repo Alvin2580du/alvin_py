@@ -5,8 +5,8 @@ import os, time
 import random
 import pandas as pd
 import numpy as np
-
-from collections import defaultdict
+import pickle
+from collections import defaultdict, OrderedDict
 
 # Parameters
 # =================================================
@@ -123,10 +123,8 @@ class InputHelper():
                 if line:
                     seq1, seq2, label = line.split(',')
                     seq1_array = self.text_to_array(seq1.split(' '))
-                    print(len(seq1_array), seq1_array[-1])
                     seq2_array = self.text_to_array(seq2.split(' '))
                     self.padding_seq(seq1_array, padding_index)
-                    print(len(seq1_array), seq1_array[-1])
                     self.padding_seq(seq2_array, padding_index)
                     x1.append(seq1_array)
                     x2.append(seq2_array)
@@ -439,6 +437,9 @@ def test():
         print("! model load success !")
 
     test_data = pd.read_csv("./data/test_data_big.csv")
+    test_data_src = pd.read_csv("./data/test.csv")
+    y = OrderedDict()
+    k = 1
     for x_batch in minibatches(test_data, batch_size=128):
         x1, x2 = x_batch['question1'].values, x_batch['question2'].values
         x1_batch = []
@@ -460,7 +461,19 @@ def test():
             feed = {input_x1: x2_array, input_x2: x1_array}
 
         y_pred = sess.run(Ew, feed_dict=feed)
-        print("y_pred:{}".format(y_pred))
+
+        for x in y_pred:
+            if x > 0.996:
+                y[k] = 1
+                k += 1
+            else:
+                y[k] = 0
+                k += 1
+
+    df = pd.DataFrame(y)
+    df.to_csv("./data/y.csv", index=None)
+    test_data_src['label'] = y.values()
+    test_data_src.to_csv("./data/predicts.csv",index=None)
 
 
-train()
+test()

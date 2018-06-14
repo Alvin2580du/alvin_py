@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 returns = data.get_data_google('SPY', start='2008-5-1', end='2009-12-1')['Close'].pct_change()
-
+print(returns)
 
 with pm.Model() as sp500_model:
     nu = pm.Exponential('nu', 1./10, testval=5.)

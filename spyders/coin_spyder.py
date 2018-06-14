@@ -2,11 +2,11 @@ import requests
 import urllib.request
 from bs4 import BeautifulSoup
 from urllib import error
-from tqdm import trange, tqdm
 import urllib.parse
 import pandas as pd
 from collections import OrderedDict
 import logging
+import time
 
 
 def stringpro(inputs):
@@ -43,46 +43,54 @@ def get_content(resp):
     return " ".join(save)
 
 
+def get_label(html):
+    save = []
+    if len(html) == 1:
+        soup = BeautifulSoup(html[0], "lxml").find_all("a")
+        for x in soup:
+            save.append(x.text)
+        return ",".join(save)
+
+
 def build():
+    save = []
     for page in range(100):
-        save = []
+        time.sleep(3)
         urls = 'https://www.coindesk.com/page/{}/'.format(page)
         if isurl(urls):
             html = urlhelper(urls)
             soup = BeautifulSoup(html, "lxml")
-            resp = soup.findAll('a', attrs={'class': 'fade'})
-            for i in trange(len(resp)):
-                rows = OrderedDict()
-                resp1 = resp[i]
+            resp = soup.findAll('div', attrs={"class": "post-info"})
+            for one in range(len(resp)):
                 try:
-                    timeauthor = resp1.find("p").get_text()
-                    time = timeauthor.split("by")[0]
-                    author = timeauthor.split("by")[1]
-                    rows['author'] = author
-                    rows['time'] = time
-                except Exception as e:
-                    continue
-
-                try:
-                    title = resp1.find('h3').get_text()
+                    rows = OrderedDict()
+                    post_info = resp[one]
+                    timeauthor = post_info.p.text
+                    rows['author'] = str(timeauthor).split("\n")[1]
+                    rows['time'] = str(timeauthor).split("\n")[0].replace("|", "")
+                    title = post_info.find('h3').get_text()
                     rows['title'] = title
-                except Exception as e:
-                    continue
-
-                try:
-                    link_html = urlhelper(resp1['href'])
+                    position_link = post_info.findAll('a', attrs={'class': 'fade'})
+                    link = position_link[0]['href']
+                    link_html = urlhelper(link)
                     link_soup = BeautifulSoup(link_html, "lxml")
-                    resp = link_soup.findAll('p')
-                    content = get_content(resp)
+                    resp2 = link_soup.findAll('p')
+                    content = get_content(resp2)
+                    label_html = link_soup.find("p", attrs={"class": "single-tags"}).find_all("a")
+                    labels = []
+                    for th in label_html:
+                        label = th.get_text()
+                        labels.append(label)
+                    rows['labels'] = ",".join(labels)
                     rows['content'] = content
+                    save.append(rows)
+                    print(rows)
                 except Exception as e:
+                    logging.warning("------------e:{},{}".format(e, urls))
                     continue
-                save.append(rows)
-                print(rows)
-
-        df = pd.DataFrame(save)
-        df.to_csv("./datasets/www.coindesk.com_{}.csv".format(page))
+        if page % 3 == 0:
+            df = pd.DataFrame(save)
+            df.to_csv("./datasets/www.coindesk.com_{}.csv".format(page), index=None)
 
 
 build()
-
