@@ -58,17 +58,21 @@ def execute_times(times):
 
 
 def dontai():
-    rooturl = 'https://www.cailianpress.com/'
+    rooturl = 'https://cointelegraph.com/'
     driver.get(rooturl)
-    loadmore = driver.find_element_by_class_name(name='getMore')
-    actions = ActionChains(driver)
-    actions.move_to_element(loadmore)
-    actions.click(loadmore)
-    actions.perform()
-    html = driver.page_source
-    soup = BeautifulSoup(html, 'lxml')
-    newsRight = soup.find_all('div', attrs={'class': 'newsRight'})
-    print(len(newsRight), newsRight)
+    k = 0
+    while True:
+        k += 1
+        loadmore = driver.find_element_by_class_name(name='Load more articles')
+        if loadmore:
+            actions = ActionChains(driver)
+            actions.move_to_element(loadmore)
+            actions.click(loadmore)
+            actions.perform()
+            html = driver.page_source
+            soup = BeautifulSoup(html, 'lxml')
+            newsRight = soup.find_all('div', attrs={'class': 'col-xs-12 col-ssm-6 col-sm-6 col-md-4'})
+            print(len(newsRight), newsRight)
 
 
 dontai()
