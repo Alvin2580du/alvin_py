@@ -6,7 +6,7 @@ elasticsearch:
 log:
     path: logs
     name: traceinit.log
-    level: DEBUG
+    level: INFO
 
 db:
   host: localhost

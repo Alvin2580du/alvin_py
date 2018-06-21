@@ -422,7 +422,7 @@ def train():
 
 
 def modeltest():
-    batch_size = 2
+    batch_size = 4
     run_config = tf.ConfigProto()
     run_config.gpu_options.allow_growth = True
     sess = tf.Session(config=run_config)
@@ -435,7 +435,7 @@ def modeltest():
     fake_output, D_vars = discriminator(imitation, is_training, True)
 
     saver = tf.train.Saver(max_to_keep=100)
-    ckpt = tf.train.get_checkpoint_state('./checkpoints/srgan/')
+    ckpt = tf.train.get_checkpoint_state('./checkpoints/srgan_new/')
     if ckpt and ckpt.model_checkpoint_path:
         saver.restore(sess, ckpt.model_checkpoint_path)
         log.info("Model load success ... {}".format(ckpt.model_checkpoint_path))
@@ -463,7 +463,7 @@ def modeltest():
                 ax.set_xlabel(label[j])
             epoch_ = "{0:09d}".format(epoch)
             path = os.path.join('result', '{}_{}_{}.jpg'.format(k, i, epoch_))
-            plt.savefig(path)
+            plt.show()
             plt.close()
         k += 1
 
@@ -491,11 +491,13 @@ def compare_nrmse(img1, img2):
 
 
 if __name__ == "__main__":
-    method = 'stat'
+    method = 'test'
     if method == 'train':
         train()
+
     if method == 'test':
         modeltest()
+
     if method == 'stat':
         origin = './results/yaogan100_1'
         results = './results/yaogan100'

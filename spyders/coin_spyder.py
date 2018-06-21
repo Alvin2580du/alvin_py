@@ -231,4 +231,5 @@ if __name__ == '__main__':
         ethnews()
 
     if method == 'coinspeaker':
+        # www.coinspeaker.com
         coinspeaker()
