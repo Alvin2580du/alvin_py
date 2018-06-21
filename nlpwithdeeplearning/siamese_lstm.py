@@ -470,10 +470,21 @@ def test():
                 y[k] = 0
                 k += 1
 
-    df = pd.DataFrame(y)
+    df = pd.DataFrame(y, index=[0])
     df.to_csv("./data/y.csv", index=None)
     test_data_src['label'] = y.values()
-    test_data_src.to_csv("./data/predicts.csv",index=None)
+    test_data_src.to_csv("./data/predicts.csv", index=None)
 
 
-test()
+def build_test():
+    test = pd.read_csv("./data/test.csv")
+    print(test.shape)
+    test_big = pd.DataFrame()
+    test_big['q1'] = test['q1'].apply(get_sentences)
+    test_big['q2'] = test['q2'].apply(get_sentences)
+    test_big.to_csv("./data/test_big.csv", index=None)
+    print(test_big.shape)
+    print(test_big.head())
+
+
+build_test()
