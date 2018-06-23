@@ -64,12 +64,12 @@ def draw_networks(limit=5):
     # 画图
     G = nx.Graph()
     nodes = pd.read_csv("./datasets/lastfm.nodes", sep='\t', header=None)  # lastfm.nodes
-    nodes_sample = nodes.sample(frac=0.1)
+    nodes_sample = nodes.sample(frac=0.02)
     nodes_names = nodes_sample[1].values.tolist()
 
     edges = pd.read_csv("./datasets/lastfm.edges", header=None, sep=" ")  # lastfm.edges
     edges.columns = ['a', 'b']
-    edges_sample = edges.sample(frac=0.1)
+    edges_sample = edges.sample(frac=0.02)
 
     edges_list = []
 
@@ -110,19 +110,18 @@ def draw_edges_networks():
 
 
 if __name__ == "__main__":
-    method = 'draw_edges_networks'
-
-    if method == 'draw_networks':
-        draw_networks()
-
-    if method == 'statistic':
-        statistic()
-
-    if method == 'average_shortest_path':
-        average_shortest_path()
+    method = 'draw_networks'
 
     if method == 'shortest_path':
         shortest_path(20, 30)
+
+    if method == 'average_shortest_path':
+        average_shortest_path()
+    if method == 'statistic':
+        statistic()
+
+    if method == 'draw_networks':
+        draw_networks()
 
     if method == 'draw_edges_networks':
         draw_edges_networks()
