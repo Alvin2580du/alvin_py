@@ -22,7 +22,7 @@ def shortest_path(n1, n2):
         print("No Path .")
 
 
-def average_shortest_path(limit=10):
+def average_shortest_path():
     # 计算2：单源最短路径算法求出节点v到图G每个节点的最短路径
     G = nx.Graph()
     edges = pd.read_csv("./datasets/lastfm.edges", header=None, sep=" ")  # lastfm.edges
@@ -30,9 +30,6 @@ def average_shortest_path(limit=10):
 
     for k, v in edges.iterrows():
         G.add_edge(v['a'], v['b'])
-        print(v['a'])
-        if v['a'] > limit:
-            break
 
     pathlengths = []
     save_lengths = {}
@@ -48,7 +45,7 @@ def average_shortest_path(limit=10):
     print("average shortest path length %s" % (sum(pathlengths) / len(pathlengths)))
 
 
-def statistic():
+def statistic(head_num=100):
     # 统计每个点的邻接点的个数
     edges = pd.read_csv("./datasets/lastfm.edges", header=None, sep=" ")  # lastfm.edges
     edges.columns = ['a', 'b']
@@ -56,46 +53,22 @@ def statistic():
     edges_num = {}
     for x, y in edges_group:
         edges_num[x] = len(y)
-    df = pd.DataFrame(edges_num, index=[0]).T.sort_values(by=[0], ascending=False)
+    df = pd.DataFrame(edges_num, index=[0]).T.sort_values(by=[0], ascending=False)[:head_num]
     df.to_csv("./datasets/edges_num.csv", header=None)
 
 
-def draw_networks(limit=5):
-    # 画图
-    G = nx.Graph()
-    nodes = pd.read_csv("./datasets/lastfm.nodes", sep='\t', header=None)  # lastfm.nodes
-    nodes_sample = nodes.sample(frac=0.02)
-    nodes_names = nodes_sample[1].values.tolist()
-
-    edges = pd.read_csv("./datasets/lastfm.edges", header=None, sep=" ")  # lastfm.edges
-    edges.columns = ['a', 'b']
-    edges_sample = edges.sample(frac=0.02)
-
-    edges_list = []
-
-    for k, v in edges_sample.iterrows():
-        if v['a'] > limit:
-            break
-        edges_list.append((v['a'], v['b']))
-
-    G.add_nodes_from(nodes_names)
-    G.add_edges_from(edges_list)
-    nx.connected_components(G)
-    nx.draw(G)  # 画出图G
-    plt.savefig("figure_G.png")
-
-
-def draw_edges_networks():
+def draw_networks():
     # 画边图
     G = nx.Graph()
     nodes = pd.read_csv("./datasets/lastfm.nodes", sep='\t', header=None)  # lastfm.nodes
-    nodes_sample = nodes.sample(frac=0.05)
+    nodes_sample = nodes.head(1)
+
     print(len(nodes_sample))
     nodes_names = nodes_sample[1].values.tolist()
 
     edges = pd.read_csv("./datasets/lastfm.edges", header=None, sep=" ")  # lastfm.edges
     edges.columns = ['a', 'b']
-    edges_sample = edges.sample(frac=0.05)
+    edges_sample = edges.head(3137)
     print(len(edges_sample))
     edges_list = []
 
@@ -105,23 +78,39 @@ def draw_edges_networks():
     G.add_nodes_from(nodes_names)
     G.add_edges_from(edges_list)
     nx.connected_components(G)
+    plt.figure()
+    nx.draw_networkx(G, pos=nx.spring_layout(G))
+    plt.savefig("draw_networkx.png")
+    plt.close()
+
+    plt.figure()
     nx.draw_networkx_edges(G, pos=nx.spring_layout(G))  # 画出图G
-    plt.savefig("figure_G1.png")
+    plt.savefig("draw_networkx_edges.png")
+    plt.close()
+
+    plt.figure()
+    nx.draw_networkx_nodes(G, pos=nx.spring_layout(G))  # 画出图G
+    plt.savefig("draw_networkx_edges.png")
+    plt.close()
+
+    # //图或网络中节点的聚类系数。计算公式为：节点u的两个邻居节点间的边数除以((d(u)(d(u)-1)/2)。
+    cluster = nx.clustering(G)
+    print("图或网络中节点的聚类系数 :\n")
+    print(cluster)
+    print("- * " * 30)
 
 
 if __name__ == "__main__":
-    method = 'draw_networks'
+    method = 'draw_edges_networks'
 
     if method == 'shortest_path':
         shortest_path(20, 30)
 
     if method == 'average_shortest_path':
         average_shortest_path()
+
     if method == 'statistic':
         statistic()
 
     if method == 'draw_networks':
         draw_networks()
-
-    if method == 'draw_edges_networks':
-        draw_edges_networks()
