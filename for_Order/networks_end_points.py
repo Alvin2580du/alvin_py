@@ -57,18 +57,19 @@ def statistic(head_num=100):
     df.to_csv("./datasets/edges_num.csv", header=None)
 
 
-def draw_networks():
+def draw_networks(n=10, m=23279):
     # 画边图
+    # n 是点的个数，m这个点对应的边的行数
     G = nx.Graph()
     nodes = pd.read_csv("./datasets/lastfm.nodes", sep='\t', header=None)  # lastfm.nodes
-    nodes_sample = nodes.head(1)
+    nodes_sample = nodes.head(n)
 
     print(len(nodes_sample))
     nodes_names = nodes_sample[1].values.tolist()
 
     edges = pd.read_csv("./datasets/lastfm.edges", header=None, sep=" ")  # lastfm.edges
     edges.columns = ['a', 'b']
-    edges_sample = edges.head(3137)
+    edges_sample = edges.head(m)
     print(len(edges_sample))
     edges_list = []
 
@@ -80,17 +81,17 @@ def draw_networks():
     nx.connected_components(G)
     plt.figure()
     nx.draw_networkx(G, pos=nx.spring_layout(G))
-    plt.savefig("draw_networkx.png")
+    plt.savefig("draw_networkx_{}.png".format(n))
     plt.close()
 
     plt.figure()
     nx.draw_networkx_edges(G, pos=nx.spring_layout(G))  # 画出图G
-    plt.savefig("draw_networkx_edges.png")
+    plt.savefig("draw_networkx_edges_{}.png".format(n))
     plt.close()
 
     plt.figure()
     nx.draw_networkx_nodes(G, pos=nx.spring_layout(G))  # 画出图G
-    plt.savefig("draw_networkx_edges.png")
+    plt.savefig("draw_networkx_nodes_{}.png".format(n))
     plt.close()
 
     # //图或网络中节点的聚类系数。计算公式为：节点u的两个邻居节点间的边数除以((d(u)(d(u)-1)/2)。
@@ -101,10 +102,12 @@ def draw_networks():
 
 
 if __name__ == "__main__":
-    method = 'draw_edges_networks'
+    method = 'draw_networks'
 
     if method == 'shortest_path':
-        shortest_path(20, 30)
+        n1 = 10
+        n2 = 2
+        shortest_path(n1, n2)
 
     if method == 'average_shortest_path':
         average_shortest_path()
