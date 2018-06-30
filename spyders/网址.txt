@@ -1,0 +1,45 @@
+twitter.com
+
+https://twitter.com/coinone_info						//coinone_info
+https://twitter.com/BithumbOfficial					//Bithumb
+https://twitter.com/UPbitExchange					//upbit
+https://twitter.com/KorbitBTC						//korbit
+https://twitter.com/bitfinex							//bitfinex
+https://twitter.com/GeminiDotCom					//Gemini
+https://twitter.com/krakenfx							//krakenfx
+https://twitter.com/BittrexExchange					//Bittrex
+https://twitter.com/Poloniex							//Poloniex
+https://twitter.com/binance							//binance
+https://twitter.com/Bitstamp						//Bitstamp
+https://twitter.com/YobitExchange					//Yobit
+https://twitter.com/hitbtc							//HITbtc
+https://twitter.com/OKEx_							//OKEX
+https://twitter.com/Huobi_Pro						//huobi
+https://twitter.com/coinbase						//coinbase
+https://twitter.com/bitFlyer							//bitFlye
+https://twitter.com/coincheckjp						//coincheck
+https://twitter.com/1000crypto						//zaif
+
+Blog
+https://support.binance.com/hc/zh-cn/categories/115000056351		//币安
+https://huobiglobal.zendesk.com/hc/zh-cn/sections/360000007051	//火币
+///////////////////////////////////////
+https://coinone.co.kr/talk/notice						//coinone
+https://coinone.co.kr/api/talk/notice/?page=1&searchWord=&searchType=&ordering=-created_at
+https://coinone.co.kr/api/talk/latest_notice/        //API
+//////////////////////////////////////
+https://www.bitfinex.com/posts						//bitfinex
+http://bithumb.cafe/notice							//bithumb
+//////////////////////////////////////
+https://www.upbit.com/service_center/notice			//upbit
+https://api-manager.upbit.com/api/v1/notices?page=1&per_page=20      //API
+/////////////////////////////////////
+http://korbitblog.tumblr.com						//korbit
+https://www.zb.com/i/blog							//ZB
+https://medium.com/gemini						//gemini
+https://blog.coinbase.com/latest						//coinbase
+https://blog.kraken.com/feed/				//krakenfx
+https://blog.hitbtc.com/feed/	//HITBTC
+https://www.bitstamp.net/news/  //bitstamp
+
+
