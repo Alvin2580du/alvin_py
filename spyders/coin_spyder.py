@@ -8,6 +8,11 @@ from collections import OrderedDict
 import logging
 import time
 from tqdm import trange
+import re
+from lxml import etree
+import json
+
+from selenium import webdriver
 
 
 def stringpro(inputs):
@@ -217,11 +222,115 @@ def get_month(inputs):
     return "{}-{}-{}".format(s[2], md[s[0]], s[1])
 
 
+def get_time_huobiglobal(inputs):
+    return inputs.replace("T", " ").replace('Z', "")
+
+
+def huobiglobal():
+    # https://huobiglobal.zendesk.com/hc/zh-cn/sections/360000007051	//火币
+    urls = "https://huobiglobal.zendesk.com/hc/zh-cn/sections/360000007051-%E9%87%8D%E8%A6%81%E5%85%AC%E5%91%8A"
+    if isurl(urls):
+        html = urlhelper(urls)
+        soup = BeautifulSoup(html, "lxml")
+        resp = soup.findAll('a', attrs={"class": "article-list-link"})
+        save = []
+        for one in range(len(resp)):
+            try:
+                rows = OrderedDict()
+                title = resp[one].text
+                rows['title'] = title
+                link = "{}{}".format("https://huobiglobal.zendesk.com", resp[one]['href'])
+                if isurl(link):
+                    html_link = urlhelper(link)
+                    soup_link = BeautifulSoup(html_link, "lxml")
+                    rows['datetime'] = get_time_huobiglobal(soup_link.findAll('time')[0]['datetime'])
+                    resp_link = soup_link.findAll('div', attrs={"class": "article-body"})[0].text
+                    content = stringpro(resp_link)
+                    rows['content'] = content
+                    save.append(rows)
+                    print(rows)
+            except Exception as e:
+                continue
+
+        df = pd.DataFrame(save)
+        df.to_csv("./datasets/huobiglobal.csv", index=None)
+
+
+def bithumb_cafe():
+    # http://bithumb.cafe/notice
+    links_tmp = []
+    browser = webdriver.Chrome()
+    for page in range(1, 5):
+        urls = "https://bithumb.cafe/notice/page/{}".format(page)
+        browser.get(urls)
+        links = browser.find_elements_by_xpath("//*[@href]")
+        for link in links:
+            try:
+                rows = OrderedDict()
+                link_next = link.get_attribute('href')
+                if "archives" not in link_next:
+                    continue
+                links_tmp.append(link_next)
+            except Exception as e:
+                print("eeeeeeeeeeeeeeee:{}".format(e))
+                continue
+
+    print(len(links_tmp), links_tmp[:10])
+    save = []
+
+    for url in links_tmp:
+        try:
+            browser.get(url)
+            print("正在抓取：{}".format(url))
+            titles = browser.find_element_by_class_name(name='entry-title').text
+            rows['title'] = titles
+            author = browser.find_element_by_class_name(name='posted-author').text
+            rows['author'] = author
+            date = browser.find_element_by_class_name(name='posted-date').text
+            rows['date'] = date
+            tags = browser.find_element_by_class_name(name='posted-tags').text
+            rows['tags'] = tags
+            content = browser.find_element_by_class_name(name='entry-content').text
+            rows['content'] = stringpro(content)
+            save.append(rows)
+            print(rows)
+        except Exception as e:
+            print("eeeeeeeeeeeeeeee:{}".format(e))
+            continue
+    df = pd.DataFrame(save)
+    df.to_csv("./datasets/huobiglobal.csv", index=None)
+
+
+def coinone_co_kr():
+    links_tmp = []
+    for page in range(1, 51):
+        urls = "https://coinone.co.kr/api/talk/notice/?page={}&searchWord=&searchType=&ordering=-created_at".format(page)
+
+
+def coinone_info():
+    #  https://twitter.com/coinone_info
+    browser = webdriver.Chrome()
+    username = "ypducdtu@163.com"
+    passwd = "807429twirrer"
+    browser.get('https://twitter.com')
+    browser.implicitly_wait(10)
+    elem = browser.find_element_by_name("session[username_or_email]")
+    elem.send_keys(username)
+    elem = browser.find_element_by_name("session[password]")
+    elem.send_keys(passwd)
+    elem = browser.find_element_by_xpath('//*[@id="react-root"]/div/main/div/div/div[1]/div[1]/div[1]/form/div/div[3]/div')
+    elem.click()
+    url = 'https://twitter.com/coinone_info'
+    browser.get(url)
+    titles = browser.find_element_by_class_name(name='content')
+    print(titles.text)
+
+
 if __name__ == '__main__':
     import sys
 
     # method = sys.argv[1]
-    method = 'coinspeaker'
+    method = 'coinone_info'
     if method == 'coindesk':
         # www.coindesk.com
         coindesk()
@@ -233,3 +342,15 @@ if __name__ == '__main__':
     if method == 'coinspeaker':
         # www.coinspeaker.com
         coinspeaker()
+
+    if method == 'huobiglobal':
+        huobiglobal()
+
+    if method == 'coinone_co_kr':
+        coinone_co_kr()
+
+    if method == 'bithumb_cafe':
+        bithumb_cafe()
+
+    if method == 'coinone_info':
+        coinone_info()

@@ -7,6 +7,8 @@ from sklearn.preprocessing import Imputer, OneHotEncoder, scale
 from sklearn.ensemble import AdaBoostClassifier  # 集成学习
 from sklearn.feature_selection import RFE
 import pandas as pd
+from sklearn.metrics import roc_curve
+import matplotlib.pyplot as plt
 
 # iris数据集
 iris = load_iris()
@@ -48,6 +50,7 @@ result_1['p'] = predictions_1
 result_1['t'] = y_test
 result_1.to_csv("result_1.csv", index=None)
 print("结果1保存成功")
+
 # LogisticRegression，逻辑回归算法
 nflod_2 = 5
 cv_2 = ShuffleSplit(n_splits=nflod_2, test_size=test_rate, random_state=1)

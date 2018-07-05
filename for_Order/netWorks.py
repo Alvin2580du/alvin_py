@@ -45,7 +45,7 @@ def average_shortest_path():
     print("average shortest path length %s" % (sum(pathlengths) / len(pathlengths)))
 
 
-def statistic(head_num = 100):
+def statistic(head_num=100):
     # 统计每个点的邻接点的个数
     edges = pd.read_csv("./datasets/lastfm.edges", header=None, sep=" ")  # lastfm.edges
     edges.columns = ['a', 'b']
@@ -79,7 +79,7 @@ def draw_edges_networks():
     G.add_edges_from(edges_list)
     nx.connected_components(G)
     plt.figure()
-    nx.draw_networkx(G, pos=nx.spring_layout(G))
+    nx.draw_networkx(G, pos=nx.spring_layout(G), nodelist=[])
     plt.savefig("draw_networkx.png")
     plt.close()
 
@@ -120,7 +120,6 @@ def draw_edges_networks():
     print("图或网络中节点的聚类系数 :\n")
     print(cluster)
     print("- * " * 30)
-
 
 
 if __name__ == "__main__":
