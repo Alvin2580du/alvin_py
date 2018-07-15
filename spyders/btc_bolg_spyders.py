@@ -70,7 +70,8 @@ def get_time_huobiglobal(inputs):
 
 def huobiglobal():
     # https://huobiglobal.zendesk.com/hc/zh-cn/sections/360000007051	//火币
-    urls = "https://huobiglobal.zendesk.com/hc/zh-cn/sections/360000007051-%E9%87%8D%E8%A6%81%E5%85%AC%E5%91%8A"
+    urls = "https://huobiglobal.zendesk.com/hc/zh-cn/sections/360000039481-%E9%87%8D%E8%A6%81%E5%85%AC%E5%91%8A"
+    print(urls)
     if isurl(urls):
         html = urlhelper(urls)
         soup = BeautifulSoup(html, "lxml")
@@ -472,28 +473,46 @@ def medium_com_gemini(total_page=50):
     df.to_csv('./datasets/medium_com_gemini.csv', index=None)
 
 
-# TODO ===============================================================================================
-
 def coinone_co_kr():
     urls = 'https://coinone.co.kr/talk/notice'
     print(urls)
-    opt = webdriver.ChromeOptions()
-    opt.set_headless()
-    browser = webdriver.Chrome(options=opt)
-    browser.get(urls)
+    save = []
+    for page in trange(1, 3):
+        try:
+            headers = {
+                'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+                'accept-encoding': 'gzip, deflate, br',
+                'accept-language': 'zh-CN,zh;q=0.9',
+                'cache-control': 'max-age=0',
+                'cookie': '__cfduid=d0edaeb91ecd9d30041a66948b623c6ad1530108051; csrftoken=KMkLaovynntM7YwQKcjoLyoeCiBNJzWBOBvsfkPGBaC2sxTHsnoqP1HGeMbtDj86; _ga=GA1.3.201037742.1530108057; _gid=GA1.3.1255424917.1531621144; cf_clearance=54161a3d830bb06edf80d0df28137e785a0bc7de-1531667328-14400',
+                'upgrade-insecure-requests': '1',
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36',
+            }
+            data = requests.get(
+                'https://coinone.co.kr/api/talk/notice/?page={0}&searchWord=&searchType=&ordering=-created_at'.format(page),
+                headers=headers)
+            soup = BeautifulSoup(data.text, 'lxml')
+            contents = soup.text
+            new_contents = json.loads(contents)
+            rows = OrderedDict()
+            results = new_contents['results']
+            print(len(results))
+            for result in results:
+                try:
+                    rows['title'] = result['title']
+                    rows['card_category'] = result['card_category']
+                    rows['summary'] = result['summary']
+                    rows['content'] = result['sanitized_content']
+                    save.append(rows)
+                except Exception as e:
+                    logging.warning(e)
+                    continue
+        except Exception as e:
+            logging.warning("e:{}".format(e))
+            continue
 
-    herders = {}
-    for page in trange(1, 10):
-        url = "https://coinone.co.kr/api/talk/notice/?page={}&searchWord=&searchType=&ordering=-created_at".format(page)
-        browser.get(url)
-        html = browser.page_source
-        soup = BeautifulSoup(html, 'lxml')
-        contents = soup.text
-        print(contents)
-        new_contents = json.loads(contents)
-        results = new_contents['results']
-        print(results)
-        exit(1)
+    df = pd.DataFrame(save)
+    df.to_csv('./datasets/coinone_co_kr.csv', index=None)
 
 
 def blog_coinbase_com(total_page=100):
@@ -570,12 +589,15 @@ def blog_coinbase_com(total_page=100):
             logging.warning("{},{}".format(x, e))
             continue
 
+    df = pd.DataFrame(save)
+    df.to_csv('./datasets/coinone_co_kr.csv', index=None)
+
 
 if __name__ == '__main__':
     import sys
 
     # method = sys.argv[1]
-    method = 'coinone_co_kr'
+    method = 'huobiglobal'
     if method == 'huobiglobal':
         huobiglobal()
 
