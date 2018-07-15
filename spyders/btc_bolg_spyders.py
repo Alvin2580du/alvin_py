@@ -465,8 +465,9 @@ def medium_com_gemini(total_page=50):
         except Exception as e:
             logging.warning("eeeeeeeeeeeeeeee:{}".format(e))
             continue
+
     while True:
-        print("have urls :{}".format(len(list(set(links_tmp)))))
+        print("have get urls number :{}".format(len(list(set(links_tmp)))))
         if len(list(set(links_tmp))) < total_page:
             js = "var q=document.documentElement.scrollTop=10000"
             browser.execute_script(js)
@@ -493,7 +494,7 @@ def medium_com_gemini(total_page=50):
             rows = OrderedDict()
             browser.get(x)
             times = browser.find_element_by_tag_name('time')
-            print(times)
+            print(times.text)
             title_class = browser.find_element_by_class_name(name='section-content')
             title = title_class.find_element_by_tag_name('h1').text
             rows['title'] = title
