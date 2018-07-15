@@ -10,6 +10,8 @@ import time
 import urllib
 from selenium import webdriver
 from tqdm import trange
+import json
+from selenium.webdriver.common.keys import Keys
 
 
 def stringpro(inputs):
@@ -309,53 +311,6 @@ def bitfinex_com_post():
     df2.to_csv("./datasets/bitfinex.csv", index=None)
 
 
-#
-# def bitstamp_netcrawer(id):
-#     cook = 'visid_incap_99025=PcFI9j7SQ/mU8I3xLGEnOwL7OFsAAAAAQUIPAAAAAACXiKmb8iLqydKcvHtYdwvg; __utmz=209907974.1530460947.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); _ga=GA1.2.1707053357.1530460947; cookie_consent=1530860284586; csrftoken=kduw0KCV9Eqczi0BAMv8JXmkSnWPlPTN; _gid=GA1.2.1352713155.1531402487; incap_ses_426_99025=rdPjGAc/WkfvFvt/anXpBSGnSFsAAAAA9sl/RPEwtyP+C4ACfe+eRw==; nlbi_99025=QvilAf2G0VODy8Am8F1n9AAAAACNgRMF/2+u5/RLWbEFwh7Z; __utma=209907974.1707053357.1530460947.1531406179.1531488063.7; __utmc=209907974; __utmt=1; __utmb=209907974.2.10.1531488063; _gat_UA-25222814-1=1'
-#     datas = []
-#     headers = {
-#         'Accept': '*/*',
-#         'Accept-Encoding': 'gzip, deflate, br',
-#         'Accept-Language': 'zh-CN,zh;q=0.9',
-#         'Connection': 'keep-alive',
-#         'Cookie': cook,
-#         'Host': 'www.bitstamp.net',
-#         'Referer': 'https://www.bitstamp.net/news/',
-#         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36',
-#         'X-Requested-With': 'XMLHttpRequest'
-#     }
-#     data = requests.get('https://www.bitstamp.net/ajax/news/?start={0}&limit=10'.format(id), headers=headers)
-#     soup = BeautifulSoup(data.text, 'lxml')
-#     time = soup.select('body > article > a > hgroup > h3 > time')
-#     title = soup.select('body > article > a > section > h1 ')
-#     content = soup.select('body > article > a > section > div')
-#     for a in time:
-#         data = {
-#             'time': a.text,
-#             'title': title[time.index(a)].text.replace('\r', '').replace('\n', ''),
-#             'content': content[time.index(a)].text.replace('\r', '').replace('\n', '').replace('*\t', ''),
-#         }
-#         datas.append(data)
-#     return datas
-#
-#
-# def bitstamp_net():
-#     fw = open("./datasets/bitstamp.csv", 'a', encoding='utf-8')
-#
-#     for i in range(0, 10):
-#         try:
-#             time.sleep(3)
-#             datas = bitstamp_netcrawer(i * 10)
-#             for data in datas:
-#                 res = "{},{},{}".format(data['time'], data['title'], data['content'])
-#                 print(res)
-#                 fw.writelines(res + "\n")
-#         except Exception as e:
-#             print(i)
-#             fw.close()
-#             continue
-
-
 def bitstamp_net_v1():
     save = []
     for page in range(43):
@@ -441,8 +396,6 @@ def zb_com():
     df.to_csv("./datasets/www_zb_com.csv", index=None)
 
 
-# TODO ===============================================================================================
-
 def medium_com_gemini(total_page=50):
     urls = "https://medium.com/gemini"
     print(urls)
@@ -466,7 +419,10 @@ def medium_com_gemini(total_page=50):
             logging.warning("eeeeeeeeeeeeeeee:{}".format(e))
             continue
 
+    loops = 0
+    loops_limit = 4
     while True:
+        loops += 1
         print("have get urls number :{}".format(len(list(set(links_tmp)))))
         if len(list(set(links_tmp))) < total_page:
             js = "var q=document.documentElement.scrollTop=10000"
@@ -485,6 +441,8 @@ def medium_com_gemini(total_page=50):
                     continue
         else:
             break
+        if loops > loops_limit:
+            break
     links_tmp_set = list(set(links_tmp))
     print(len(links_tmp_set), links_tmp_set[-1])
 
@@ -493,17 +451,19 @@ def medium_com_gemini(total_page=50):
         try:
             rows = OrderedDict()
             browser.get(x)
-            times = browser.find_element_by_tag_name('time')
-            print(times.text)
             title_class = browser.find_element_by_class_name(name='section-content')
             title = title_class.find_element_by_tag_name('h1').text
             rows['title'] = title
+            times = browser.find_element_by_tag_name('time').get_attribute('datetime')
+            rows['times'] = times.replace("T", " ").replace(".000Z", "").replace("Z", "")  # 2017-08-03T07:00:00.000Z
             contents = title_class.find_elements_by_tag_name('p')
             contents_tmp = []
             for content in contents:
                 contents_tmp.append(content.text)
             content_save = stringpro("".join(contents_tmp))
             rows['content'] = content_save
+            save.append(rows)
+            print(rows)
         except Exception as e:
             logging.warning("{},{}".format(x, e))
             continue
@@ -512,50 +472,112 @@ def medium_com_gemini(total_page=50):
     df.to_csv('./datasets/medium_com_gemini.csv', index=None)
 
 
-def blog_kraken_com():
-    browser = webdriver.Chrome()
-    url = 'https://blog.kraken.com/'
-    browser.get(url)
-    time.sleep(5)
-
-    while True:
-        time.sleep(5)
-        button_class = browser.find_element_by_id(id_='infinite-handle')
-        times_str = button_class.find_element_by_tag_name('button').click()
-        html = urlhelper(url)
-        soup = BeautifulSoup(html, "lxml")
-        resp = soup.findAll('a', attrs={"class": "more-link"})
-        print(len(resp), resp[-1])
-
+# TODO ===============================================================================================
 
 def coinone_co_kr():
-    # links_tmp = []
-    # for page in range(1, 51):
-    #     urls = "https://coinone.co.kr/api/talk/notice/?page={}&searchWord=&searchType=&ordering=-created_at".format(page)
-    #     content = urlhelper(urls)
-    #     print(content)
-    url = 'https://coinone.co.kr/talk/notice'
-    print(url)
-    html = urlhelper(url)
-    soup = BeautifulSoup(html, "lxml")
-    resp = soup.findAll('article', attrs={"class": "card summary_card"})
-    print(resp)
+    urls = 'https://coinone.co.kr/talk/notice'
+    print(urls)
+    opt = webdriver.ChromeOptions()
+    opt.set_headless()
+    browser = webdriver.Chrome(options=opt)
+    browser.get(urls)
+
+    herders = {}
+    for page in trange(1, 10):
+        url = "https://coinone.co.kr/api/talk/notice/?page={}&searchWord=&searchType=&ordering=-created_at".format(page)
+        browser.get(url)
+        html = browser.page_source
+        soup = BeautifulSoup(html, 'lxml')
+        contents = soup.text
+        print(contents)
+        new_contents = json.loads(contents)
+        results = new_contents['results']
+        print(results)
+        exit(1)
 
 
-def blog_coinbase_com():
+def blog_coinbase_com(total_page=100):
     urls = 'https://blog.coinbase.com/latest'
+    print(urls)
+    opt = webdriver.ChromeOptions()
+    opt.set_headless()
+    browser = webdriver.Chrome(options=opt)
+    browser.get(urls)
+
+    links_tmp = []
+    total = 0
+    links = browser.find_elements_by_xpath("//*[@href]")
+    for link in links:
+        try:
+            browser.find_element_by_xpath("//*[@href]").send_keys(Keys.DOWN)
+            link_next = link.get_attribute('href')
+            if len(link_next.split("/")[-1]) < 50:
+                continue
+            if link_next in links_tmp:
+                continue
+            links_tmp.append(link_next)
+            total += 1
+        except Exception as e:
+            logging.warning("eeeeeeeeeeeeeeee:{}".format(e))
+            continue
+
+    loops = 0
+    loops_limit = 10
+    while True:
+        loops += 1
+        print("have get urls number :{}".format(len(list(set(links_tmp)))))
+        if len(list(set(links_tmp))) < total_page:
+            js = "var q=document.documentElement.scrollTop=100000"
+            browser.execute_script(js)
+            links = browser.find_elements_by_xpath("//*[@href]")
+            for link in links:
+                try:
+                    link_next = link.get_attribute('href')
+                    if len(link_next.split("/")[-1]) < 50:
+                        continue
+                    if link_next in links_tmp:
+                        continue
+                    links_tmp.append(link_next)
+                    total += 1
+                except Exception as e:
+                    logging.warning("eeeeeeeeeeeeeeee:{}".format(e))
+                    continue
+        else:
+            break
+        if loops > loops_limit:
+            break
+    links_tmp_set = list(set(links_tmp))
+    print(len(links_tmp_set), links_tmp_set[-1])
+
+    save = []
+    for x in links_tmp_set:
+        try:
+            rows = OrderedDict()
+            browser.get(x)
+            title_class = browser.find_element_by_class_name(name='section-content')
+            title = title_class.find_element_by_tag_name('h1').text
+            rows['title'] = title
+            contents_class = title_class.find_elements_by_tag_name('p')
+            contents_tmp = []
+            for content in contents_class:
+                contents_tmp.append(content.text)
+            content_save = stringpro("".join(contents_tmp))
+            rows['content'] = content_save
+            print(rows)
+            save.append(rows)
+
+        except Exception as e:
+            logging.warning("{},{}".format(x, e))
+            continue
 
 
 if __name__ == '__main__':
     import sys
 
     # method = sys.argv[1]
-    method = 'medium_com_gemini'
+    method = 'coinone_co_kr'
     if method == 'huobiglobal':
         huobiglobal()
-
-    if method == 'coinone_co_kr':
-        coinone_co_kr()
 
     if method == 'bithumb_cafe':
         bithumb_cafe()
@@ -563,23 +585,26 @@ if __name__ == '__main__':
     if method == 'www_upbit_com':
         www_upbit_com()
 
-    if method == 'bitstamp_net_v1':
-        bitstamp_net_v1()
-
-    if method == 'blog_kraken_com':
-        blog_kraken_com()
-
     if method == 'bian':
         bian()
-
-    if method == 'zb_com':
-        zb_com()
 
     if method == 'korbitblog_tumblr_com':
         korbitblog_tumblr_com()
 
+    if method == 'bitfinex_com_post':
+        bitfinex_com_post()
+
+    if method == 'bitstamp_net_v1':
+        bitstamp_net_v1()
+
+    if method == 'zb_com':
+        zb_com()
+
     if method == 'medium_com_gemini':
         medium_com_gemini()
 
-    if method == 'bitfinex_com_post':
-        bitfinex_com_post()
+    if method == 'coinone_co_kr':
+        coinone_co_kr()
+
+    if method == 'blog_coinbase_com':
+        blog_coinbase_com()
