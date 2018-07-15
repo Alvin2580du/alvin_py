@@ -21,25 +21,37 @@ https://twitter.com/coincheckjp						//coincheck
 https://twitter.com/1000crypto						//zaif
 
 Blog
-https://support.binance.com/hc/zh-cn/categories/115000056351		//币安
-https://huobiglobal.zendesk.com/hc/zh-cn/sections/360000007051	//火币
+https://huobiglobal.zendesk.com/hc/zh-cn/sections/360000007051	//火币  完成
+
+
 ///////////////////////////////////////
 https://coinone.co.kr/talk/notice						//coinone
 https://coinone.co.kr/api/talk/notice/?page=1&searchWord=&searchType=&ordering=-created_at
 https://coinone.co.kr/api/talk/latest_notice/        //API
+
+
+
 //////////////////////////////////////
-https://www.bitfinex.com/posts						//bitfinex
-http://bithumb.cafe/notice							//bithumb
+http://bithumb.cafe/notice							//bithumb  完成
+
+
+
 //////////////////////////////////////
-https://www.upbit.com/service_center/notice			//upbit
+https://www.upbit.com/service_center/notice			//upbit   完成
 https://api-manager.upbit.com/api/v1/notices?page=1&per_page=20      //API
+
 /////////////////////////////////////
-http://korbitblog.tumblr.com						//korbit
+http://korbitblog.tumblr.com						//korbit   完成
 https://www.zb.com/i/blog							//ZB
 https://medium.com/gemini						//gemini
-https://blog.coinbase.com/latest						//coinbase
-https://blog.kraken.com/feed/				//krakenfx
+https://blog.coinbase.com/latest						//coinbase  动态加载
+https://www.bitfinex.com/posts						//bitfinex  完成
+https://support.binance.com/hc/zh-cn/categories/115000056351		//币安  完成
+
+
+https://blog.kraken.com/feed/				//krakenfx  xml
 https://blog.hitbtc.com/feed/	//HITBTC
-https://www.bitstamp.net/news/  //bitstamp
+
+https://www.bitstamp.net/news/  //bitstamp  完成
 
 

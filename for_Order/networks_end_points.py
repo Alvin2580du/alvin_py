@@ -103,7 +103,7 @@ def draw_networks(n=10, m=100):
     print("- * " * 30)
 
 
-def sampler(n=200):
+def sampler(n=130):
     nodes = pd.read_csv("./datasets/lastfm.nodes", sep='\t', header=None)  # lastfm.nodes
     edges = pd.read_csv("./datasets/lastfm.edges", header=None, sep=" ")  # lastfm.edges
     fw = open("./datasets/lastfm.edges.sample", 'w', encoding='utf-8')
@@ -192,6 +192,12 @@ def draw_networks_sample(n=200):
     print("sample_draw_networkx_nodes_{}.png  保存成功".format(n))
     plt.close()
 
+    plt.figure(figsize=(20, 16), dpi=100)
+    nx.draw_spring(G, with_labels=True)  # 画出图G 点图
+    plt.savefig("draw_spring_{}.png".format(n))
+    print(G.nodes)
+    print("draw_spring_{}.png  保存成功".format(n))
+    plt.close()
     # //图或网络中节点的聚类系数。计算公式为：节点u的两个邻居节点间的边数除以((d(u)(d(u)-1)/2)。
     cluster = nx.clustering(G)
     print("sample_ 图或网络中节点的聚类系数 :\n")
@@ -199,9 +205,20 @@ def draw_networks_sample(n=200):
     print("- * " * 30)
 
 
+def ex_1():
+    G = nx.grid_2d_graph(5, 5)  # 5x5 grid
+    nx.write_adjlist(G, 'aa.txt')
+    nx.draw(G, with_labels=True)
+    plt.show()
+
+
 if __name__ == "__main__":
+
     method = 'draw_networks_sample'
-    #  修改method的值， 运行下面if语句对应的程序
+    if method == 'ex_1':
+        ex_1()
+
+    # 修改method的值， 运行下面if语句对应的程序
     if method == 'shortest_path':
         n1 = 10
         n2 = 2

@@ -1,23 +1,25 @@
-import networkx as nx
-import matplotlib.pyplot as plt
+from collections import Counter
+import pandas as pd
 
-G = nx.gnp_random_graph(100, 0.02)
 
-degree_sequence = sorted([d for n, d in G.degree()], reverse=True)
-# print "Degree sequence", degree_sequence
-dmax = max(degree_sequence)
+x1 = []
+with open("D:\\alvin_py\\for_Order\\fd.csv", 'r', encoding='gbk') as fr:
+    lines = fr.readlines()
+    for line in lines:
+        x1.append(line.replace('\n', ''))
 
-plt.loglog(degree_sequence, 'b-', marker='o')
-plt.title("Degree rank plot")
-plt.ylabel("degree")
-plt.xlabel("rank")
+print(len(x1))
+print(len(list(set(x1))))
 
-# draw graph in inset
-plt.axes([0.45, 0.45, 0.45, 0.45])
-Gcc = sorted(nx.connected_component_subgraphs(G), key=len, reverse=True)[0]
-pos = nx.spring_layout(Gcc)
-plt.axis('off')
-nx.draw_networkx_nodes(Gcc, pos, node_size=20)
-nx.draw_networkx_edges(Gcc, pos, alpha=0.4)
+save = []
+for x, y in Counter(x1).most_common(30):
+    print(x, y)
+    save.append("{},{}".format(x,y))
 
-plt.show()
+print(len(save))
+
+
+# df = pd.DataFrame(save)
+# df.to_csv("重复.csv", index=None)
+
+# 283 1674

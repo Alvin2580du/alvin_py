@@ -11,8 +11,13 @@ from tqdm import trange
 import re
 from lxml import etree
 import json
+import urllib
+import random
 
 from selenium import webdriver
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 
 
 def stringpro(inputs):
@@ -28,12 +33,23 @@ def isurl(url):
 
 
 def urlhelper(url):
+    user_agents = [
+        'Opera/9.25 (Windows NT 5.1; U; en)',
+        'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)',
+        'Mozilla/5.0 (compatible; Konqueror/3.5; Linux) KHTML/3.5.5 (like Gecko) (Kubuntu)',
+        'Mozilla/5.0 (X11; U; linux i686; en-US; rv:1.8.0.12) Gecko/20070731 Ubuntu/dapper-security Firefox/1.5.0.12',
+        'Lynx/2.8.5rel.1 libwww-FM/2.14 SSL-MM/1.4.1 GNUTLS/1.2.9'
+        "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; AcooBrowser; .NET CLR 1.1.4322; .NET CLR 2.0.50727)",
+        "Mozilla/4.0 (compatible; MSIE 7.0; AOL 9.5; AOLBuild 4337.35; Windows NT 5.1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)",
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36']
+
     try:
         req = urllib.request.Request(url)
         req.add_header("User-Agent",
-                       "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.101 Safari/537.36")
+                       user_agents[6])
         req.add_header("Accept", "*/*")
-        req.add_header("Accept-Language", "zh-CN,zh;q=0.8")
+        req.add_header("Accept-Language", "zh-CN,zh;q=0.9")
+        req.add_header("Cookie", "rn8tca8a5oqe72tswy7n3g08puq06vmv")
         data = urllib.request.urlopen(req)
         html = data.read().decode('utf-8')
         return html
@@ -302,9 +318,16 @@ def bithumb_cafe():
 
 
 def coinone_co_kr():
-    links_tmp = []
-    for page in range(1, 51):
-        urls = "https://coinone.co.kr/api/talk/notice/?page={}&searchWord=&searchType=&ordering=-created_at".format(page)
+    # links_tmp = []
+    # for page in range(1, 51):
+    #     urls = "https://coinone.co.kr/api/talk/notice/?page={}&searchWord=&searchType=&ordering=-created_at".format(page)
+    #     content = urlhelper(urls)
+    #     print(content)
+    url = 'https://coinone.co.kr/talk/notice'
+    html = urlhelper(url)
+    soup = BeautifulSoup(html, "lxml")
+    resp = soup.findAll('article', attrs={"class": "card summary_card"})
+    print(resp)
 
 
 def coinone_info():
@@ -318,7 +341,8 @@ def coinone_info():
     elem.send_keys(username)
     elem = browser.find_element_by_name("session[password]")
     elem.send_keys(passwd)
-    elem = browser.find_element_by_xpath('//*[@id="react-root"]/div/main/div/div/div[1]/div[1]/div[1]/form/div/div[3]/div')
+    elem = browser.find_element_by_xpath(
+        '//*[@id="react-root"]/div/main/div/div/div[1]/div[1]/div[1]/form/div/div[3]/div')
     elem.click()
     url = 'https://twitter.com/coinone_info'
     browser.get(url)
@@ -326,11 +350,119 @@ def coinone_info():
     print(titles.text)
 
 
+def info_tmp():
+    import tweepy
+    import json
+
+    consumer_key = "BT1XlM8VTUnatdZgN4EQcaS8b"
+    consumer_secret = "aZNbOHfbcoFAH0as5lhMqWK3QBuHq2R1cZYu6uZaQwPaGU3wH6"
+    access_token = "1011973457263751168-0px2slGs7jlg9nxbelBRnuDPiK0CgI"
+    access_token_secret = "4b5Co1wFdaDgjbF9MY9GZnkWiYo45hVW3UMprlL3OKSCI"
+
+    auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+    auth.set_access_token(access_token, access_token_secret)
+    api = tweepy.API(auth)
+    search_results = api.search(q='python', count=20)
+    # 对对象进行迭代
+    for tweet in search_results:
+        print(tweet)
+
+
+def www_upbit_com():
+    browser = webdriver.Chrome()
+    save = []
+    home = 'https://www.upbit.com/home'
+    browser.get(home)
+    time.sleep(15)
+    for page in range(25, 50):
+        try:
+            rows = OrderedDict()
+            url = "https://www.upbit.com/service_center/notice?id={}".format(page)
+            browser.get(url)
+            content = browser.find_element_by_class_name(name='txtB').text
+            title_class = browser.find_element_by_class_name(name='titB')
+            title = title_class.find_element_by_tag_name('strong').text
+            times_str = title_class.find_element_by_tag_name('span').text
+            times = times_str.split('|')[0].split(" ")[1:]
+            num = times_str.split("|")[1].split(" ")[1]
+            rows['title'] = title
+            rows['times'] = " ".join(times)
+            rows['num'] = num
+            rows['content'] = stringpro(content)
+            save.append(rows)
+        except Exception as e:
+            continue
+
+    df = pd.DataFrame(save)
+    df.to_csv("./datasets/www_upbit_com.csv", index=None)
+
+
+def www_bitstamp_net():
+    urls = 'https://www.bitstamp.net/news/'
+
+    headers = {
+        'Connection': 'keep-alive',
+        'Cache-Control': 'max-age=0',
+        'Upgrade-Insecure-Requests': '1',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'Referer': 'https://www.tianyancha.com/',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'zh-CN,zh;q=0.9'
+
+    }
+    links_tmp = []
+    browser = webdriver.Chrome()
+    k = 0
+    step = 10000
+    browser.get(urls)
+    while True:
+        k += 1
+        try:
+            xx = browser.get_cookies()
+            names = []
+            values = []
+            for x in xx:
+                names.append(x['name'])
+                values.append(x['value'])
+            cookies = dict(zip(names, values))
+            response = requests.get(urls, headers=headers, cookies=cookies, timeout=60).json()
+            print(response)
+
+            if k % 10 == 0:
+                browser.get(urls)
+                step += 10000
+                browser.execute_script("window.scrollTo(0,document.body.scrollHeight)")
+                time.sleep(3)
+
+        except Exception as e:
+            print(e)
+            print(k)
+            continue
+
+
+def blog_kraken_com():
+
+    browser = webdriver.Chrome()
+    url = 'https://blog.kraken.com/'
+    browser.get(url)
+    time.sleep(5)
+
+    while True:
+        time.sleep(5)
+        button_class = browser.find_element_by_id(id_='infinite-handle')
+        times_str = button_class.find_element_by_tag_name('button').click()
+        html = urlhelper(url)
+        soup = BeautifulSoup(html, "lxml")
+        resp = soup.findAll('a', attrs={"class": "more-link"})
+        print(len(resp), resp[-1])
+
+
 if __name__ == '__main__':
     import sys
 
     # method = sys.argv[1]
-    method = 'coinone_info'
+    method = 'blog_kraken_com'
     if method == 'coindesk':
         # www.coindesk.com
         coindesk()
@@ -354,3 +486,16 @@ if __name__ == '__main__':
 
     if method == 'coinone_info':
         coinone_info()
+
+    if method == 'info_test':
+        info_tmp()
+
+    if method == 'www_upbit_com':
+        www_upbit_com()
+
+    if method == 'www_bitstamp_net':
+        www_bitstamp_net()
+
+    if method == 'blog_kraken_com':
+        blog_kraken_com()
+
