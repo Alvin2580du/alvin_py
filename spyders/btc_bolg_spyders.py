@@ -164,7 +164,7 @@ def www_upbit_com():
     home = 'https://www.upbit.com/home'
     browser.get(home)
     time.sleep(15)
-    for page in range(25, 50):
+    for page in trange(500):
         try:
             rows = OrderedDict()
             url = "https://www.upbit.com/service_center/notice?id={}".format(page)
@@ -180,6 +180,7 @@ def www_upbit_com():
             rows['num'] = num
             rows['content'] = stringpro(content)
             save.append(rows)
+            print("{},{}".format(page, rows))
         except Exception as e:
             continue
 
@@ -352,15 +353,17 @@ def zb_com():
     browser.get(root)
     print("{}".format(root))
     links_tmp = []
-    for page in trange(1, 45):
+    for page in trange(1, 5):
         try:
             urls = "https://www.zb.com/i/blog?page={}".format(page)
             browser.get(urls)
             time.sleep(2)
             links = browser.find_elements_by_xpath("//*[@href]")
+            print(links)
             for link in links:
                 try:
                     link_next = link.get_attribute('href')
+                    print(link_next)
                     if "item" not in link_next:
                         continue
                     links_tmp.append(link_next)
@@ -372,7 +375,7 @@ def zb_com():
             continue
     print(len(links_tmp), links_tmp[:10])
     save = []
-    for url in links_tmp:
+    for url in list(set(links_tmp)):
         try:
             browser.get(url)
             print("正在抓取：{}".format(url))
@@ -477,7 +480,7 @@ def coinone_co_kr():
     urls = 'https://coinone.co.kr/talk/notice'
     print(urls)
     save = []
-    for page in trange(1, 3):
+    for page in trange(1, 53):
         try:
             headers = {
                 'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
@@ -489,7 +492,8 @@ def coinone_co_kr():
                 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36',
             }
             data = requests.get(
-                'https://coinone.co.kr/api/talk/notice/?page={0}&searchWord=&searchType=&ordering=-created_at'.format(page),
+                'https://coinone.co.kr/api/talk/notice/?page={0}&searchWord=&searchType=&ordering=-created_at'.format(
+                    page),
                 headers=headers)
             soup = BeautifulSoup(data.text, 'lxml')
             contents = soup.text
@@ -504,6 +508,7 @@ def coinone_co_kr():
                     rows['summary'] = result['summary']
                     rows['content'] = result['sanitized_content']
                     save.append(rows)
+                    print(rows)
                 except Exception as e:
                     logging.warning(e)
                     continue
@@ -593,11 +598,15 @@ def blog_coinbase_com(total_page=100):
     df.to_csv('./datasets/coinone_co_kr.csv', index=None)
 
 
+def twitter():
+    urls = 'https://twitter.com/steemit/status/1013963109692854279'
+
+
 if __name__ == '__main__':
     import sys
 
     # method = sys.argv[1]
-    method = 'huobiglobal'
+    method = 'blog_coinbase_com'
     if method == 'huobiglobal':
         huobiglobal()
 
