@@ -1,37 +1,51 @@
+import xlrd
+from xlutils.copy import copy
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver import ActionChains
-import time
-import sys
 
-driver = webdriver.PhantomJS(executable_path='C:\\Program Files (x86)\\phantomjs-2.1.1-windows\\bin\\phantomjs.exe')
-driver.get("http://www.zhihu.com/#signin")
-# driver.find_element_by_name('email').send_keys('your email')
-driver.find_element_by_xpath('//input[@name="password"]').send_keys('807429zhihu')
-# driver.find_element_by_xpath('//input[@name="password"]').send_keys(Keys.RETURN)
-time.sleep(2)
-driver.get_screenshot_as_file('show.png')
-# driver.find_element_by_xpath('//button[@class="sign-button"]').click()
-driver.find_element_by_xpath('//form[@class="zu-side-login-box"]').submit()
 
-try:
-    dr = WebDriverWait(driver, 5)
-    dr.until(lambda the_driver: the_driver.find_element_by_xpath('//a[@class="zu-top-nav-userinfo "]').is_displayed())
-except:
-    print('登录失败')
-    sys.exit(0)
-driver.get_screenshot_as_file('show.png')
-# user=driver.find_element_by_class_name('zu-top-nav-userinfo ')
-# webdriver.ActionChains(driver).move_to_element(user).perform() #移动鼠标到我的用户名
-loadmore = driver.find_element_by_xpath(
-    '//a[@id="zh-load-more"]')  # //*[@id="__next"]/div/div/div/div[4]/div[2]/div[2]/div[22]/div
-actions = ActionChains(driver)
-actions.move_to_element(loadmore)
-actions.click(loadmore)
-actions.perform()
-time.sleep(2)
-driver.get_screenshot_as_file('show.png')
-print(driver.current_url)
-print(driver.page_source)
-driver.quit()
+def getdata(id):
+    datas = []
+    opt = webdriver.ChromeOptions()
+    opt.set_headless()
+    driver = webdriver.Chrome(options=opt)
+
+    driver.get('https://www.bitstamp.net/ajax/news/?start={0}&limit=10'.format(id))
+    driver.refresh()
+    time = driver.find_elements_by_css_selector('body > article > a > hgroup > h3 > time')
+    title = driver.find_elements_by_css_selector('body > article > a > section > h1 ')
+    content = driver.find_elements_by_css_selector('body > article > a > section > div')
+    # print(time)
+    for a in time:
+        data = {
+            'time': a.text,
+            'title': title[time.index(a)].text.replace('\r', '').replace('\n', ''),
+            'content': content[time.index(a)].text.replace('\r', '').replace('\n', '').replace('*\t', ''),
+        }
+        datas.append(data)
+    return datas
+
+
+def write2(datas):
+    col = 0
+    rb = xlrd.open_workbook('data.xls')
+    # 通过sheet_by_index()获取的sheet没有write()方法
+    rs = rb.sheet_by_index(0)
+    row = rs.nrows
+    wb = copy(rb)
+    # 通过get_sheet()获取的sheet有write()方法
+    ws = wb.get_sheet(0)
+    for data in datas:
+        ws.write(row, col, data['time'])
+        ws.write(row, col + 1, data['title'])
+        ws.write(row, col + 2, data['content'])
+        row += 1
+    wb.save('data.xls')
+
+
+if __name__ == '__main__':
+    for i in range(0, 43):
+        print('开始爬取第' + str(i + 1) + '页')
+        datas = getdata(i * 10)
+        print(datas)
+        write2(datas)
+        print('爬取第' + str(i + 1) + '成功')
