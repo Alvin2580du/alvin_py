@@ -51,7 +51,6 @@ def create_gender_map(input_file):
 
 def named_entity_counts(document, named_entity_label):
     ## Function that outputs a Counter object of human entities found
-
     occurrences = [ent.string.strip() for ent in document.ents
                    if ent.label_ == named_entity_label and ent.string.strip()]
     return Counter(occurrences)
@@ -81,22 +80,21 @@ def gender_guess(name, gender_map):
             elif title in female_title:
                 return 'female'
             else:
-                return ('unknown')
+                return 'unknown'
 
 
 def gender_classifier():
     nlp = en_core_web_sm.load()
 
-    input_file = csv.DictReader(open('names.csv'))  ## Importing our names.csv file
-    gender_map = create_gender_map(input_file)  ## Import the gender map
+    input_file = csv.DictReader(open('names.csv'))
+    gender_map = create_gender_map(input_file)
     #### Male homonyms
 
     alice = gutenberg.raw(fileids='carroll-alice.txt')
     parsed_alice = nlp(alice)
-    text = parsed_alice  ### Parsing Alice in the wonderland by Lewis Carroll
-    entity_type = 'PERSON'  ## Type of entry
-    number_of_entities = 10  ### Control over obtaining number of defined type entities
-    Entities = pd.DataFrame(named_entity_counts(text, entity_type).most_common(number_of_entities),
+    entity_type = 'PERSON'
+    number_of_entities = 10
+    Entities = pd.DataFrame(named_entity_counts(parsed_alice, entity_type).most_common(number_of_entities),
                             columns=["Entity", "Count"])
     entity = []
     for char in Entities['Entity']:
@@ -106,8 +104,8 @@ def gender_classifier():
 
 
 def gender_classifierTest():
-    input_file = csv.DictReader(open('names.csv'))  ## Importing our names.csv file
-    gender_map = create_gender_map(input_file)  ## Import the gender map
+    input_file = csv.DictReader(open('names.csv'))
+    gender_map = create_gender_map(input_file)
     names = ['harry', 'abdul', 'homer', 'gary', 'robert', 'wayne', 'lionel']
     for name in names:
         print(gender_guess(name, gender_map))
@@ -130,8 +128,7 @@ def gender_classifierTest():
 
 #  Topic 8
 
-def get_entities_in(parsed_novel, entity_type):  ## Get_entities_in returns entity in a novel given the type of entity
-
+def get_entities_in(parsed_novel, entity_type):
     return [ent.text.strip().lower() for ent in parsed_novel.ents
             if ent.label_ == entity_type and ent.text.strip()]
 
@@ -157,13 +154,15 @@ def get_main_characters(parsed_novel, num_characters):
     return Counter(main_characters)
 
 
-def get_interesting_contexts(novels, rels, num_characters, verb_stop):
-    def of_interest(ent, rels, main_characters):
-        return (ent.text.strip().lower() in main_characters
-                and ent.label_ == 'PERSON'
-                and ent.root.head.pos_ == 'VERB'
-                and ent.root.dep_ in rels)
+def of_interest(ent, rels, main_characters):
+    print(ent.root.dep_ , '158')
+    return (ent.text.strip().lower() in main_characters
+            and ent.label_ == 'PERSON'
+            and ent.root.head.pos_ == 'VERB'
+            and ent.root.dep_ in rels)
 
+
+def get_interesting_contexts(novels, rels, num_characters, verb_stop):
     contexts = defaultdict(Counter)
     for parsed_novel in novels:
         main_characters = get_main_characters(parsed_novel, num_characters)
@@ -175,15 +174,13 @@ def get_interesting_contexts(novels, rels, num_characters, verb_stop):
     return contexts
 
 
-def fun(parsed_novel):
+def extracted_features_for_characters(parsed_novel):
     novels = {parsed_novel}
     number_of_characters_per_text = 8
     target_rels = {'nsubj'}
     target_contexts = get_interesting_contexts(novels, target_rels, number_of_characters_per_text, 1500)
     results = pd.DataFrame.from_dict(target_contexts).applymap(lambda x: '' if math.isnan(x) else x)
-    C = (Counter(get_entities_in(parsed_novel, "VERB")).most_common())
-    get_pos_in(parsed_novel, 'VERB', 60)
-    return results, C
+    return results
 
 
 def gendered_pronoun(np):
@@ -197,3 +194,30 @@ def get_nounphrases(parsed_novel):
     print("There were {} noun phrases found.".format(len(nounphrases)))
     df = (pd.DataFrame(nounphrases, columns=['Pronoun', 'Verb']))
     return df
+
+
+if __name__ == '__main__':
+
+    method = 'extracted_features_for_characters'
+
+    if method == 'gender_classifier':
+        df = gender_classifier()
+        df.to_csv("gender_classifier.csv", index=None)
+
+    if method == 'gender_classifierTest':
+        gender_classifierTest()
+
+    if method == 'extracted_features_for_characters':
+        nlp = en_core_web_sm.load()
+
+        alice = gutenberg.raw(fileids='carroll-alice.txt')
+        parsed_alice = nlp(alice)
+        df = extracted_features_for_characters(parsed_alice)
+        df.to_csv("extracted_features_for_characters.csv", index=None)
+
+    if method == 'get_nounphrases':
+        nlp = en_core_web_sm.load()
+        alice = gutenberg.raw(fileids='carroll-alice.txt')
+        parsed_alice = nlp(alice)
+        df = get_nounphrases(parsed_alice)
+        df.to_csv("get_nounphrases.csv", index=None)
