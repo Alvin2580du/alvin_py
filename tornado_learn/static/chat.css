@@ -1,0 +1,89 @@
+body {
+    background: white;
+    margin: 10px;
+}
+
+body,
+input {
+    font-family: sans-serif;
+    font-size: 10pt;
+    color: black;
+}
+
+table {
+    border-collapse: collapse;
+    border: 0;
+}
+
+td {
+    border: 0;
+    padding: 0;
+}
+
+
+
+#input {
+    /*margin-top: 0.5em;*/
+    /*position: absolute;*/
+}
+
+#inbox .message {
+    padding-top: 0.25em;
+}
+
+#nav {
+    float: right;
+    z-index: 99;
+}
+
+
+/* Chat containers */
+.rowinfo {
+    border: 2px solid #dedede;
+    background-color: #f1f1f1;
+    border-radius: 5px;
+    padding: 4px;
+    margin: 4px 0;
+}
+
+/* Darker chat container */
+.darker {
+    border-color: #ccc;
+    background-color: #ddd;
+}
+
+/* Clear floats */
+.rowinfo::after {
+    content: "";
+    clear: both;
+    display: table;
+}
+
+/* Style images */
+.rowinfo img {
+    float: left;
+    max-width: 60px;
+    width: 100%;
+    margin-right: 20px;
+    border-radius: 50%;
+}
+
+/* Style the right image */
+.rowinfo img.right {
+    float: right;
+    margin-left: 20px;
+    margin-right:0;
+}
+
+/* Style time text */
+.time-right {
+    float: right;
+    color: #aaa;
+}
+
+/* Style time text */
+.time-left {
+    float: left;
+    color: #999;
+    display: inline-block;
+}
