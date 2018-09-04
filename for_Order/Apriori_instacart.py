@@ -111,4 +111,19 @@ rules.to_csv("rules.csv", index=None)
 item_name = pd.read_csv('./datasets/products.csv')
 item_name = item_name.rename(columns={'product_id': 'item_id', 'product_name': 'item_name'})
 rules_final = merge_item_name(rules, item_name).sort_values('lift', ascending=False)
-rules_final.to_csv("results_.csv", index=None)
+
+res = rules_final.rename(columns={'itemA': 'antecedants',
+                                  'itemB': 'consequents',
+                                  'supportAB': 'support',
+                                  'supportA': 'antecedent support',
+                                  'supportB': 'consequent support',
+                                  'confidenceAtoB': 'confidence',
+                                  })
+
+res.to_csv("results_pre.csv", index=None)
+del res['freqAB']
+del res['freqA']
+del res['freqB']
+
+res.to_csv("results.csv", index=None)
+
