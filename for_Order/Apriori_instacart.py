@@ -98,7 +98,7 @@ def association_rules(order_item, min_support):
     item_pairs['confidenceAtoB'] = item_pairs['supportAB'] / item_pairs['supportA']
     item_pairs['confidenceBtoA'] = item_pairs['supportAB'] / item_pairs['supportB']
     item_pairs['lift'] = item_pairs['supportAB'] / (item_pairs['supportA'] * item_pairs['supportB'])
-    item_pairs['conviction'] = (1-item_pairs['supportA'])/(1-item_pairs['confidenceAtoB'])
+    item_pairs['conviction'] = (1-item_pairs['supportB'])/(1-item_pairs['confidenceAtoB'])
     # leverage
     item_pairs['leverage'] = item_pairs['confidenceAtoB'] - item_pairs['supportA']*item_pairs['supportB']
     # 按照left排序
