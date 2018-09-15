@@ -127,48 +127,53 @@ keys_words = ['place', 'trip', 'entrance', 'step', 'water', 'view', 'park', 'cro
 
 
 def find_Keywrds(inputs):
-    res = []
-    for k in keys_words:
-        if k in inputs:
-            res.append(k)
-    if len(res) > 0:
-        inputs_split = inputs.split(res[0])
-        out = "|".join(res)
-        adj_pre = adj_find(inputs_split[0])
-        adv_pre = adv_find(inputs_split[0])
-        adj_after = adj_find(inputs_split[1])
-        adv_after = adv_find(inputs_split[1])
-        return inputs, out, adj_pre, adv_pre, adj_after, adv_after
+    inputs_split_juzi = inputs.split(".")
+    save = []
+
+    for juzi in inputs_split_juzi:
+        for k in keys_words:
+            if k in juzi:
+                inputs_split = juzi.split(k)
+                adj_pre = adj_find(inputs_split[0])
+                adv_pre = adv_find(inputs_split[0])
+                adj_after = adj_find(inputs_split[1])
+                adv_after = adv_find(inputs_split[1])
+                if adj_pre or adv_pre:
+                    words = "{}|{}|{}|{}".format(adj_pre, adv_pre, adj_after, adv_after)
+                    res = "{},{},{}".format(juzi, k, words)
+                    save.append(res)
+    if len(save) > 0:
+        return save
     else:
-        return None, None, None, None, None, None
+        return None
 
 
 def build_three():
+
     with open("xuqiu_2.csv", 'r', encoding='utf-8') as fr:
         save = []
         C = 0
         while True:
             line = fr.readline()
             if line:
-                inputs, out, adj_pre, adv_pre, adj_after, adv_after = find_Keywrds(line)
-                if inputs:
-                    rows = OrderedDict({'评论内容': inputs,
-                                        '关键词': out,
-                                        '关键字前面的形容词': adj_pre,
-                                        '关键字前面的副词': adv_pre,
-                                        '关键字后面的形容词': adj_after,
-                                        '关键字后面的副词': adv_after})
-                    save.append(rows)
-                    C += 1
-                    if C % 100 == 1:
-                        print("=========已提取{}行=========".format(C))
-                else:
-                    continue
+                res = find_Keywrds(line)
+                if res:
+                    length = len(res)
+                    for one in res:
+                        rows = OrderedDict()
+                        rows['句子'] = ",".join(one.split(",")[:-2])
+                        rows['关键字'] = one.split(",")[-2]
+                        rows['关键字前后的形容词和副词'] = one.split(",")[-1]
+                        rows['标记'] = length
+                        save.append(rows)
+                        C += 1
+                if C % 100 == 0:
+                    print('============= Process {}=============  '.format(C))
             else:
                 break
 
         df = pd.DataFrame(save)
-        df.to_csv("结果文件.txt", index=None, sep=",", encoding='utf-8')
+        df.to_csv("结果文件.csv", index=None, sep=",", encoding='utf-8')
 
 
 if __name__ == '__main__':
