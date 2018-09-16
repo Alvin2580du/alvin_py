@@ -14,7 +14,6 @@ from collections import Counter, OrderedDict
 
 """
 parser = en_core_web_sm.load()
-da = pd.read_csv("xuqiu.csv")
 
 
 def noun_chunk(inputs):
@@ -64,7 +63,32 @@ def adv_find(inputs):
         return ""
 
 
+def adj_find_v1(inputs):
+    try:
+        out = []
+        for sent in parser(inputs).sents:
+            for token in sent:
+                if token.pos_ == "ADJ":
+                    out.append(str(token))
+        return out
+    except:
+        return ""
+
+
+def adv_find_v1(inputs):
+    try:
+        out = []
+        for sent in parser(inputs).sents:
+            for token in sent:
+                if token.pos_ == "ADV":
+                    out.append(str(token))
+        return out
+    except:
+        return ""
+
+
 def build_one():
+    da = pd.read_csv("xuqiu.csv")
     da["评论内容_名词词组"] = da['评论内容'].apply(noun_chunk)
     da['评论内容_名词'] = da['评论内容'].apply(noun_find)
     da['标题_名词'] = da['标题'].apply(noun_find)
@@ -149,7 +173,6 @@ def find_Keywrds(inputs):
 
 
 def build_three():
-
     with open("xuqiu_2.csv", 'r', encoding='utf-8') as fr:
         save = []
         C = 0
@@ -176,8 +199,82 @@ def build_three():
         df.to_csv("结果文件.csv", index=None, sep=",", encoding='utf-8')
 
 
+"""
+
+1.?识别名词关键词前后8个词内的形容词（只识别最近的一个形容就OK）
+2.?识别形容词前一个单词是否是副词，若是，则连形容词一起提取出来，若不是，则只提取形容词，此外，如果副词前有no 或者not 也要提取
+3.?如果关键词前后8个词内没有形容词，则显示为空
+4.标记可以不要
+"""
+
+
+def adj_find_v2(inputs):
+    try:
+        out = []
+        for sent in parser(inputs).sents:
+            length = len(sent)
+            for i in range(length):
+                if sent[i].pos_ == 'ADJ':
+                    out.append(sent[i])
+                if i + 1 < length:
+                    if sent[i].pos_ == 'ADV' and sent[i + 1].pos_ == 'ADJ':
+                        res1 = "{}|{}".format(sent[i], sent[i + 1])
+                        out.append(res1)
+                if i + 2 < length:
+                    if sent[i] == 'no' or sent[i] == 'not' and sent[i + 1].pos_ == 'ADV' and sent[i + 2].pos_ == 'ADJ':
+                        res2 = "{}|{}|{}".format(sent[i], sent[i + 1], sent[i + 2])
+                        out.append(res2)
+                elif sent[i].pos_ == 'ADJ':
+                    out.append(sent[i])
+                else:
+                    continue
+        return list(set(out))
+    except:
+        return None
+
+
+def apply_fun(inputs, keywords):
+    try:
+        if keywords:
+            if keywords in inputs.split():
+                inputs_split = inputs.split(keywords)
+                pre = " ".join(inputs_split[0].split(" ")[::-1][:9][::-1])
+                after = " ".join(inputs_split[1].split(" ")[:9])
+                adj_pre = adj_find_v2(pre)
+                adj_after = adj_find_v2(after)
+                if not adj_after and not adj_pre:
+                    return " "
+                if not adj_pre:
+                    return adj_after[0]
+                if not adj_after:
+                    return adj_pre[0]
+                if adj_after and adj_pre:
+                    return "{}|{}".format(adj_pre[0], adj_after[-1])
+        else:
+            print("1:{}".format(keywords))
+    except Exception as e:
+        return " "
+
+
+def build_four():
+    # 句子,关键字,关键字前后的形容词和副词,标记
+    save = []
+    data = pd.read_csv("结果文件.csv")
+    for x, y in data.iterrows():
+        juzi = y['句子']
+        keywords = y['关键字']
+        res = apply_fun(juzi, keywords)
+        rows = OrderedDict()
+        rows['句子'] = juzi
+        rows['关键字'] = keywords
+        rows['关键字前后的形容词和副词'] = res
+        save.append(rows)
+    df = pd.DataFrame(save)
+    df.to_csv("关键字前后的形容词和副词.csv", index=None)
+
+
 if __name__ == '__main__':
-    method = 'build_three'
+    method = 'build_four'
 
     if method == 'build_one':
         build_one()
@@ -187,3 +284,6 @@ if __name__ == '__main__':
 
     if method == 'build_three':
         build_three()
+
+    if method == 'build_four':
+        build_four()

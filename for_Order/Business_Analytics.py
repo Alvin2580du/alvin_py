@@ -25,6 +25,9 @@ def Exercise_2():
     df['people-per-miles'] = data['people-per-miles']
     df['Country'] = data['Country']
     print(df.sort_values(by='people-per-miles'))
+    df.sort_values(by='people-per-miles').to_csv("results.csv", index=None)
+    df1 = df[df['Country'].isin(['China'])].sort_values(by='people-per-miles')
+    df1.to_csv("results_china.csv", index=None)
 
 
 def Exercise_3():
