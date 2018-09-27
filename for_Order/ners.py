@@ -449,6 +449,9 @@ def get_sentence_score(sentence):
                     score = cidian_score_dict[jj]
                     rows = {x: score}
                     res.append(rows)
+                else:
+                    rows = {x: 4}
+                    res.append(rows)
         except Exception as e:
             continue
     return res
@@ -489,8 +492,48 @@ def build_six():
         df.to_csv("评论内容——分数.csv", index=None, encoding='utf-8')
 
 
+def biaoti_adj_find(text):
+    text_list = nltk.word_tokenize(text)
+    english_punctuations = [',', '.', ':', ';', '?', '(', ')', '[', ']', '&', '!', '*', '@', '#', '$', '%', '’',
+                            "''",
+                            '``']
+    text_list = [word for word in text_list if word not in english_punctuations]
+    # 去掉停用词
+    stops = set(stopwords.words("english"))
+    text_list = [word for word in text_list if word not in stops]
+    pos_list = nltk.pos_tag(text_list)
+
+    adj_out = []
+    length = len(pos_list)
+    for i in range(length):
+        if 'JJ' in pos_list[i][1]:
+            adj_out.append(pos_list[i][0])
+
+    return " ".join(adj_out)
+
+
+def biaoti_nn_find(text):
+    text_list = nltk.word_tokenize(text)
+    english_punctuations = [',', '.', ':', ';', '?', '(', ')', '[', ']', '&', '!', '*', '@', '#', '$', '%', '’',
+                            "''",
+                            '``']
+    text_list = [word for word in text_list if word not in english_punctuations]
+    # 去掉停用词
+    stops = set(stopwords.words("english"))
+    text_list = [word for word in text_list if word not in stops]
+    pos_list = nltk.pos_tag(text_list)
+
+    nn_out = []
+    length = len(pos_list)
+    for i in range(length):
+        if 'NN' in pos_list[i][1]:
+            nn_out.append(pos_list[i][0])
+
+    return " ".join(nn_out)
+
+
 if __name__ == '__main__':
-    method = 'build_six'
+    method = 'build_one'
 
     if method == 'build_one':
         build_one()
@@ -512,51 +555,11 @@ if __name__ == '__main__':
 
     if method == 'build_five':
         build_five()
+
     if method == 'build_six':
         build_six()
 
     if method == 'build_seven':
-
-        def biaoti_adj_find(text):
-            text_list = nltk.word_tokenize(text)
-            english_punctuations = [',', '.', ':', ';', '?', '(', ')', '[', ']', '&', '!', '*', '@', '#', '$', '%', '’',
-                                    "''",
-                                    '``']
-            text_list = [word for word in text_list if word not in english_punctuations]
-            # 去掉停用词
-            stops = set(stopwords.words("english"))
-            text_list = [word for word in text_list if word not in stops]
-            pos_list = nltk.pos_tag(text_list)
-
-            adj_out = []
-            length = len(pos_list)
-            for i in range(length):
-                if 'JJ' in pos_list[i][1]:
-                    adj_out.append(pos_list[i][0])
-
-            return " ".join(adj_out)
-
-
-        def biaoti_nn_find(text):
-            text_list = nltk.word_tokenize(text)
-            english_punctuations = [',', '.', ':', ';', '?', '(', ')', '[', ']', '&', '!', '*', '@', '#', '$', '%', '’',
-                                    "''",
-                                    '``']
-            text_list = [word for word in text_list if word not in english_punctuations]
-            # 去掉停用词
-            stops = set(stopwords.words("english"))
-            text_list = [word for word in text_list if word not in stops]
-            pos_list = nltk.pos_tag(text_list)
-
-            nn_out = []
-            length = len(pos_list)
-            for i in range(length):
-                if 'NN' in pos_list[i][1]:
-                    nn_out.append(pos_list[i][0])
-
-            return " ".join(nn_out)
-
-
         data = pd.read_excel("评论标题.xlsx", sheet_name='Sheet1')
         data['形容词'] = data['标题'].apply(biaoti_adj_find)
         data['名词'] = data['标题'].apply(biaoti_nn_find)
