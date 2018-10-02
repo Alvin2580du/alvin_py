@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block body %}
+
+<h1>All Bookings</h1>
+<!-- added start -->
+<ul>
+    {% for booking in bookings %}
+    <li>{{ booking }} </li>
+    {% endfor %}
+</ul>
+<!-- added end  -->
+
+{% endblock %}
+

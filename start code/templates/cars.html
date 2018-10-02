@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block body %}
+
+<h1>CARS</h1>
+<form>
+	<label>Make: </label><input name='make'/>
+	<label>Model:</label><input name='model'/>
+	<button type='submit'>Search</button>
+</form>
+
+<ul>
+{% for car in cars %}
+	<li><a href="{{url_for('car', rego=car.rego)}}">{{car.name}} {{car.model}}</a></li>
+{% endfor %}
+</ul>
+{% endblock %}

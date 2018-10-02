@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block body %}
+
+<div>
+  <h2>Register New Cars</h2>
+</div>
+
+<div>
+
+  <form method="POST">
+    <!-- Input Fields -->
+
+    <div>
+      Name <input name="name">
+      Model <input name="model">
+      Rego <input name="rego">
+
+      <br />
+      <input type="radio" name="car-type" value="small" checked="true"> Small <br />
+      <input type="radio" name="car-type" value="medium"> Medium <br />
+      <input type="radio" name="car-type" value="large"> Large <br />
+      <input type="radio" name="car-type" value="premium"> Premium <br />
+
+    </div>
+
+    <br />
+    <button name="register" type="submit">Register</button>
+
+  </form>
+  <!-- added start -->
+  {% for msg in error_message %}
+  <p>
+    <font color="red">{{ msg }}</font>
+  </p>
+  {% endfor %}
+  {% if register_success %}
+  <p>
+    <font color="green">register_success</font>
+  </p>
+  <p>
+    {{ car }}
+  </p>
+  {% endif %}
+  <!-- added end  -->
+</div>
+{% endblock %}

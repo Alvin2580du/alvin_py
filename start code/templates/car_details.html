@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block body %}
+<img src="https://easydrawingguides-7512.kxcdn.com/wp-content/uploads/2017/01/How-to-Draw-a-cartoon-car-20.png" width="100px" height="100px"/>
+<br/>
+
+<h3>{{ car }}</h3>
+
+
+{% if current_user.is_admin() == false %}
+<div>
+  <a href="{{url_for('book', rego=car.rego)}}"><button style="cursor: pointer">BOOK!</button></a>
+</div>
+{% endif %}
+
+<div>
+  <a href="{{url_for('car_bookings', rego=car.rego)}}"><button style="cursor: pointer">See all bookings</button></a>
+</div>
+{% endblock %}
