@@ -25,3 +25,6 @@ sklearn
 pandas
 numpy
 selenium
+scipy
+torch
+nltk
