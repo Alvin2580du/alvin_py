@@ -121,8 +121,9 @@ datasets_file_name = 'datasets.csv'
 ans = build_inverted_index(datasets_file_name)
 
 fw = open('out.txt', 'w', encoding='utf-8')
-for x,y in ans.items():
-    fw.writelines("{} {}".format(x, y)+'\n')
+for x, y in ans.items():
+    fw.writelines("{} {}".format(x, y) + '\n')
+
 
 #
 # while 1:
@@ -134,3 +135,14 @@ for x,y in ans.items():
 #     except:
 #         print('no documnet include word %s' % words)
 #         pass
+def removeStopWords(self, list):
+    """ Remove common words which have no search value """
+    return [word for word in list if word not in self.stopwords]
+
+
+def tokenise(self, string):
+    """ break string up into tokens and stem words """
+    string = self.clean(string)
+    words = string.split(" ")
+
+    return [self.stemmer.stem(word, 0, len(word) - 1) for word in words]
