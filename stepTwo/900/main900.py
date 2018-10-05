@@ -22,7 +22,6 @@ def build_one():
     然后根据相同ssn、name还有gender判断是不是用一个样本，如果这三列相同，则判定为是同一个records。
     2、emp-edu 中有4075条记录是其独有的，medical中的ssn全部在emp-edu中出现，我们将这部分记录直接删除，避免合并数据后出现缺失值。
     3、数据存存在1498条重复records，对于重复records需要删除，已经做了删除处理。
-    :return: 
     """
     emp_edu_data = pd.read_csv("emp-edu.csv")
     emp_edu_data['name'] = emp_edu_data.apply(lambda row: name(row['first_name'], row['middle_name'], row['last_name']),
@@ -108,12 +107,42 @@ def build_partTwo():
     signle_one_fillna.to_csv("single_one_fillna.csv", index=None)
 
 
+def get_phone(p1, p2):
+    if p2 == '-1':
+        return p1
+    if p1 == '-1':
+        return p2
+    if p1 != p2 and p1 != "-1" and p2 != '-1':
+        return "{}|{}".format(p1, p2)
+
+
 def build_partThree():
+    """
+    1、汇总的数据里面包含phone_med和phone两列，分别来源于emp-edu.csv和medical.csv， 对于同一个人的电话号码存在不一致的情况，
+    我们把phone缺失的号码用phone_med 来代替，把phone_med中缺失的号码用phone来代替。如果phone_med和phone都存在的情况，
+    我们保留两个电话号码，并用竖线“|”分割开来。这样做的好处是保证了数据不丢失。另外还有street_address_med	suburb_med
+    postcode_med state_med直接删除，因为这几个变量是具有实际意义的变量，一般不会有变化。
+    2、考虑教育和职业与健康的关系，我们建议删除无关变量。比如street_address、suburb、postcode、credit_card_number。
+        
+    """
     data = pd.read_csv("single_one_fillna.csv")
+    data['phone_num'] = data.apply(lambda row: get_phone(row['phone_med'], row['phone']), axis=1)
+    del data['phone_med']
+    del data['phone']
+    del data['street_address_med']
+    del data['suburb_med']
+    del data['postcode_med']
+    del data['state_med']
+    # 删除无关变量，reduction data
+    del data['street_address']
+    del data['suburb']
+    del data['postcode']
+    del data['credit_card_number']
+    data.to_csv("single_final.csv", index=None)
 
 
 if __name__ == '__main__':
-    method = 'build_partTwo'
+    method = 'build_partThree'
 
     if method == 'build_one':
         build_one()

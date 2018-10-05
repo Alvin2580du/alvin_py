@@ -119,7 +119,8 @@ def search_(words, inverted_index):
 
 datasets_file_name = 'datasets.csv'
 ans = build_inverted_index(datasets_file_name)
-
+search_('method', ans)
+exit(1)
 fw = open('out.txt', 'w', encoding='utf-8')
 for x, y in ans.items():
     fw.writelines("{} {}".format(x, y) + '\n')
