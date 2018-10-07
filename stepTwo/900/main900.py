@@ -2,7 +2,7 @@ import pandas as pd
 
 
 def get_counts(sequence):
-    # 对一个列表统计频率，出现就+1
+    # 对一个列表统计频率，出现就+1  列表， 字典， 集合  [] set()   {'a':{'a':1}, 'b':2}
     counts = {}
     for x in sequence:
         if x in counts:
@@ -21,7 +21,7 @@ def build_one():
     1、找到相对应的样本记录的方法： 首先把first_name、middle_name、last_name三个字段合并为一个字段name
     然后根据相同ssn、name还有gender判断是不是用一个样本，如果这三列相同，则判定为是同一个records。
     2、emp-edu 中有4075条记录是其独有的，medical中的ssn全部在emp-edu中出现，我们将这部分记录直接删除，避免合并数据后出现缺失值。
-    3、数据存存在1498条重复records，对于重复records需要删除，已经做了删除处理。
+    3、数据存存在9123条重复records，对于重复records需要删除，已经做了删除处理。
     """
     emp_edu_data = pd.read_csv("emp-edu.csv")
     emp_edu_data['name'] = emp_edu_data.apply(lambda row: name(row['first_name'], row['middle_name'], row['last_name']),
@@ -55,7 +55,7 @@ def build_one():
     print(signle.shape)
     signle_drop = signle[~signle['ssn'].isin(ssn_all)]
     print(signle_drop.shape, '222222222222222')
-    signle_dup = signle_drop.drop_duplicates()
+    signle_dup = signle_drop.drop_duplicates(subset='ssn', keep='last')
     print(signle_dup.shape)
     print(signle_drop.shape[0] - signle_dup.shape[0])
     signle_dup.to_csv("single.csv", index=None)
@@ -83,14 +83,14 @@ def build_partTwo():
     1、存在缺失值，共有14个指标存在缺失数据，缺失数据的个数为49211个。因为此数据集为个人信息数据，无法使用0或者均值等数值方法来代替缺失值，
     所以使用“-1" 来填充缺失数据。
     2、数据中的phone字段，存在一些非法的电话号码，比如邮箱等。对于这类数据，需要替换为缺失数据，并用“-1”代替。还有bmi的值存在负数，
-    我们知道，bmi的值肯定是正数， 不可能是负数。所以需要把bmi的值为负数的部分替换为“-1”
+    我们知道，bmi的值肯定是正数， 不可能是负数。所以需要把bmi的值为负数的部分替换为“-1”，数据类型为字符串，不可参与数学运算。
     """
     signle_one = pd.read_csv("single.csv")
     num_na = signle_one.count()
 
     num_na_df = pd.DataFrame(num_na)
     num_na_df['na'] = signle_one.shape[0] - num_na_df[0]
-    num_na_df.to_csv("num_na.csv")
+    # num_na_df.to_csv("num_na.csv")
     k = 0
     c = 0
     for columname in signle_one.columns:
@@ -138,11 +138,13 @@ def build_partThree():
     del data['suburb']
     del data['postcode']
     del data['credit_card_number']
-    data.to_csv("single_final.csv", index=None)
-
+    data.to_csv("1single_final.csv", index=None)
+    print(data.shape)
 
 if __name__ == '__main__':
-    method = 'build_partThree'
+    method = 'build_one'
+
+    # for method in ['build_one', 'build_partTwo', 'build_partThree']:
 
     if method == 'build_one':
         build_one()
@@ -152,3 +154,5 @@ if __name__ == '__main__':
 
     if method == 'build_partThree':
         build_partThree()
+
+
