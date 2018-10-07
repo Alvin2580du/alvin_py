@@ -223,6 +223,7 @@ def build_2d():
 
 if __name__ == "__main__":
     method = 'build_2d'
+    # 修改这里的method，运行每个题
     if method == 'build_1a':
         build_1a()
 
