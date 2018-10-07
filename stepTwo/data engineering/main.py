@@ -41,20 +41,21 @@ def build_part2():
 
     vel_counts = []
     for x, y in data1083_north_lanes_sample.groupby(by='DateNew'):
-        rows = {'date': x, 'num': y.shape[0]}
-        vel_counts.append(rows)
+        vel_counts.append(y.shape[0])
 
-    vel_counts_df = pd.DataFrame(vel_counts)
-    desc_df = vel_counts_df.sort_values(by='num')['num']
-    desc_df_ = pd.DataFrame(desc_df.describe()).T
-
-    desc_df_copy = pd.DataFrame()
-    desc_df_copy['Range'] = desc_df_['max'] - desc_df_['min']
-    desc_df_copy['1st Quartile'] = desc_df_['25%']
-    desc_df_copy['2nd Quartile'] = desc_df_['50%']
-    desc_df_copy['3rd Quartile'] = desc_df_['75%']
-    desc_df_copy['Interquartile range'] = desc_df_['75%'] - desc_df_['25%']
-    desc_df_copy.to_csv("desc_df_copy.csv", index=None)
+    vel_counts_sort = sorted(vel_counts)
+    print(vel_counts_sort)
+    q1 = 0.75 * vel_counts_sort[0] + 0.25*vel_counts_sort[1]
+    q2 = 0.5 * vel_counts_sort[1] + 0.5 * vel_counts_sort[2]
+    q3 = 0.25 * vel_counts_sort[2] + 0.75*vel_counts_sort[3]
+    desc_df_copy = OrderedDict()
+    desc_df_copy['Range'] = max(vel_counts_sort) - min(vel_counts_sort)
+    desc_df_copy['1st Quartile'] = q1
+    desc_df_copy['2nd Quartile'] = q2
+    desc_df_copy['3rd Quartile'] = q3
+    desc_df_copy['Interquartile range'] = q3 - q1
+    desc_df_copy_df = pd.DataFrame(desc_df_copy, index=[0])
+    desc_df_copy_df.to_csv("desc_df_copy.csv", index=None)
     print(desc_df_copy)
 
 
@@ -148,7 +149,7 @@ def build_task4():
 
 
 if __name__ == '__main__':
-    method = 'build_task4'
+    method = 'build_part2'
 
     if method == 'build_part2':
         build_part2()
