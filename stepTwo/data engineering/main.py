@@ -43,7 +43,7 @@ def get_hour(inputs):
     return inputs.split(":")[0]
 
 
-def build_part2():
+def build_task2():
     data1083 = pd.read_csv("rawpvr_2018-02-01_28d_1083 TueFri.csv")
     data1083['week'] = data1083['Date'].apply(time2week)
     data1083['DateNew'] = data1083['Date'].apply(get_day)
@@ -208,26 +208,22 @@ def build_task6():
     data1083_north = data_1083s[data_1083s['week'].isin(['Friday']) &
                                 data_1083s['Direction'].isin(['1']) &
                                 data_1083s['Hour'].isin(['1'])]
-    print(data1083_north.shape)
     total_traffic_volume_1083 = {}
     for x, y in data1083_north.sort_values(by='Hour').groupby(by='Lane'):
         mean_v = y['Speed (mph)'].mean()
         total_traffic_volume_1083[x] = ((4.86 * 1000) / mean_v) * 60
-    print(total_traffic_volume_1083)
     # 1415
     data_1415s = pd.read_csv("rawpvr_2018-02-01_28d_1415 TueFri.csv")  # 读取数据
-    data_1415s['week'] = data_1415s['Date'].apply(time2week)  # 获取星期的值
-    data_1415s['Hour'] = data_1415s['Date'].apply(getHour_17)  # 获取小时的值
+    data_1415s['week'] = data_1415s['Date'].apply(time2week )  # 获取星期的值
+    data_1415s['Hour'] = data_1415s['Date'].apply(getHour_17)   # 获取小时的值
     data1415_north = data_1415s[data_1415s['week'].isin(['Friday']) &
                                 data_1415s['Direction'].isin(['1']) &
                                 data_1415s['Hour'].isin(['1'])]
-    print(data1415_north.shape)
 
     total_traffic_volume_1415 = {}
     for x, y in data1415_north.sort_values(by='Hour').groupby(by='Lane'):
         mean_v = y['Speed (mph)'].mean()
         total_traffic_volume_1415[x] = ((4.86 * 1000) / mean_v) * 60
-    print(total_traffic_volume_1415)
 
     res = list(total_traffic_volume_1083.values()) + list(total_traffic_volume_1415.values())
     total_mean = np.mean(np.array(res))
@@ -237,8 +233,10 @@ def build_task6():
 if __name__ == '__main__':
     method = 'build_task6'
 
-    if method == 'build_part2':
-        build_part2()
+    # 要运行第五题，就把method的值改成build_task5， 运行第六题改成build_task6
+
+    if method == 'build_task2':
+        build_task2()
 
     if method == 'build_task3':
         build_task3()
