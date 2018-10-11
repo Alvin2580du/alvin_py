@@ -25,6 +25,20 @@ def get_day(inputs):
     return inputs.split()[0]
 
 
+def getHour(x):
+    # 取日期的小时那一位数字
+    return int(x.split(":")[0].split()[-1])
+
+
+def getHour_17(x):
+    # 取日期的小时那一位数字
+    res = int(x.split(":")[0].split()[-1])
+    if 17 <= res < 18:
+        return "1"
+    else:
+        return "0"
+
+
 def get_hour(inputs):
     return inputs.split(":")[0]
 
@@ -45,9 +59,9 @@ def build_part2():
 
     vel_counts_sort = sorted(vel_counts)
     print(vel_counts_sort)
-    q1 = 0.75 * vel_counts_sort[0] + 0.25*vel_counts_sort[1]
+    q1 = 0.75 * vel_counts_sort[0] + 0.25 * vel_counts_sort[1]
     q2 = 0.5 * vel_counts_sort[1] + 0.5 * vel_counts_sort[2]
-    q3 = 0.25 * vel_counts_sort[2] + 0.75*vel_counts_sort[3]
+    q3 = 0.25 * vel_counts_sort[2] + 0.75 * vel_counts_sort[3]
     desc_df_copy = OrderedDict()
     desc_df_copy['Range'] = max(vel_counts_sort) - min(vel_counts_sort)
     desc_df_copy['1st Quartile'] = q1
@@ -148,8 +162,80 @@ def build_task4():
     df.sort_values(by='Date', ascending=True).to_csv("rawpvr_2018-02-01_28d_1083 TueFri_FillNa.csv", index=None)
 
 
+def data_plot(datainputs, file_name):
+    # 获取画图数据，并按照时间分组，保存到字典中
+    total_traffic_volume = {}
+    for x, y in datainputs.sort_values(by='Hour').groupby(by='Hour'):
+        total_traffic_volume[x] = y['Speed (mph)'].mean()
+    print("{}".format(list(total_traffic_volume.values())))
+    # 画图函数
+    objects = total_traffic_volume.keys()  # 获取字典的键作为条形图的x轴的对象
+    plt.figure(figsize=(15, 10))  # 新建画板
+    plt.barh(np.arange(len(list(objects))), list(total_traffic_volume.values()), alpha=0.5, color='red')  # 画条形图
+    plt.yticks(np.arange(len(objects)), list(objects))  # x轴的刻度
+    plt.title("{} the average traffic volume for each hour of Tuesday".format(file_name))  # 标题
+    plt.ylabel("Average traffic volume")  # y轴的标签
+    plt.xlabel("Each hour of {}".format(file_name))  # x轴的标签
+
+    plt.savefig("{}.png".format(file_name))  # 保存图片
+    plt.close()  # 关闭画板
+
+
+def build_task5():
+    data_1083s = pd.read_csv("rawpvr_2018-02-01_28d_1083 TueFri.csv")  # 读取数据
+    data_1083s['week'] = data_1083s['Date'].apply(time2week)  # 获取星期的值
+    data_1083s['Hour'] = data_1083s['Date'].apply(getHour)  # 获取小时的值
+    # North  选择周二北边的数据
+    data1083_north = data_1083s[data_1083s['week'].isin(['Tuesday']) & data_1083s['Direction'].isin(['1'])]
+    data_plot(data1083_north, file_name='Tuesday North direction')
+    # South 选择周二南边的数据
+    data1083_South = data_1083s[data_1083s['week'].isin(['Tuesday']) & data_1083s['Direction'].isin(['2'])]
+    data_plot(data1083_South, file_name='Tuesday South direction')
+
+    # -------------------------------------------------
+    # North 选择周五北边的数据
+    data1083_north = data_1083s[data_1083s['week'].isin(['Friday']) & data_1083s['Direction'].isin(['1'])]
+    data_plot(data1083_north, file_name='Friday North direction')
+    # South 选择周五南边的数据
+    data1083_South = data_1083s[data_1083s['week'].isin(['Friday']) & data_1083s['Direction'].isin(['2'])]
+    data_plot(data1083_South, file_name='Friday South direction')
+
+
+def build_task6():
+    data_1083s = pd.read_csv("rawpvr_2018-02-01_28d_1083 TueFri.csv")  # 读取数据
+    data_1083s['week'] = data_1083s['Date'].apply(time2week)  # 获取星期的值
+    data_1083s['Hour'] = data_1083s['Date'].apply(getHour_17)  # 获取小时的值
+    data1083_north = data_1083s[data_1083s['week'].isin(['Friday']) &
+                                data_1083s['Direction'].isin(['1']) &
+                                data_1083s['Hour'].isin(['1'])]
+    print(data1083_north.shape)
+    total_traffic_volume_1083 = {}
+    for x, y in data1083_north.sort_values(by='Hour').groupby(by='Lane'):
+        mean_v = y['Speed (mph)'].mean()
+        total_traffic_volume_1083[x] = ((4.86 * 1000) / mean_v) * 60
+    print(total_traffic_volume_1083)
+    # 1415
+    data_1415s = pd.read_csv("rawpvr_2018-02-01_28d_1415 TueFri.csv")  # 读取数据
+    data_1415s['week'] = data_1415s['Date'].apply(time2week)  # 获取星期的值
+    data_1415s['Hour'] = data_1415s['Date'].apply(getHour_17)  # 获取小时的值
+    data1415_north = data_1415s[data_1415s['week'].isin(['Friday']) &
+                                data_1415s['Direction'].isin(['1']) &
+                                data_1415s['Hour'].isin(['1'])]
+    print(data1415_north.shape)
+
+    total_traffic_volume_1415 = {}
+    for x, y in data1415_north.sort_values(by='Hour').groupby(by='Lane'):
+        mean_v = y['Speed (mph)'].mean()
+        total_traffic_volume_1415[x] = ((4.86 * 1000) / mean_v) * 60
+    print(total_traffic_volume_1415)
+
+    res = list(total_traffic_volume_1083.values()) + list(total_traffic_volume_1415.values())
+    total_mean = np.mean(np.array(res))
+    print(total_mean)
+
+
 if __name__ == '__main__':
-    method = 'build_part2'
+    method = 'build_task6'
 
     if method == 'build_part2':
         build_part2()
@@ -159,3 +245,9 @@ if __name__ == '__main__':
 
     if method == 'build_task4':
         build_task4()
+
+    if method == 'build_task5':
+        build_task5()
+
+    if method == 'build_task6':
+        build_task6()
