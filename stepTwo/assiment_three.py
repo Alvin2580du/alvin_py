@@ -77,25 +77,16 @@ def build_vec2():
     start_time = time.time()
     corpus_tf = np.zeros((1400, 1000))
     docsList = get_doc_list()
-    end_time = time.time()
-    print("load doc list cost:", end_time - start_time)
 
-    start_time = time.time()
     top_1000 = get_top_1000()
-    end_time = time.time()
-    print("comptue top  1000 cost:", end_time - start_time)
 
-    start_time = time.time()
     # get  words freq  in corpus
     for i, doc in enumerate(docsList):
         if doc != "":
             tf_doc = tf_of_doc(top_1000, doc.split(' '))
             corpus_tf[i, :] = tf_doc
 
-    end_time = time.time()
-    print("corpus_tf cost:", end_time - start_time)
     # compute idf and build svm
-    start_time = time.time()
     vsm = np.zeros(corpus_tf.shape)
     for i, doc in enumerate(docsList):
         # Statistically appeard words for this doc
@@ -113,14 +104,13 @@ def build_vec2():
         idf = np.log(1400 / (word_nums + 1))
         # for this doc compute tf.idf=tf*idf
         vsm[i, word_indices] = idf * corpus_tf[i, word_indices]
-    end_time = time.time()
-    print("vsm cost:", end_time - start_time)
 
     tfidf_matrix_df = pd.DataFrame(vsm)
     tfidf_matrix_df.columns = list(top_1000.keys())
 
     tfidf_matrix_df.to_csv(tfidf_matrix_csv, index=None)
     print(tfidf_matrix_df.shape)
+    return time.time() - start_time
 
 
 def get_doc_list():
@@ -179,7 +169,7 @@ def find_top10_doc_task3(words_list, top1000):
     return top_10
 
 
-def search_words(words):
+def search_words(words, task):
     top1000 = get_top_1000()
     print("Your query words: {}".format(" ".join(words.split(" "))))
     words = words.split(" ")
@@ -187,21 +177,35 @@ def search_words(words):
 
     if not words_hit_top1000:
         return None
-    top_10 = find_top10_doc_task2(words, top1000)
-    print("The top 10 similarities documents :")
-    for docId, cos in top_10:
-        print("             docId: cranfield%04d " % docId)
+    if task == 'task2':
+        time0 = time.time()
+        top_10 = find_top10_doc_task2(words, top1000)
+        print("The top 10 similarities documents :")
+        for docId, cos in top_10:
+            print("             docId: cranfield%04d " % docId)
+        time_cost = time.time() - time0
+        print("task two time cost:{}".format(time_cost))
+    else:
+        time1 = time.time()
+        top_10 = find_top10_doc_task3(words, top1000)
+        print("The top 10 similarities documents :")
+        for docId, cos in top_10:
+            print("             docId: cranfield%04d " % docId)
+        time_cost = time.time() - time1
+        print("task three time cost:{}".format(time_cost))
+    return time_cost
 
 
 def main():
     global dataset
+    words = input('Please input keyword separated by space:')
     dataset = pd.read_csv("datasets.csv", usecols=['content'])
-
     if not os.path.exists(tfidf_matrix_csv):
         build_vec2()
-    words = 'method'  # transfer equations  free problem case
-    search_words(words)
-
+    t1 = search_words(words, task='task2')
+    print("------ "*5)
+    t2 = search_words(words, task='task3')
+    print("save time:{}".format(t1 - t2))
 
 if __name__ == '__main__':
     main()

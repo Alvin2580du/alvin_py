@@ -29,33 +29,10 @@ tweets = readFronSqllite('tweets.db', exectCmd="select * from tweets")
 
 
 def find_spacial_symbol(inputs):
-    if "AT&T" or "Verizon" or "T-Mobile" in inputs:
+    if "AT&T" or "Verizon" or "T-Mobile" in inputs.split():
         return True
-    return False
-
-
-def write_txt(student_id, part_number, data):
-    file = open("ID_{0}_Q_{1}.txt".format(student_id, part_number), 'w')
-    file.write(data)
-    file.close()
-
-
-def get_num():
-    number_tweets = 0
-    for x in tweets:
-        message = x[3]
-        if find_spacial_symbol(message):
-            number_tweets += 1
-    return number_tweets
-
-
-number_tweets = str(get_num())
-# This will save your answer to a .txt file
-write_txt(YOURSTUDENTID, "2_1", number_tweets)
-
-
-#####################2.2###############
-#  Find all tweets in the training set containing the strings “AT&T”, “Verizon” and “switch” (2.5 Marks)
+    else:
+        return False
 
 
 def find_train_id():
@@ -70,6 +47,32 @@ def find_train_id():
 
 
 train_ids, hidden_ids = find_train_id()
+
+
+def write_txt(student_id, part_number, data):
+    file = open("ID_{0}_Q_{1}.txt".format(student_id, part_number), 'w')
+    file.write(data)
+    file.close()
+
+
+def get_num():
+    number_tweets = 0
+    for x in tweets:
+        if isinstance(x[0], float):
+            if x[0] in train_ids:
+                if "AT&T" or "Verizon" or "T-Mobile" in x[3]:
+                    number_tweets += 1
+    return number_tweets
+
+
+number_tweets = str(get_num())
+print(number_tweets)
+# This will save your answer to a .txt file
+write_txt(YOURSTUDENTID, "2_1", number_tweets)
+
+
+#####################2.2###############
+#  Find all tweets in the training set containing the strings “AT&T”, “Verizon” and “switch” (2.5 Marks)
 
 fw = open("ID_{}_Q_2_2.csv".format(YOURSTUDENTID), 'w')
 for x in tweets:
@@ -171,6 +174,7 @@ s = pickle.dump(pip_model, open(filename, 'wb'))
 # predict model
 pre = pip_model.predict(test_X)
 test_set_df['pred'] = pre
+del test_set_df['pre']
 test_set_df.to_csv("ID{0}Q_2_4_1.csv".format(YOURSTUDENTID), index=None)
 print(test_set_df.shape)
 
