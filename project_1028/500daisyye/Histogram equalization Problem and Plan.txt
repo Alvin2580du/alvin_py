@@ -1,0 +1,42 @@
+1. Question
+(a) When I do step 4 (c) I use the "//" module to ensure that the final value for newGray will be an int.
+ However, I am not sure whether it will bring some errors or not.
+(b) Step 5 and Step 6 are like what I did during lab but I am not sure whether it will work that successfully.
+
+2. Plan
+Step 1: At the beginning, we can run through each pixel in the original image to get its pixel values of its corresponding
+color and then record the values one by one to a newly-created list. Since the gray-scale values will range from 0 to 255
+ and within a gray-scale image Red = Blue = Green, we do not need to worry about the color difference but just focus on
+  its pixel values.
+
+Step 2: As what we did in the last homework, we call the plotFreqs function (module already imported).
+For now, use the values in the list we just created in the first step.
+
+Step 3: 
+(a) Now, we can use the same way we used in Counting Sort problem to first make a helper list of
+ all zeros with the size equal to 256.
+(b) Second, we can use a for-loop to iterate over the list created in the first step to count the occurrence of
+ each gray-scale value in the original image into the 256 slots of the helper list.
+
+(c) After that, we can produce a running accumulative sum of the counts from loop1 into the helper list.
+
+(d) Finally, we can create the cumulative distribution from the histogram according to the values in the
+final-version helper list.
+
+Step 4: According to the property of the cumulative distribution, the first value of it will be the
+cdfmin (the minimum non-zero count from the cumulative distribution).
+(a) Now we create a new list with empty elements. 
+(b) Then, we use a new for-loop to iterate over the helper list created in Step 2. 
+(c) We will change each value in the helper list created in Step 2 to a new value based on the formula:
+ newGray = (cdforigGrayVal – cdfmin) // (area of the image – cdfmin) * 255. (Here we use "//" because the
+ final value for newGray needs to be an int).
+(d) When we change each value, we will append each value one by one to the new list which we just created. 
+By this way, we can map gray-scale values from the original image to a new value stored in the new list.
+
+Step 5: 
+(a) We can now create a new image with the same height and length of the original image. 
+(d) Then we can run through each pixel in the original image and change each pixel value to the
+corresponding value in the new list based on the order.
+
+Step 6: Finally, we can set the new pixel values into the new empty image we created in step 5 to
+ finalize the histogram equalization.
