@@ -1,6 +1,8 @@
 import cImage
 from plotfreqs import plotFreqs
 import os
+import sys
+
 """
 Step 1: At the beginning, we can run through each pixel in the original image to get its pixel values of its corresponding
 color and then record the values one by one to a newly-created list. Since the gray-scale values will range from 0 to 255
@@ -105,12 +107,16 @@ def build_step_4(file_name="./images/mozambiqueColor.gif"):
     origImage.draw(origWindow)
     newWindow = cImage.ImageWin("New Window", w, h)
     rawImage_list = step_1(origImage)
-    cdfList = get_cumulative_from_help_list(step_3_get_help_list(rawImage_list))
+    s3_list = step_3_get_help_list(rawImage_list)
+    print(len(s3_list), s3_list[100:120])
+    cdfList = get_cumulative_from_help_list(s3_list)
+    print(len(cdfList), cdfList[100:120])
     after_image_list = get_newGrey_image(rawImage_list, cdfList, w * h)
+    print(len(after_image_list), after_image_list[100:120])
     newImage = get_draw_image(after_image_list, origImage)
     newImage.draw(newWindow)
 
-    return after_image_list
+    return s3_list, cdfList, after_image_list
 """
 
 Step 5: 
@@ -126,11 +132,37 @@ Step 6: Finally, we can set the new pixel values into the new empty image we cre
 
 def step_6():
     # before equalization and after , cumulative plot
-    image_path = './images'
-    image_name = 'car.gif'  # 修改这里image 的名字，处理想要处理的图像
-    aList = build_step_4(file_name=os.path.join(image_path, image_name))
-    plotFreqs(aList, None, None)
+    file_name = sys.argv[1]
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import pandas as pd
 
+    s3_list, cdfList, after_image_list = build_step_4(file_name=file_name)
+    df1 = pd.DataFrame(s3_list)
+    df1.to_excel("df1.xlsx", index=None)
+
+    df2 = pd.DataFrame(cdfList)
+    df2.to_excel("df2.xlsx", index=None)
+
+    df3 = pd.DataFrame(after_image_list)
+    df3.to_excel("df3.xlsx", index=None)
+
+    xPos = np.arange(256)
+
+    plt.figure(figsize=(6, 3))
+    plt.bar(xPos, s3_list, align='center')
+    plt.show()
+    plt.close()
+
+    plt.figure(figsize=(6, 3))
+    plt.bar(xPos, cdfList, align='center')
+    plt.show()
+    plt.close()
+
+    plt.figure(figsize=(6, 3))
+    plt.bar(xPos, after_image_list, align='center')
+    plt.show()
+    plt.close()
 
 step_6()
 
