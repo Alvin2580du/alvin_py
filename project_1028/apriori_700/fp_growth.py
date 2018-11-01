@@ -78,11 +78,23 @@ class FPTree(object):
             yield node
 
     def __str__(self):
+        """
+        ('Male', '40') 41
+        ('Male', 'White') 63
+        ('Male', '<=50K') 55
+        ('Male', '0') 75
+        ('Male', 'United-States') 64
+        ('Male', 'Husband') 47
+        ('Male', 'Married-civ-spouse') 49
+        ('Male', 'Private') 47
+        :return: 
+        """
         str_ = ''
         for node in self:
             res = [str(child) for child in node.children.values()]
             if len(res) > 0:
-                str_ = str_ + "\n%s -> (%s)" % (node, res)
+                str_ = str_ + "(%s)\n" % (",".join(res))
+
         return str_
 
 
@@ -165,21 +177,22 @@ def readFile(filename):
     Function read the file 
     return a list of sets which contains the information of the transaction
     """
-    originalList = list()
+    originalList = []
     file = open(filename, 'rU')
     c = 0
-    limit = 1000
+    limit = 100
     for line in file:
         c = c + 1
         line = line.strip().rstrip(',')
-        record = set(line.split(', '))
+        record = list(set(set(line.split(', '))))
         originalList.append(record)
         if c > limit:
             break
     return originalList, c
 
+
 if __name__ == '__main__':
-    transactions = readFile('adult.data.txt')
+    transactions, c = readFile('adult.data.txt')
     print(len(transactions))
-    fp_tree = build_fp_tree(transactions, 3)
+    fp_tree = build_fp_tree(list(transactions), min_support=30)
     print(fp_tree)

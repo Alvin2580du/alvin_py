@@ -184,8 +184,10 @@ add_model_options(parser)
 add_train_options(parser)
 
 opt = parser.parse_args()
+print(opt)
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s:%(name)s]: %(message)s', level=logging.INFO)
+# Error  DEBUG
 log_file_name = time.strftime("%Y%m%d-%H%M%S") + '.log.txt'
 if opt.log_home:
     log_file_name = os.path.join(opt.log_home, log_file_name)
@@ -235,7 +237,7 @@ class Dict(object):
             idx = int(fields[1])
             self.add(label, idx)
 
-    # Write entries to a file.
+    # Write entries to a file. r, w, a
     def writeFile(self, filename):
         with open(filename, 'w', encoding='utf-8') as file:
             for i in range(self.size()):
@@ -294,8 +296,7 @@ class Dict(object):
             return self
 
         # Only keep the `size` most frequent entries.
-        freq = torch.Tensor(
-            [self.frequencies[i] for i in range(len(self.frequencies))])
+        freq = torch.Tensor([self.frequencies[i] for i in range(len(self.frequencies))])
         _, idx = torch.sort(freq, 0, True)
 
         newDict = Dict()
@@ -348,8 +349,7 @@ def makeVocabulary(filenames, size):
 
     originalSize = vocab.size()
     vocab = vocab.prune(size)
-    logger.info('Created dictionary of size %d (pruned from %d)' %
-                (vocab.size(), originalSize))
+    logger.info('Created dictionary of size %d (pruned from %d)' % (vocab.size(), originalSize))
 
     return vocab
 
@@ -367,9 +367,7 @@ def initVocabulary(name, dataFiles, vocabFile, vocabSize):
         # If a dictionary is still missing, generate it.
         logger.info('Building ' + name + ' vocabulary...')
         genWordVocab = makeVocabulary(dataFiles, vocabSize)
-
         vocab = genWordVocab
-
     return vocab
 
 
@@ -434,6 +432,7 @@ def makeData(srcFile, tgtFile, srcDicts, tgtDicts):
     if shuffle == 1:
         logger.info('... shuffling sentences')
         perm = torch.randperm(len(src))
+        # torch.randperm 给定参数n，返回一个从0 到n -1 的随机整数排列。 参数: n (int) – 上边界(不包含)
         src = [src[idx] for idx in perm]
         tgt = [tgt[idx] for idx in perm]
         sizes = [sizes[idx] for idx in perm]
@@ -469,7 +468,7 @@ def prepare_data_online(train_src, src_vocab, train_tgt, tgt_vocab):
 
 # logger.info('My seed is {0}'.format(torch.initial_seed()))
 # logger.info('My cuda seed is {0}'.format(torch.cuda.initial_seed()))
-#
+
 
 class Rouge(object):
     def __init__(self, stem=True, use_ngram_buf=False):

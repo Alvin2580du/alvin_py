@@ -194,7 +194,17 @@ def process_command(chosen_command, the_player):
                     the_player['has key'] = True
                 else:
                     the_player['has key'] = False
+        if chosen_command == 'attack':
 
+            if the_player['has key']:
+                the_player['game status'] = 'won'
+            else:
+                the_player['location'] = "Upstairs"
+                the_player['game status'] = 'playing'
+                if the_player['has key']:
+                    the_player['has key'] = True
+                else:
+                    the_player['has key'] = False
 
 def print_game_ending(the_player):
     if the_player['game status'] == 'quit':
