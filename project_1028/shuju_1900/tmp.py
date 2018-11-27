@@ -4,7 +4,6 @@ from sklearn.tree import DecisionTreeClassifier
 import pandas as pd
 from sklearn import metrics
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.utils import shuffle
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
