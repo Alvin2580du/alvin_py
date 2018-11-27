@@ -102,8 +102,7 @@ def randomforest(method='regression', data_name='datali.csv'):
         score = rf.score(X_test, y_test)
         score_rows = {'score': score, "ntree": tree}
         score_list.append(score_rows)
-        results = sorted(zip(map(lambda x: round(x, 4), rf.feature_importances_), names),
-                         reverse=True)
+        results = sorted(zip(map(lambda x: round(x, 4), rf.feature_importances_), names), reverse=True)
         for score in results:
             rows = {"name": score[1], "score": score[0]}
             res.append(rows)

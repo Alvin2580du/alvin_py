@@ -28,3 +28,4 @@ selenium
 scipy
 torch
 nltk
+keras

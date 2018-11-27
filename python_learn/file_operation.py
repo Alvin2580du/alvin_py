@@ -71,6 +71,7 @@ def with_operator(file_name, mode='w'):
     else:
         raise NotImplementedError("No This method, please choose : w or r")
 
+
 if __name__ == "__main__":
 
     method = "write"
@@ -91,7 +92,6 @@ if __name__ == "__main__":
 
     if method == 'with':
         with_operator(file_name="test_file.txt")
-
 
 """
 对于二进制文件，我感觉用的比较少，对于Keras或者TensorFlow等
