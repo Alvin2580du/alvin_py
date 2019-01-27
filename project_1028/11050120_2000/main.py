@@ -6,11 +6,12 @@ from keras.engine import Layer, InputSpec
 from keras.preprocessing.sequence import pad_sequences
 from keras.utils import to_categorical
 from keras.layers import Embedding, Input, LSTM, TimeDistributed, Dense, Bidirectional
-from keras.models import Model, load_model
+from keras.models import Model
 
 from sklearn.model_selection import train_test_split
 import numpy as np
-import os
+
+from utils import get_train_sents
 
 assert keras.__version__ == '2.1.1', "请安装2.1.1版本的keras"
 assert tf.__version__ == '1.4.0', "请安装1.4.0版本的tensorflow"
@@ -100,31 +101,6 @@ class CrfModel(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-def get_sents(datasets):
-    # 数据读取的函数
-    sents = []
-    tmp = []
-    words = []
-    with open(datasets, 'r', encoding='utf-8') as fr:
-        while True:
-            lines = fr.readline()
-            if lines:
-                if len(lines) > 2:
-                    lines_sp = lines.split(" ")
-                    w, label = lines_sp[0], lines_sp[1].replace("\n", "")  # 取出单字和标签
-                    tmp.append((w, label))
-                    if w not in words:
-                        # 这里把所有的单词做个统计，
-                        words.append(w)
-                else:
-                    # 如果一句话结束了， 会有一个空行
-                    sents.append(tmp)
-                    tmp = []
-            else:
-                break
-    return sents, words
-
-
 def minibatches(inputs=None, targets=None, batch_size=None, shuffle=False):
     # 数据批处理的函数
     print(len(inputs), len(targets), "*****************************************")
@@ -143,13 +119,15 @@ def minibatches(inputs=None, targets=None, batch_size=None, shuffle=False):
         yield inputs[excerpt], targets[excerpt]
 
 
+n_classes = 4  # 类别数
+max_len = 100  # 样本的最大长度，不够做padding处理
+batch_size = 128  # 批处理大小
+epoch = 100  # 每个batch的迭代次数
+tags = ['S', 'B', 'I', 'E']  # 标签
+
+
 def TrainCRF(data_name, model_name):
-    n_classes = 4  # 类别数
-    max_len = 75  # 样本的最大长度，不够做padding处理
-    batch_size = 128  # 批处理大小
-    epoch = 100  # 每个batch的迭代次数
-    tags = ['S', 'B', 'I', 'E']
-    sentences, words = get_sents(datasets=data_name)  # 调用get_sents函数，返回数据里面所有的句子和单词
+    sentences, words = get_train_sents(datasets=data_name)  # 调用get_sents函数，返回数据里面所有的句子和单词
     word2idx = {w: i + 1 for i, w in enumerate(words)}  # 单词和id对应起来
     tag2idx = {t: i for i, t in enumerate(tags)}  # 标签和id对应起来
     vocab_size = len(words)  # 单词的总数量
@@ -181,7 +159,7 @@ def TrainCRF(data_name, model_name):
     print(pred)
     model = Model(inputs=[word_ids, sequence_lengths], outputs=[pred])
     print(model)
-    model.compile(loss=crf.loss, optimizer='rmsprop', metrics=['accuracy'])
+    model.compile(loss=crf.loss, optimizer='rmsprop', metrics=['accuracy'])   # rmsprop
     print(model.summary())
     k = 0
     for batch_x, batch_y in minibatches(X_tr, y_tr, batch_size=batch_size):
@@ -196,12 +174,7 @@ def TrainCRF(data_name, model_name):
 
 
 def TrainLstmCrf(data_name, model_name):
-    n_classes = 4
-    max_len = 75
-    batch_size = 128
-    epoch = 100
-    tags = ['S', 'B', 'I', 'E']
-    sentences, words = get_sents(datasets=data_name)
+    sentences, words = get_train_sents(datasets=data_name)
     print(len(sentences), len(words))
     word2idx = {w: i + 1 for i, w in enumerate(words)}
     tag2idx = {t: i for i, t in enumerate(tags)}
@@ -231,7 +204,6 @@ def TrainLstmCrf(data_name, model_name):
     print("word_ids:{}".format(word_ids))
     print("sequence_lengths:{}".format(sequence_lengths))
     model.compile(optimizer="rmsprop", loss=crf.loss, metrics=['accuracy'])
-
     print(model.summary())
 
     k = 0
@@ -241,7 +213,6 @@ def TrainLstmCrf(data_name, model_name):
         if k % 50 == 0:
             model.save("./models/{}_{}".format(k, model_name))
             print("saved")
-
     # 保存模型
     model.save(model_name)
 
@@ -249,6 +220,9 @@ def TrainLstmCrf(data_name, model_name):
 if __name__ == '__main__':
 
     method = 'TrainLstmCrf'
+
+    if method == 'get_sents':
+        get_train_sents(datasets='./data/train.utf8')
 
     if method == 'TrainCRF':
         TrainCRF(data_name='./data/train.utf8', model_name='crf.model.h5')

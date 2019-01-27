@@ -16,7 +16,7 @@ def seed_fill(img):
                     cur_j = stack_list[-1][1]
                     img[cur_i][cur_j] = label
                     stack_list.remove(stack_list[-1])
-                    #######四邻域，可改为八邻域
+                    ####### 四邻域，可改为八邻域
                     if (img[cur_i - 1][cur_j] == 255):
                         stack_list.append((cur_i - 1, cur_j))
                     if (img[cur_i][cur_j - 1] == 255):

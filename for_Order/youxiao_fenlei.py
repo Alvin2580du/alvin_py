@@ -15,6 +15,7 @@ iris = load_iris()
 
 x = iris.data
 y = iris.target
+print(y)
 # 预处理,标准化
 x_scale = scale(x)
 
@@ -23,13 +24,14 @@ try:
     # one-hot
     enc = OneHotEncoder()
     y_onehot = enc.fit_transform(y.reshape(1, -1))
+    print(y_onehot)
     imp = Imputer(missing_values='NAN', strategy='mean', axis=0)
     imp.fit(x_scale)
     outfile = imp.transform(x_scale)
 except:
     outfile = x_scale
     y_onehot = y
-
+exit(1)
 # 划分训练集和测试集
 test_rate = 0.3
 x_train, x_test, y_train, y_test = train_test_split(outfile, y_onehot, test_size=test_rate)

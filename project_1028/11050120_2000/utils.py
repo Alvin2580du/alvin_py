@@ -24,7 +24,7 @@ def viterbi_(nodes, trans):
     return key, value
 
 
-def get_sents(datasets):
+def get_train_sents(datasets):
     # 数据读取的函数
     sents = []
     tmp = []
@@ -47,3 +47,28 @@ def get_sents(datasets):
             else:
                 break
     return sents, words
+
+
+def get_test_sents(datasets):
+    # 测试数据读取的函数
+    sents = []
+    tmp = []
+    words = []
+    with open(datasets, 'r', encoding='utf-8') as fr:
+        while True:
+            lines = fr.readline()
+            if lines:
+                if len(lines) > 1:
+                    w = lines.replace("\n", "")  # 取出单字和标签
+                    tmp.append(w)
+                    if w not in words:
+                        # 这里把所有的单词做个统计，
+                        words.append(w)
+                else:
+                    # 如果一句话结束了， 会有一个空行
+                    sents.append("".join(tmp))
+                    tmp = []
+            else:
+                break
+    return sents, words
+

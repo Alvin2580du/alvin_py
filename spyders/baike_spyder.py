@@ -130,6 +130,3 @@ def get_moreurls():
     df = pd.DataFrame(res)
     df.to_csv("./localdatasets/baike/urls_new1.txt", index=None, header=None)
 
-
-get_moreurls()
-

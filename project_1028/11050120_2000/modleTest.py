@@ -2,28 +2,29 @@ from keras.models import Model
 from keras.layers import Embedding, Input, LSTM, TimeDistributed, Dense, Bidirectional
 import numpy as np
 
-from main import CrfMainr
-from utils import get_sents, max_in_dict, viterbi_
+from main import CrfModel
+from utils import get_test_sents, viterbi_, get_train_sents
+
+n_classes = 4  # 类别数
+max_len = 100  # 样本的最大长度，不够做padding处理
+batch_size = 128  # 批处理大小
+epoch = 100  # 每个batch的迭代次数
+tags = ['S', 'B', 'I', 'E']  # 标签
 
 
-def cutTest(s, filename, batch_size, modelType='crf'):
-    print("S:{}".format(s))
-    # 分词函数
-    n_classes = 4
-    max_len = 75
+def cutTest(s, filename, batch_size, modelType='crf'):     # 分词函数
     # 建立模型
     word_ids = Input(batch_shape=(batch_size, max_len), dtype='int32')
     sequence_lengths = Input(batch_shape=[batch_size, 1], dtype='int32')
     word_embeddings = Embedding(vocab_size, n_classes)(word_ids)
+    crf = CrfModel()
     if modelType == 'crf':
-        crf = CrfMainr()
         pred = crf(inputs=[word_embeddings, sequence_lengths])
         model = Model(inputs=[word_ids, sequence_lengths], outputs=[pred])
         model.load_weights(filename)
     else:
         blstm = Bidirectional(LSTM(units=50, return_sequences=True))(word_embeddings)
         model = TimeDistributed(Dense(4, activation='tanh'))(blstm)
-        crf = CrfMainr()
         pred = crf(inputs=[model, sequence_lengths])
         model = Model(inputs=[word_ids, sequence_lengths], outputs=[pred])
         model.load_weights(filename)
@@ -68,34 +69,20 @@ def cutTest(s, filename, batch_size, modelType='crf'):
 
 
 if __name__ == '__main__':
-    method = 'TestOne'
 
-    if method == 'TestOne':
-        s = '造成交通事故后逃逸被吊销机动车驾驶证的'
-        data_name = './data/train.utf8'
-        model_name = 'tmp_crflstm.model.h5'
-        modelType = 'lstmcrf'
-        sentences, words = get_sents(datasets=data_name)
-        vocab_size = len(words)
-        max_len = 75
+    # 把要测试的句子放到文件test.utf8中，执行下面的代码
+    fw = open('predict.utf8', 'w', encoding='utf-8')
+    data_name = './data/train.utf8'
+    model_name = 'tmp_crflstm.model.h5'
+    modelType = 'lstmcrf'
+    sentences, words = get_train_sents(datasets=data_name)
+    testsentences, testwords = get_test_sents(datasets='test.utf8')
+    vocab_size = len(words)
+    for sentence in testsentences:
         id2char = {i + 1: j for i, j in enumerate(words)}  # id到字的映射
         char2id = {j: i for i, j in id2char.items()}  # 字到id的映射
-        res = cutTest(s, filename=model_name, batch_size=1, modelType=modelType)
-        print("------------------分词结果为：------------------")
-        print(res)
+        res = cutTest(sentence, filename=model_name, batch_size=1, modelType=modelType)
+        fw.writelines(" ".join(res)+'\n')
+        print(" ".join(res))
 
-    if method == 'TestBatch':
-        # 把要测试的句子放到文件data.test.txt中，执行下面的代码
-        with open('data.test.txt', 'r') as fr:
-            lines = fr.readlines()
-            for line in lines:
-                data_name = './data/train.utf8'
-                model_name = 'tmp_crflstm.model.h5'
-                modelType = 'lstmcrf'
-                sentences, words = get_sents(datasets=data_name)
-                vocab_size = len(words)
-                max_len = 75
-                id2char = {i + 1: j for i, j in enumerate(words)}  # id到字的映射
-                char2id = {j: i for i, j in id2char.items()}  # 字到id的映射
-                res = cutTest(line, filename=model_name, batch_size=1, modelType=modelType)
-                print(res)
+
