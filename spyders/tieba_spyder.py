@@ -8,6 +8,15 @@ import urllib.request
 from urllib import error
 import logging
 import re
+import random
+import time
+
+fw = open("已爬链接.txt", 'a+', encoding='utf-8')
+fr = open("已爬链接.txt", 'r', encoding='utf-8')
+lines = fr.readlines()
+have = []
+for line in lines:
+    have.append(line.replace("\n", ""))
 
 
 def isurl(url):
@@ -17,11 +26,16 @@ def isurl(url):
         return False
 
 
+ug = ['Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.101 Safari/537.36',
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.80 Safari/537.36",
+      'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:34.0) Gecko/20100101 Firefox/34.0',
+      ]
+
+
 def urlhelper(url):
     try:
         req = urllib.request.Request(url)
-        req.add_header("User-Agent",
-                       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.80 Safari/537.36")
+        req.add_header("User-Agent", random.choice(ug))
         req.add_header("Accept", "*/*")
         req.add_header("Accept-Language", "zh-CN,zh;q=0.9")
         data = urllib.request.urlopen(req)
@@ -61,23 +75,29 @@ def build_links():
 
 
 def build_download():
-    data = pd.read_excel("链接2.xlsx")
-    num = 0
+    name = 'nvshen'
+    epo = 3
+    data = pd.read_excel("链接3.xlsx")
+    num = 854
     for one in tqdm(data.values):
         try:
+            if one[0] in have:
+                continue
             htmls = urlhelper("{}?see_lz=1".format(one[0]))
+            fw.writelines(one[0]+"\n")
             soup = BeautifulSoup(htmls, 'lxml')
             total = soup.findAll('img', attrs={"class": 'BDE_Image'})
             for t in total:
                 num += 1
-                urllib.request.urlretrieve(t['src'], filename='F:\\tiebaPictures\\meinv\\{}.jpg'.format(num))
-                if num % 100 == 0:
+                urllib.request.urlretrieve(t['src'], filename='F:\\tiebaPictures\\meinv\\{}_{}_{}.jpg'.format(name, epo, num))
+                if num % 50 == 0:
                     print("已下载{} 张美图".format(num))
+                    time.sleep(random.random()*3)
+
         except Exception as e:
             print(one, e)
             continue
 
-build_links()
-exit(1)
-build_download()
 
+build_download()
+fw.close()
