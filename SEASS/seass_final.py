@@ -2,13 +2,15 @@ import os
 import argparse
 import logging
 import json
-from collections import defaultdict
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 import torch
 import threading
 from torch import nn
 import torch.nn.functional as F
+
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+print("aaaa", True if torch.cuda.is_available else False)
 
 start_tok = "<s>"
 end_tok = "</s>"
@@ -17,8 +19,8 @@ pad_tok = "<pad>"
 
 parser = argparse.ArgumentParser(description='Selective Encoding for Abstractive Sentence Summarization in DyNet')
 parser.add_argument('--n_epochs', type=int, default=5, help='Number of epochs [default: 3]')
-parser.add_argument('--n_train', type=int, default=3803900, help='Number of training data (up to 3803957 in gigaword)')
-parser.add_argument('--n_valid', type=int, default=189651, help='Number of validation data (up to 189651 in gigaword)')
+parser.add_argument('--n_train', type=int, default=10000, help='Number of training data (up to 3803957 in gigaword)')
+parser.add_argument('--n_valid', type=int, default=725, help='Number of validation data (up to 189651 in gigaword)')
 parser.add_argument('--batch_size', type=int, default=4, help='Mini batch size [default: 32]')
 parser.add_argument('--emb_dim', type=int, default=100, help='Embedding size [default: 256]')
 parser.add_argument('--hid_dim', type=int, default=128, help='Hidden state size [default: 256]')
@@ -145,29 +147,6 @@ class myCollate:
         return self.collate_fn(batch_data)
 
 
-def build_vocab(filelist, vocab_file='vocab.json', min_count=5):
-    print("Building vocab with min_count=%d..." % min_count)
-    freq = defaultdict(int)
-    for file in filelist:
-        fin = open(file, "r", encoding="utf8")
-        for _, line in enumerate(fin):
-            for word in line.strip().split():
-                freq[word] += 1
-        fin.close()
-    print('Number of all words: %d' % len(freq))
-
-    vocab = {start_tok: 0, end_tok: 1, unk_tok: 2, pad_tok: 3}
-    if unk_tok in freq:
-        freq.pop(unk_tok)
-    for word in freq:
-        if freq[word] > min_count:
-            vocab[word] = len(vocab)
-    print('Number of filtered words: %d, %f%% ' % (len(vocab), len(vocab) / len(freq) * 100))
-
-    json.dump(vocab, open(vocab_file, 'w'))
-    return freq
-
-
 def load_embedding_vocab(embedding_path):
     fin = open(embedding_path)
     vocab = set([])
@@ -276,7 +255,7 @@ class Model(nn.Module):
 
         # encoder (with selective gate)
         self.encoder = nn.GRU(self.emb_dim, self.hid_dim // 2, batch_first=True, bidirectional=True)
-        self.encoder = nn.LSTM(self.emb_dim, self.hid_dim // 2, batch_first=True, bidirectional=True)
+        # self.encoder = nn.LSTM(self.emb_dim, self.hid_dim // 2, batch_first=True, bidirectional=True)
 
         self.linear1 = nn.Linear(hid_dim, hid_dim)
         self.linear2 = nn.Linear(hid_dim, hid_dim)
@@ -286,6 +265,7 @@ class Model(nn.Module):
         self.attention_layer = BahdanauAttention(self.hid_dim, self.hid_dim)
         self.enc2dec = nn.Linear(self.hid_dim // 2, self.hid_dim)
         self.decoder = nn.GRU(self.emb_dim + self.hid_dim, self.hid_dim, batch_first=True)
+        # self.encoder = nn.LSTM(self.emb_dim, self.hid_dim // 2, batch_first=True, bidirectional=True)
 
         # maxout
         self.W = nn.Linear(emb_dim, 2 * hid_dim)
@@ -293,9 +273,7 @@ class Model(nn.Module):
         self.V = nn.Linear(hid_dim, 2 * hid_dim)
 
         self.dropout = nn.Dropout(p=0.5)
-
         self.decoder2vocab = nn.Linear(self.hid_dim, len(self.vocab))
-
         self.loss_layer = nn.CrossEntropyLoss(ignore_index=self.vocab['<pad>'])
 
     def init_decoder_hidden(self, hidden):
@@ -310,7 +288,6 @@ class Model(nn.Module):
         embeds = self.embedding_look_up(inputs)
         embeds = self.dropout(embeds)
         outputs, hidden = self.encoder(embeds)
-
         sn = torch.cat([hidden[0], hidden[1]], dim=-1).view(-1, 1, self.hid_dim)
         sGate = self.sigmoid(self.linear1(outputs) + self.linear2(sn))
         outputs = outputs * sGate
@@ -349,35 +326,30 @@ def run_batch(valid_x, valid_y, model):
 def train(train_x, train_y, valid_x, valid_y, model, optimizer, scheduler, epochs=1):
     logging.info("Start to train...")
     n_batches = train_x.steps
+    logging.info("n batchs :{}".format(n_batches))
     for epoch in range(epochs):
         for idx in range(n_batches):
             optimizer.zero_grad()
-
             loss = run_batch(train_x, train_y, model)
             loss.backward()  # do not use retain_graph=True
             torch.nn.utils.clip_grad_value_(model.parameters(), 5)
-
             optimizer.step()
-            # scheduler.step()
-
             if (idx + 1) % 50 == 0:
                 train_loss = loss.cpu().detach().numpy()
-                with torch.no_grad():
-                    valid_loss = run_batch(valid_x, valid_y, model)
-                logging.info('epoch %d, step %d, training loss = %f, validation loss = %f'
-                             % (epoch, idx + 1, train_loss, valid_loss))
-            del loss
+                # with torch.no_grad():
+                #     valid_loss = run_batch(valid_x, valid_y, model)
+                logging.info('epoch %d, step %d, training loss = %f' % (epoch, idx + 1, train_loss))
 
-        model.cpu()
-        torch.save(model.state_dict(), os.path.join(model_dir, 'params_%d.pkl' % epoch))
-        logging.info('Model saved in dir %s' % model_dir)
-        model.cuda()
-    # model.embedding_look_up.to(torch.device("cpu"))
+            if (idx + 1) % 500 == 0:
+                model.cpu()
+                torch.save(model.state_dict(), os.path.join(model_dir, 'params_idx_%d.pkl' % idx))
+                logging.info('Model saved in dir %s' % model_dir)
+                model.cuda()
+            del loss
 
 
 def main():
     print(args)
-
     N_EPOCHS = args.n_epochs
     N_TRAIN = args.n_train
     N_VALID = args.n_valid
@@ -385,14 +357,13 @@ def main():
     EMB_DIM = args.emb_dim
     HID_DIM = args.hid_dim
 
-    TRAIN_X = 'text.txt'
-    TRAIN_Y = 'summary.txt'
-    VALID_X = TRAIN_X
-    VALID_Y = TRAIN_Y
+    TRAIN_X = './clean_data/train.source.cut'
+    TRAIN_Y = './clean_data/train.target.cut'
 
-    vocab_file = "vocab.json"
-    if not os.path.exists(vocab_file):
-        build_vocab([TRAIN_X, TRAIN_Y], vocab_file)
+    VALID_X = './clean_data/test.source.cut'
+    VALID_Y = './clean_data/test.target.cut'
+
+    vocab_file = "vocab_zh.json"
     vocab = json.load(open(vocab_file))
 
     train_x = BatchManager(load_data(TRAIN_X, vocab, N_TRAIN), BATCH_SIZE)
@@ -403,8 +374,7 @@ def main():
 
     # model = Seq2SeqAttention(len(vocab), EMB_DIM, HID_DIM, BATCH_SIZE, vocab, max_trg_len=25).cuda()
     model = Model(vocab, out_len=25, emb_dim=EMB_DIM, hid_dim=HID_DIM).cuda()
-    # model.embedding_look_up.to(torch.device("cpu"))
-
+    # model.embedding_look_up.to(torch.device("cuda"))
     model_file = args.model_file
     if os.path.exists(model_file):
         model.load_state_dict(torch.load(model_file))

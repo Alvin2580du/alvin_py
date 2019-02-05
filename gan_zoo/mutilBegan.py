@@ -826,10 +826,16 @@ def main(config):
 
     data_loader = get_loader(data_path, config.batch_size, config.input_scale_size, config.data_format)
     trainer = Trainer(config, data_loader)
-
+    num_gpus = 2
     if config.is_train:
         save_config(config)
-        trainer.train()
+        with tf.variable_scope(tf.get_variable_scope()):
+            for i in range(num_gpus):
+                with tf.device("/gpu:%d" % i):
+                    with tf.name_scope("tower_%d" % i):
+                        print("=============Train===================")
+                        trainer.train()
+
     elif config.is_visiuliztion:
         if not os.path.exists(config.visu_path):
             os.makedirs(config.visu_path)

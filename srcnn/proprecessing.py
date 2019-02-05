@@ -217,7 +217,7 @@ def image2npy(inpath, outpath, size):
 
 
 if __name__ == "__main__":
-    method = 'image2npy'
+    method = 'four'
 
     if method == 'first':
         build_split_data(step='train')
@@ -229,7 +229,7 @@ if __name__ == "__main__":
         upsample_yaogan(step="Test", lr_upsample_path='yaogan_lr_256x256', Hr_subsample='yaogan_64x64')
 
     if method == 'four':
-        write2file_for_train(step='Test', hr_path='yaogan', lr_path='yaogan_lr_256x256')
+        write2file_for_train(step='Train', hr_path='D:\\alvin_data\\yaogan_64x64\\train', lr_path='yaogan_lr_256x256')
 
     if method == 'five':
         bsd300_to_text()
@@ -249,4 +249,4 @@ if __name__ == "__main__":
         yaoganProcess()
 
     if method == 'image2npy':
-        image2npy(inpath='D:\\results', outpath='yaogantest', size=96)
+        image2npy(inpath='D:\\alvin_data\\yaogan_64x64\\train', outpath='yaogantest', size=96)

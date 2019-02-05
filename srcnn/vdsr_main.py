@@ -138,7 +138,7 @@ def read_hf2arr(inputs_list):
 
 
 if __name__ == '__main__':
-    method = 'stat'
+    method = 'train'
     if method == 'train':
         train_list_length = 202599
         data_sets = 'celeba'

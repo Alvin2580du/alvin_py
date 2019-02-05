@@ -84,20 +84,34 @@ def build_download():
             if one[0] in have:
                 continue
             htmls = urlhelper("{}?see_lz=1".format(one[0]))
-            fw.writelines(one[0]+"\n")
+            fw.writelines(one[0] + "\n")
             soup = BeautifulSoup(htmls, 'lxml')
             total = soup.findAll('img', attrs={"class": 'BDE_Image'})
             for t in total:
                 num += 1
-                urllib.request.urlretrieve(t['src'], filename='F:\\tiebaPictures\\meinv\\{}_{}_{}.jpg'.format(name, epo, num))
+                urllib.request.urlretrieve(t['src'],
+                                           filename='F:\\tiebaPictures\\meinv\\{}_{}_{}.jpg'.format(name, epo, num))
                 if num % 50 == 0:
                     print("已下载{} 张美图".format(num))
-                    time.sleep(random.random()*3)
+                    time.sleep(random.random() * 3)
 
         except Exception as e:
             print(one, e)
             continue
 
 
-build_download()
-fw.close()
+def downloads(one):
+    name = 'qita'
+    epo = 1
+    num = 7
+    htmls = urlhelper("{}?see_lz=1".format(one))
+    soup = BeautifulSoup(htmls, 'lxml')
+    total = soup.findAll('img', attrs={"class": 'BDE_Image'})
+    for t in total:
+        urllib.request.urlretrieve(t['src'], filename='F:\\tiebaPictures\\meinv\\{}_{}_{}.jpg'.format(name, epo, num))
+        print('F:\\tiebaPictures\\meinv\\{}_{}_{}.jpg'.format(name, epo, num), '已下载')
+        num += 1
+
+downloads(one='https://tieba.baidu.com/p/5106814363')
+
+
