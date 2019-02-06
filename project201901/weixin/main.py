@@ -3,8 +3,10 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
 from sklearn.linear_model import Lasso
 import pandas as pd
+from sklearn import metrics
 
 
+import matplotlib.pyplot as plt
 """ 需求
 
     Objective 1: 
@@ -102,6 +104,20 @@ def build_one():
     my_confusion_matrix(y_test, y_preds)
 
 
+def plot_roc(y_true, y_pred, file_name):
+    fpr, tpr, thresholds = metrics.roc_curve(y_true, y_pred, pos_label=1)
+    roc_auc = metrics.auc(fpr, tpr)
+    plt.clf()
+    plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.0])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.legend(loc="lower right")
+    plt.savefig(file_name)
+
+
 def build_two():
     # 选择随机森林作为选择特征的模型
     x_train, x_test, y_train, y_test = data_loader()
@@ -126,13 +142,15 @@ def build_two():
         moedl_rf.fit(new_train, y_train)
         y_pred = moedl_rf.predict(new_test)
         rf_scores = accuracy_score(y_test, y_pred)
+        plot_roc(y_pred=y_pred, y_true=y_test, file_name='{}.png'.format(num))
+
         print("number of features:{}, rf_scores:{}".format(num, rf_scores))
         my_confusion_matrix(y_test, y_pred)
         print("- * -" * 20)
 
 
 if __name__ == '__main__':
-    method = 'one'
+    method = 'two'
 
     if method == 'one':
         build_one()
