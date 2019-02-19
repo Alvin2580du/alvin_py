@@ -41,18 +41,8 @@ def svg_dict(csv_html):
 def svg_text(url):
     html = requests.get(url)
     dict_svg = svg_dict(html.text)
+    # print("dict_svg:{}".format(dict_svg))
     return dict_svg
-
-
-def css_get(doc):
-    css_link = "http:" + doc("head > link:nth-child(11)").attr("href")
-    background_link = requests.get(css_link, headers=header_css)
-    r = r'background-image: url(.*?);'
-    matchObj = re.compile(r, re.I)
-    svg_link = matchObj.findall(background_link.text)[1].replace(")", "").replace("(", "http:")
-    dict_avg_text = svg_text(svg_link)
-    dict_css = css_dict(background_link.text)
-    return dict_avg_text, dict_css
 
 
 # 4-生成css字库字典
@@ -65,6 +55,17 @@ def css_dict(html):
         y = re.findall(r"-(.+?).0", data[2])[0]
         dict_css[data[0]] = (x, y)
     return dict_css
+
+
+def css_get(doc):
+    css_link = "http:" + doc("head > link:nth-child(11)").attr("href")
+    background_link = requests.get(css_link, headers=header_css)
+    r = r'background-image: url(.*?);'
+    matchObj = re.compile(r, re.I)
+    svg_link = matchObj.findall(background_link.text)[1].replace(")", "").replace("(", "http:")
+    dict_avg_text = svg_text(svg_link)
+    dict_css = css_dict(background_link.text)
+    return dict_avg_text, dict_css
 
 
 # 5-最终评论汇总
@@ -344,12 +345,12 @@ def build_tieba(file_name="tieba_links.csv"):
             continue
 
     df = pd.DataFrame(comments)
-    df.to_csv("comments.csv", index=None)
+    df.to_csv("comments_tieba.csv", index=None)
     print(df.shape)
 
 
 if __name__ == '__main__':
-    method = 'airbnb'
+    method = 'build_dazhong'
 
     if method == 'build_dazhong':
         ids = {'121819266': "高铁苏州北站南广场",

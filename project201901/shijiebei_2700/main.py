@@ -301,7 +301,7 @@ def build_scores_meixi():
     data = pd.read_excel("./datasets/{}".format(data_name))
     data['sentiments'] = data['content'].apply(get_scores_meixi)
     print(data.shape)
-    # data = data[~data['sentiments'].isin([""])]
+    data = data[~data['sentiments'].isin([""])]
     data.to_csv("dataAll_scores_meixi.csv", index=None)
     print(data.shape)
 
@@ -362,7 +362,7 @@ def plots(data_name):
 
 if __name__ == '__main__':
 
-    method = 'build_scores_meixi'  # 修改这里，分别执行下面的代码
+    method = 'plots'  # 修改这里，分别执行下面的代码
 
     if method == 'cipin':
         cipin()
@@ -400,5 +400,8 @@ if __name__ == '__main__':
         build_scores_cluo()
 
     if method == 'plots':
-        datas = 'dataAll_scores_cluo.csv'
+        datas = 'dataAll_scores.csv'  # 这里选择下面的不同的关键词，画图
+        # dataAll_scores
+        # dataAll_scores_cluo
+        # dataAll_scores_meixi
         plots(data_name=datas)

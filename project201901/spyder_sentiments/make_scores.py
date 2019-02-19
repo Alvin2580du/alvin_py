@@ -10,6 +10,8 @@ from collections import Counter
 plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
 
+build = False
+
 
 def readLines(filename):
     out = []
@@ -135,16 +137,19 @@ def scoreSent(senWord, notWord, degreeWord, segResult):
     return score
 
 
-build = False
-
 if build:
     wordsDicts = get_wordDicts()
+    print(wordsDicts)
     senWord, notWord, degreeWord = classifyWords(wordsDicts)
+    print(senWord)
+    print(notWord)
+    print(degreeWord)
 
 
 def get_scores(line):
     try:
         newSent = sent2word(line)
+        print(newSent)
         scores = scoreSent(senWord, notWord, degreeWord, newSent)
         return scores
     except Exception as e:
@@ -217,7 +222,6 @@ def build_diff_source():
         if y.shape[0] < 100:
             continue
         scores = y['sentiments'].values[:100]
-        print(scores)
         plt.plot(scores, label=x)
     plt.legend()
     plt.xlabel("x")
@@ -289,7 +293,19 @@ def get_pos_data():
 
 
 if __name__ == "__main__":
-    # static()
-    # get_pos_data()
-    # exit(1)
-    plot_word_cloud("neg_content.csv", "neg_content.png")
+    method = 'build_diff_source'
+
+    if method == 'build_last':
+        build_last()
+
+    if method == 'static':
+        static()
+
+    if method == 'get_pos_data':
+        get_pos_data()
+
+    if method == 'build_diff_source':
+        build_diff_source()
+
+    if method == 'plot_word_cloud':
+        plot_word_cloud("neg_content.csv", "neg_content.png")
