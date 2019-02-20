@@ -162,7 +162,35 @@ def build_last():
     data.to_csv("./raw_data/dataAll_scores.csv")
 
 
+def make_five(inputs):
+    if inputs > 30:
+        return 'very pos'
+    elif 0 < inputs < 30:
+        return "pos"
+    elif inputs == 0:
+        return 'eos'
+    elif -30 < inputs < 0:
+        return "neg"
+    else:
+        return "very neg"
+
+
 data = pd.read_csv("./raw_data/dataAll_scores.csv")
+
+
+def make_five_class():
+    data['labels'] = data['sentiments'].apply(make_five)
+    data.to_csv("dataAll_scores")
+    pos_bigger_40 = 0
+    for x, y in data.groupby(by='labels'):
+        res = y['sentiments'].describe()
+        if 'pos' in x:
+            for i in y['sentiments'].values:
+                if i > 35:
+                    pos_bigger_40 += 1
+        print(x, res)
+        print("- " * 20)
+    print(pos_bigger_40, "{:0.3f}".format(pos_bigger_40 / data.shape[0]))
 
 
 def plot_value():
@@ -172,48 +200,50 @@ def plot_value():
     plt.show()
     plt.close()
 
-
-def static():
-    pos = 0
-    pos_sum = 0
-    pos_max = 0
-    pos_five = 0
-    neg = 0
-    neg_sum = 0
-    neg_max = 0
-    eos = 0
-    eos_sum = 0
-    shape = data.shape[0]
-    for x in data['sentiments'].values.tolist():
-        if x > 0:
-            pos += 1
-            pos_sum += x
-            if x > pos_max:
-                pos_max = x
-            if x > 5:
-                pos_five += 1
-        elif x < 0:
-            neg += 1
-            neg_sum += x
-            if x < neg_max:
-                neg_max = x
-        else:
-            eos += 1
-            eos_sum += x
-
-    pos_mean = pos_sum / pos
-    neg_mean = neg_sum / neg
-    eos_mean = eos_sum / eos
-    print("- " * 10)
-    print("积极频数 频率 积极均值 积极极值 评分>5 比重")
-    print(pos, "{:0.3f}".format(pos / shape), pos_mean, pos_max, pos_five, "{:0.3f}".format(pos_five / pos))
-    print("- " * 10)
-    print("消极频数 频率 消极均值 消极极值 ")
-    print(neg, "{:0.3f}".format(neg / shape), neg_mean, neg_max, )
-    print("- " * 10)
-    print("中立频数 频率 中立均值")
-    print(eos, "{:0.3f}".format(eos / shape), eos_mean)
-    print("- " * 10)
+#
+# def static():
+#     very_pos = 0
+#     pos = 0
+#     pos_sum = 0
+#     pos_max = 0
+#     pos_five = 0
+#     neg = 0
+#     neg_sum = 0
+#     neg_max = 0
+#     very_neg = 0
+#     eos = 0
+#     eos_sum = 0
+#     shape = data.shape[0]
+#     for x in data['sentiments'].values.tolist():
+#         if x > 0:
+#             pos += 1
+#             pos_sum += x
+#             if x > pos_max:
+#                 pos_max = x
+#             if x > 5:
+#                 pos_five += 1
+#         elif x < 0:
+#             neg += 1
+#             neg_sum += x
+#             if x < neg_max:
+#                 neg_max = x
+#         else:
+#             eos += 1
+#             eos_sum += x
+#
+#     pos_mean = pos_sum / pos
+#     neg_mean = neg_sum / neg
+#     eos_mean = eos_sum / eos
+#     print("- " * 10)
+#     print("积极频数 频率 积极均值 积极极值 评分>5 比重")
+#     print(pos, "{:0.3f}".format(pos / shape), pos_mean, pos_max, pos_five, "{:0.3f}".format(pos_five / pos))
+#     print("- " * 10)
+#     print("消极频数 频率 消极均值 消极极值 ")
+#     print(neg, "{:0.3f}".format(neg / shape), neg_mean, neg_max, )
+#     print("- " * 10)
+#     print("中立频数 频率 中立均值")
+#     print(eos, "{:0.3f}".format(eos / shape), eos_mean)
+#     print("- " * 10)
 
 
 def build_diff_source():
@@ -293,13 +323,13 @@ def get_pos_data():
 
 
 if __name__ == "__main__":
-    method = 'build_diff_source'
+    method = 'make_five_class'
 
     if method == 'build_last':
         build_last()
 
-    if method == 'static':
-        static()
+    if method == 'make_five_class':
+        make_five_class()
 
     if method == 'get_pos_data':
         get_pos_data()
