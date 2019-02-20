@@ -10,7 +10,7 @@ plt.rcParams['axes.unicode_minus'] = False
 # 数据集名称
 data_name = 'data.xlsx'
 # 计算情感得分的时候，设置全局变量build为True， 否则为False
-build = True
+build = False
 
 
 def readLines(filename):
@@ -360,9 +360,34 @@ def plots(data_name):
     plt.show()
 
 
+def get_zhuanfa(inputs):
+    out = []
+    for x in inputs:
+        res = x.replace("转发", "").replace(" ", "")
+        out.append(int(res))
+    return sum(out)
+
+
+def degree_analysis():
+    save = []
+    data = pd.read_excel("./datasets/dataBig.xlsx")
+    for x, y in data.groupby(by='标题'):
+        try:
+            rudu = y['点赞数'].sum()
+            chudu = get_zhuanfa(y['转发数'].values.tolist())
+            rows = {"name": x, "入度": rudu, "出度": chudu}
+            save.append(rows)
+        except:
+            continue
+
+    df = pd.DataFrame(save)
+    df.to_excel("出入度分析.xlsx", index=None)
+    print(df.shape)
+
+
 if __name__ == '__main__':
 
-    method = 'plots'  # 修改这里，分别执行下面的代码
+    method = 'degree_analysis'  # 修改这里，分别执行下面的代码
 
     if method == 'cipin':
         cipin()
@@ -405,3 +430,6 @@ if __name__ == '__main__':
         # dataAll_scores_cluo
         # dataAll_scores_meixi
         plots(data_name=datas)
+
+    if method == 'degree_analysis':
+        degree_analysis()
