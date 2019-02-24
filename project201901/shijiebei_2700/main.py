@@ -4,6 +4,7 @@ import jieba
 import matplotlib.pyplot as plt
 import wordcloud
 from collections import defaultdict
+import numpy as np
 
 plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
@@ -60,6 +61,7 @@ def plot_word_cloud(file_name, savename):
 
 
 def build_one():
+    # 获取全部的情感词数据,保存到qingganci.csv文件中
     qinggan_cidian = readLines("./cidian/qingganci.txt")
     data = pd.read_excel("./datasets/{}".format(data_name))
     words = []
@@ -68,7 +70,7 @@ def build_one():
         one_cut = [i for i in jieba.lcut(one) if i not in stopwords and i is not None]
         for x in one_cut:
             vocal.append(x)
-            if x in qinggan_cidian:  # 获取全部的情感词数据,保存到qingganci.csv文件中
+            if x in qinggan_cidian:  #
                 words.append(x)
     print("情感词共计：{}个".format(len(words)))
     df = pd.DataFrame(vocal)
@@ -351,13 +353,39 @@ def plots(data_name):
     plt.figure(figsize=(10, 6))
     plt.plot(dates, pos_data, c='red', label='积极')
     plt.plot(dates, neg_data, c='blue', label='消极')
-    plt.plot(dates, eos_data, c='yellow', label='中性')
+    plt.plot(dates, eos_data, c='green', label='中性')
     plt.xlabel("时间")
     plt.ylabel("极性强度")
-    plt.legend(loc='upper right')
+    plt.legend(loc='lower right')
     plt.xticks(rotation=45)
+    plt.yticks(ticks=np.arange(-10, 10, step=1))
     plt.savefig('{}.png'.format(data_name.replace(".csv", "")))
     plt.show()
+    plt.close()
+
+    # 合并消极和积极
+    datas = []
+    for x, y in zip(pos_data, neg_data):
+        datas.append(x + y)
+
+    plt.figure(figsize=(10, 6))
+    labels = None
+    if 'cluo' in data_name:
+        labels = 'C罗'
+    if 'meixi' in data_name:
+        labels = '梅西'
+    if 'dataAll_scores.csv' in data_name:
+        labels = '总体'
+
+    plt.plot(dates, datas, c='red', label='积极加消极 {}'.format(labels))
+    plt.xlabel("时间")
+    plt.ylabel("极性强度")
+    plt.legend(loc='lower right')
+    plt.xticks(rotation=45)
+    plt.yticks(ticks=np.arange(-10, 10, step=1))
+    plt.savefig('{}_合并.png'.format(data_name.replace(".csv", "")))
+    plt.show()
+    plt.close()
 
 
 def get_zhuanfa(inputs):
@@ -387,12 +415,14 @@ def degree_analysis():
 
 if __name__ == '__main__':
 
-    method = 'degree_analysis'  # 修改这里，分别执行下面的代码
+    method = 'plots'  # 修改这里，分别执行下面的代码
 
     if method == 'cipin':
+        # 统计词频
         cipin()
 
     if method == 'build_one':
+        # 获取全部的情感词数据,保存到qingganci.csv文件中
         build_one()
 
     if method == 'build_50':
@@ -426,6 +456,9 @@ if __name__ == '__main__':
 
     if method == 'plots':
         datas = 'dataAll_scores.csv'  # 这里选择下面的不同的关键词，画图
+        """
+        趋势 C罗的是6.16和7.2有两个高峰 6.21有个小高峰 
+        """
         # dataAll_scores
         # dataAll_scores_cluo
         # dataAll_scores_meixi
