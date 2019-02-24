@@ -129,7 +129,8 @@ def svm_predict(string):
 
 def build_svm():
     x_train, x_test = load_file_and_preprocessing()
-
+    print(x_train.shape, x_test.shape)
+    exit(1)
     get_train_vecs(x_train, x_test)
     train_vecs, y_train, test_vecs, y_test = get_data()
     svm_train(train_vecs, y_train, test_vecs, y_test)
