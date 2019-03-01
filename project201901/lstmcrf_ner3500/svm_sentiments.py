@@ -119,4 +119,6 @@ def build_svm():
     svm_train(train_vecs, y_train, test_vecs, y_test)
 
 
-build_svm()
+# build_svm()
+res = svm_predict()
+print(res)

@@ -213,8 +213,9 @@ def build():
 
 if __name__ == '__main__':
 
-    method = 'build'
-    if method == '':
+    method = 'get_train_data'
+
+    if method == 'get_train_data':
         get_train_data()
 
     if method == 'build':

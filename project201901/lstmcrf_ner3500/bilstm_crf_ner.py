@@ -342,7 +342,7 @@ class BLC(object):
         return feed_dict, seq_len_list
 
 if __name__ == '__main__':
-    # train/test/
+    # train/test/build_vocab
     mode = 'test'
     # 参数
     args = {}
