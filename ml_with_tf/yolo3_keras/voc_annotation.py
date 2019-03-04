@@ -7,7 +7,7 @@ classes = ["airport", "bridge", "harbor"]
 
 
 def convert_annotation(year, image_id, list_file):
-    in_file = open('D:\\yolo3_keras\VOC%s\\Annotations\\%s.xml' % (year, image_id))
+    in_file = open('VOC%s\\Annotations\\%s.xml' % (year, image_id))
     tree = ET.parse(in_file)
     root = tree.getroot()
 
@@ -26,7 +26,7 @@ def convert_annotation(year, image_id, list_file):
 wd = getcwd()
 
 for year, image_set in sets:
-    image_ids = open('D:\\yolo3_keras\\VOC%s\\ImageSets\\Main\\%s.txt' % (year, image_set)).read().strip().split()
+    image_ids = open('VOC%s\\ImageSets\\Main\\%s.txt' % (year, image_set)).read().strip().split()
     list_file = open('%s_%s.txt' % (year, image_set), 'w')
     for image_id in image_ids:
         list_file.write('%s\\VOC%s\\JPEGImages\\%s.jpg' % (wd, year, image_id))

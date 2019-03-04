@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 from keras import backend as K
 from keras.layers import Conv2D, Add, ZeroPadding2D, UpSampling2D, Concatenate, MaxPooling2D
-from keras.layers.advanced_activations import LeakyReLU
+from keras.layers.advanced_activations import LeakyReLU, PReLU, ELU
 from keras.layers.normalization import BatchNormalization
 from keras.models import Model
 from keras.regularizers import l2
@@ -18,9 +18,9 @@ from yolo3.utils import compose
 def DarknetConv2D(*args, **kwargs):
     """Wrapper to set Darknet parameters for Convolution2D."""
     darknet_conv_kwargs = {'kernel_regularizer': l2(5e-4),
-                           'padding': 'valid' if kwargs.get('strides') == (2, 2) else 'same'}
+                           'padding': 'valid' if kwargs.get('strides') == (1, 1) else 'same'}
     darknet_conv_kwargs.update(kwargs)
-    return Conv2D(*args, **darknet_conv_kwargs)
+    return Conv2D(*args, **darknet_conv_kwargs, dilation_rate=(2, 2))
 
 
 def DarknetConv2D_BN_Leaky(*args, **kwargs):
@@ -29,15 +29,15 @@ def DarknetConv2D_BN_Leaky(*args, **kwargs):
     no_bias_kwargs.update(kwargs)
     return compose(
         DarknetConv2D(*args, **no_bias_kwargs),
-        BatchNormalization(),
-        LeakyReLU(alpha=0.1))
+        BatchNormalization(),  # 这里可以去掉，做个对比
+        ELU(alpha=0.3))  # LeakyP()  # 这里修改激活函数
 
 
 def resblock_body(x, num_filters, num_blocks):
     '''A series of resblocks starting with a downsampling Convolution2D'''
     # Darknet uses left and top padding instead of 'same' mode
     x = ZeroPadding2D(((1, 0), (1, 0)))(x)
-    x = DarknetConv2D_BN_Leaky(num_filters, (3, 3), strides=(2, 2))(x)
+    x = DarknetConv2D_BN_Leaky(num_filters, (3, 3), strides=(1, 1))(x)
     for i in range(num_blocks):
         y = compose(
             DarknetConv2D_BN_Leaky(num_filters // 2, (1, 1)),
@@ -89,7 +89,7 @@ def yolo_body(inputs, num_anchors, num_classes):
     print("=========== 3: ", x, y3)
     print("=========== 4: ", [y1, y2, y3])
     res = Model(inputs, [y1, y2, y3])
-    return Model(inputs, [y1, y2])
+    return res
 
 
 def tiny_yolo_body(inputs, num_anchors, num_classes):
