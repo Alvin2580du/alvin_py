@@ -96,13 +96,13 @@ def get_predict_vecs(words):
     return train_vecs
 
 
+clf = joblib.load('svm_model.pkl')
+
+
 # 对单个句子进行情感判断
-def svm_predict():
-    string = '风险资本退出渠道不畅与风险资本市场波动性较大是导致我国风险投资对技术创新以及高新技术产业发展支撑作用不显著的主要原因'
-    print(string)
+def svm_predict(string):
     words = jieba.lcut(string)
     words_vecs = get_predict_vecs(words)
-    clf = joblib.load('svm_model.pkl')
     result = clf.predict(words_vecs)
     if int(result[0]) == 1:
         return "positive"
@@ -119,6 +119,16 @@ def build_svm():
     svm_train(train_vecs, y_train, test_vecs, y_test)
 
 
-# build_svm()
-res = svm_predict()
-print(res)
+def predict_all():
+    data['预测'] = data['text'].apply(svm_predict)
+    data.to_excel("预测结果.xlsx", index=None)
+
+
+if __name__ == '__main__':
+    method = 'predict_all'
+
+    if method == 'build_svm':
+        build_svm()
+
+    if method == 'predict_all':
+        predict_all()
