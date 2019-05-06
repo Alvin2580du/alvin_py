@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>情感极性预测系统</title>
+    <style>
+    	body{
+    		
+    		background-color: #f7f7f7;
+    	}
+    	textarea{
+    		font-size: 25px;
+    	}
+    	input{
+    		display: block;
+    		margin: 10px auto;
+    	}
+    	p{
+    		text-align: center;
+    		font-size: 30px;
+    		font-weight: bold;
+    	}
+    	.form{
+    		text-align: center;
+    	}
+    	.message{
+    		width: 200px;
+    		height: 30px;
+    		font-size: 25px;
+    	}
+		.submit{
+			width: 120px;
+			height: 40px;
+			font-size: 20px;
+		}
+    </style>
+  </head>
+  <body>
+  	<div>
+	    <p>请输入要预测情感的句子</p>
+	    <form method="post" action="/user" class="form" >
+	       <textarea name="message" id="message" cols="30" rows="10"></textarea><br>
+	      <input type="submit" value="点击预测" class="submit">
+	    </form>
+    </div>
+  </body>
+</html>
