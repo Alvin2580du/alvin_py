@@ -162,24 +162,23 @@ if __name__ == "__main__":
         """
 
         data = pd.read_excel("全部需要数据.xlsx")
-        # ['names', 'sex', 'province', 'xueyuan', 'nianji', 'xueqi', 'chengji', 'yuzhong', 'dengji']
-        for x, y in data.groupby(by='xueqi'):
+        for x, y in data.groupby(by='yuzhong'):
             for x1, y1 in y.groupby(by='xueyuan'):
                 for x2, y2 in y1.groupby(by='dengji'):
                     scores = y2['chengji'].mean()
                     lelve = [i for i in y2['chengji'] if i > 60]
-                    print(x, x1, x2, scores, len(lelve)/y2.shape[0])
+                    rate = len(lelve)/y2.shape[0]
+                    if lelve:
+                        print(x, x1, x2, "{:0.3f}".format(scores), "{:0.3f}".format(rate))
 
         for x, y in data.groupby(by='xueqi'):
             for x1, y1 in y.groupby(by='nianji'):
                 for x2, y2 in y1.groupby(by='dengji'):
                     scores = y2['chengji'].mean()
                     lelve = [i for i in y2['chengji'] if i > 60]
-                    print(x, x1, x2, scores, len(lelve)/y2.shape[0])
 
         for x, y in data.groupby(by='province'):
             for x2, y2 in y.groupby(by='dengji'):
                 if '二' in x2:
                     lelve = [i for i in y2['chengji'] if i > 60]
 
-                    print(x, x2, len(lelve) / y2.shape[0])
