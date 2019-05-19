@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>NCRE考生成绩分析系统</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+</head>
+<body>
+<form method="post" action="/grade"  class="form">
+    <p>学期：
+        <select  name="select-xueqi" id="select-xueqi">
+          <option value="all" selected>全部</option>
+          <option value="chunji">春季</option>
+          <option value="qiuji">秋季</option>
+        </select>
+    </p>
+    <p>学院：
+      <select name="select-xueyuan" id="select-xueyuan">
+        <option value="all" selected>全部</option>
+        <option value="tmgc">土木工程学院</option>
+        <option value="wgy">外国语学院</option>
+        <option value="wxy">文学院</option>
+        <option value="xny">新能源学院</option>
+        <option value="jdgc">机电工程学院</option>
+        <option value="clkxygc">材料科学与工程学院</option>
+        <option value="fxy">法学院</option>
+        <option value="lxy">理学院</option>
+        <option value="smkx">生命科学与工程学院</option>
+        <option value="dqxx">电气工程与信息工程学院</option>
+        <option value="syhg">石油化工学院</option>
+        <option value="jjgl">经济管理学院</option>
+        <option value="nydl">能源与动力工程学院</option>
+        <option value="jsjtx">计算机与通信学院</option>
+        <option value="sjys">设计艺术学院</option>
+        <option value="rjxy">软件学院</option>
+      </select>
+    </p>
+    <p>年级：
+      <select  name="select-nianji" id="select-nianji">
+        <option value="all" selected>全部</option>
+        <option value="twelve">12</option>
+        <option value="thirteen">13</option>
+        <option value="fourteen">14</option>
+        <option value="fifteen">15</option>
+        <option value="sixteen">16</option>
+        <option value="seveteen">17</option>
+      </select>
+    </p>
+    <p>语种：
+      <select  name="select-yuzhong" id="select-yuzhong">
+        <option value="all" selected>全部</option>
+        <option value="access">Access数据库程序设计</option>
+        <option value="cplus">C++语言程序设计</option>
+        <option value="cyy">C语言程序设计</option>
+        <option value="java">Java语言程序设计</option>
+        <option value="msoffice">MS Office高级应用</option>
+        <option value="vbyy">VB语言程序设计</option>
+        <option value="web">Web程序设计</option>
+        <option value="xxaq">信息安全技术</option>
+        <option value="qrs">嵌入式系统开发技术</option>
+        <option value="sjk">数据库技术</option>
+        <option value="wljs">网络技术</option>
+        <option value="jsjms">计算机基础及MS Office应用</option>
+        <option value="jsjps">计算机基础及Photoshop应用</option>
+        <option value="jsjwps">计算机基础及WPS Office应用</option>
+      </select>
+    </p>
+    <p>等级：
+      <select  name="select-grade" id="select-grade">
+        <option value="all" selected>全部</option>
+        <option value="1">一级</option>
+        <option value="2">二级</option>
+        <option value="3">三级</option>
+        <option value="4">四级</option>
+        <option value="5">五级</option>
+        <option value="6">六级</option>
+      </select>
+    </p>
+
+    <!--<input type="button" value="click" class="getGrade" />-->
+    <!--<input type="button" value="click" onclick="DoAjax();"/>-->
+    <button id="click">点击</button>
+    <input type="text" id="scores" />
+    <input type="text" id="rate" />
+    <div id="result"></div>
+
+    <script type="text/javascript">
+        $("#foo").click(function()
+            {
+            var obj= document.getElementById('select-xueqi');
+            var index = obj.selectedIndex;
+            var val = obj.options[index].text;
+            var obj2 = document.getElementById('select-xueyuan');
+            var index2 = obj2.selectedIndex;
+            var val2 = obj2.options[index2].text;
+            var obj3 = document.getElementById('select-nianji');
+            var index3 = bj3.selectedIndex;
+            var val3 = obj3.options[index3].text;
+            var obj4 = document.getElementById('select-yuzhong');
+            var index4 = obj4.selectedIndex;
+            var val4 = obj4.options[index4].text;
+            var obj5 = document.getElementById('select-grade');
+            var index5 = obj5.selectedIndex;
+            var val5 = obj5.options[index5].text;
+            var pd = {"select-xueqi":val, "select-xueyuan":val2, "select-nianji":val3, "select-yuzhong":val4, "select-grade":val5};
+            $.post("/grade",{data:pd},function(data,status){
+                if(status == "success")
+                {
+                    var obj = jQuery.parseJSON(data);
+                    $('#scores').val(obj.scores);
+                    $('#rate').val(obj.rate);
+                    }
+                }
+                else
+                {
+                    alert("Ajax 失败");
+                }
+            }
+        });
+    </script>
+</form>
+</body>
+</html>
