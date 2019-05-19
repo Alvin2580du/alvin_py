@@ -8,6 +8,14 @@ import traceback
 import json
 import logging
 import pandas as pd
+import random
+import matplotlib.pyplot as plt
+from tornado.web import Application
+import numpy as np
+
+
+plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.rcParams['axes.unicode_minus'] = False
 
 ports = 8994
 define("port", default=ports, help="run on the given port", type=int)
@@ -24,8 +32,8 @@ xueyuan_dict = {
     'jsjtx': "计算机与通信学院", 'sjys': "设计艺术学院", 'rjxy': "软件学院",
 }
 nianji_dict = {
-    'all': "全部", 'twelve': "12", 'thirteen': "13", 'fourteen': "14",
-    'fifteen': "15", 'sixteen': "16", 'seveteen': "17",
+    'all': "全部", 'twelve': "12级", 'thirteen': "13级", 'fourteen': "14级",
+    'fifteen': "15级", 'sixteen': "16级", 'seveteen': "17级",
 }
 
 yuzhong_dict = {
@@ -47,11 +55,12 @@ yuzhong_dict = {
 
 grade_dict = {
     'all': "全部",
-    '1': "一",
-    '2': "二",
-    '3': "三",
-    '4': "四",
-
+    '1': "一级",
+    '2': "二级",
+    '3': "三级",
+    '4': "四级",
+    '5': "五级",
+    '6': "六级",
 }
 
 
@@ -109,6 +118,49 @@ def get_3(xq, nj, grade):
     return 11111, 99999
 
 
+# 全校各省学生二级的通过率，用中国地图散点图表示出来
+def get_province():
+    rows = {}
+    values = []
+    names = []
+    for x, y in data.groupby(by='province'):
+        for x1, y1 in y.groupby(by='dengji'):
+            if x1 == '二级':
+                lelve = [i for i in y1['chengji'] if i > 60]
+                rate = len(lelve) / y1.shape[0]
+                rows[x] = "{:0.2f}".format(rate)
+                names.append(x)
+                values.append("{:0.2f}".format(rate))
+
+    plt.figure(figsize=(20, 10))
+    plt.bar(names, values, width=0.5)
+    plt.xticks(rotation=36)
+    plt.savefig("./static/images/各省二级通过率对比.png")
+    print("save success ")
+    return rows
+
+
+def scatter_plot():
+    rows = {}
+
+    for x, y in data.groupby(by='dengji'):
+        chengji = y['chengji'].values.tolist()
+        rows[x] = random.sample(chengji, 200)
+
+    plt.figure()
+    plt.scatter(list(rows['二级']), list(rows['三级']))
+    plt.title("二级和三级分数散点图")
+    plt.savefig("./static/images/23.png")
+
+    plt.close()
+
+    plt.figure()
+    plt.scatter(list(rows['三级']), list(rows['四级']))
+    plt.title("三级和四级分数散点图")
+    plt.savefig("./static/images/34.png")
+    plt.close()
+
+
 class IndexHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("login.html")
@@ -137,18 +189,11 @@ class LoginHandler(tornado.web.RequestHandler):
 class GradeHandler(tornado.web.RequestHandler):
 
     def initialize(self):
-        print("init KBRecallHandler handler")
+        print("init GradeHandler handler")
 
     def get(self):
         # 拿到参数后返回
-        dict = {}
-        try:
-            res = json.dumps(dict)
-            print("res:{}".format(res))
-            self.finish(res)
-        except Exception as e:
-            logging.warning(e)
-            traceback.print_exc()
+        self.render('main.html')
 
     def post(self):
         print('post = * =' * 10)
@@ -176,23 +221,50 @@ class GradeHandler(tornado.web.RequestHandler):
             print("没有定义的问题")
             scores_, rate_ = 11111, 99999
 
-        pd = {"学期": xq, "学院": xy, "年级": nianji, "语种": grade, "等级": yuzhong}
-        data = {"inputs": pd, "scores": scores_, "rate": rate_}
+        data = {"scores": scores_, "rate": rate_}
         print(data)
         self.write(json.dumps(data))
 
 
-handlers = [
-    (r"/", IndexHandler),
-    (r"/user", LoginHandler),
-    (r"/grade", GradeHandler)
-]
+class ScatterHandler(tornado.web.RequestHandler):
+    def post(self):
+        self.render('scatter.html')
+
+
+class VisiHandler(tornado.web.RequestHandler):
+    def post(self):
+        self.render('scatter.html')
+
+
+class ProvinceHandler(tornado.web.RequestHandler):
+    def post(self):
+        self.render('province.html')
+
 
 if __name__ == "__main__":
-    template_path = os.path.join(os.path.dirname(__file__), "template")
-    tornado.options.parse_command_line()
-    app = tornado.web.Application(handlers, template_path)
-    http_server = tornado.httpserver.HTTPServer(app)
-    http_server.listen(options.port)
-    print("http_server 已启动")
-    tornado.ioloop.IOLoop.instance().start()
+
+    method = 'server'  # server
+
+    if method == 'scatter_plot':
+        scatter_plot()
+    elif method == 'get_province':
+        get_province()
+    else:
+        tornado.options.parse_command_line()
+        handlers = [
+            (r"/", IndexHandler),
+            (r"/user", LoginHandler),
+            (r"/grade", GradeHandler),
+            (r"/scatter", ScatterHandler),
+            (r"/province", ProvinceHandler),
+
+        ]
+        app = Application(handlers,
+                          template_path=os.path.join(os.path.dirname(__file__), "templates"),
+                          static_path=os.path.join(os.path.dirname(__file__), "static"),
+                          debug=True
+                          )
+        http_server = tornado.httpserver.HTTPServer(app)
+        http_server.listen(options.port)
+        print("http_server 已启动")
+        tornado.ioloop.IOLoop.instance().start()
