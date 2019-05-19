@@ -5,17 +5,21 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
 </head>
-<body>
+<body bgcolor="#00FFFF">
+<h1 align="left">
+    <span  style="color:#FF0000	;">一、平均分与通过率计算</span>
+</h1>
 <form method="post" action="/grade"  class="form">
-    <p>学期：
-        <select  name="select-xueqi" id="select-xueqi">
+    <p><span  style="color:#FFFF00; font-size:30px;">学期：</span>
+        <select  name="select-xueqi" id="select-xueqi" style="font-size:25px;width:300px;height:35px;">
           <option value="all" selected>全部</option>
           <option value="chunji">春季</option>
           <option value="qiuji">秋季</option>
         </select>
     </p>
-    <p>学院：
-      <select name="select-xueyuan" id="select-xueyuan">
+    <p>
+        <span  style="color:#FFFF00; font-size:30px;">学院：</span>
+      <select name="select-xueyuan" id="select-xueyuan" style="font-size:25px;width:300px;height:35px;">
         <option value="all" selected>全部</option>
         <option value="tmgc">土木工程学院</option>
         <option value="wgy">外国语学院</option>
@@ -35,19 +39,21 @@
         <option value="rjxy">软件学院</option>
       </select>
     </p>
-    <p>年级：
-      <select  name="select-nianji" id="select-nianji">
+    <p>
+        <span  style="color:#FFFF00; font-size:30px;">年级：</span>
+      <select  name="select-nianji" id="select-nianji" style="font-size:25px;width:300px;height:35px;">
         <option value="all" selected>全部</option>
-        <option value="twelve">12</option>
-        <option value="thirteen">13</option>
-        <option value="fourteen">14</option>
-        <option value="fifteen">15</option>
-        <option value="sixteen">16</option>
-        <option value="seveteen">17</option>
+        <option value="twelve">12级</option>
+        <option value="thirteen">13级</option>
+        <option value="fourteen">14级</option>
+        <option value="fifteen">15级</option>
+        <option value="sixteen">16级</option>
+        <option value="seveteen">17级</option>
       </select>
     </p>
-    <p>语种：
-      <select  name="select-yuzhong" id="select-yuzhong">
+
+    <p><span  style="color:#FFFF00; font-size:30px;">语种：</span>
+      <select  name="select-yuzhong" id="select-yuzhong" style="font-size:25px;width:300px;height:35px;">
         <option value="all" selected>全部</option>
         <option value="access">Access数据库程序设计</option>
         <option value="cplus">C++语言程序设计</option>
@@ -65,8 +71,8 @@
         <option value="jsjwps">计算机基础及WPS Office应用</option>
       </select>
     </p>
-    <p>等级：
-      <select  name="select-grade" id="select-grade">
+    <p><span  style="color:#FFFF00; font-size:30px;">等级：</span>
+      <select  name="select-grade" id="select-grade" style="font-size:25px;width:300px;height:35px;">
         <option value="all" selected>全部</option>
         <option value="1">一级</option>
         <option value="2">二级</option>
@@ -79,9 +85,9 @@
 
     <!--<input type="button" value="click" class="getGrade" />-->
     <!--<input type="button" value="click" onclick="DoAjax();"/>-->
-    <button id="click">点击</button>
-    <input type="text" id="scores" />
-    <input type="text" id="rate" />
+    <button id="click" style="color:#0000FF	;font-size:30px;width:300px;height:50px;">计算</button>
+    <!--<input type="text" id="scores" />-->
+    <!--<input type="text" id="rate" />-->
     <div id="result"></div>
 
     <script type="text/javascript">
@@ -104,9 +110,12 @@
             var val5 = obj5.options[index5].text;
             var pd = {"select-xueqi":val, "select-xueyuan":val2, "select-nianji":val3, "select-yuzhong":val4, "select-grade":val5};
             $.post("/grade",{data:pd},function(data,status){
+                console.log(data);
                 if(status == "success")
                 {
                     var obj = jQuery.parseJSON(data);
+                    console.log(obj.scores);
+                    console.log(obj.rate);
                     $('#scores').val(obj.scores);
                     $('#rate').val(obj.rate);
                     }
@@ -118,6 +127,18 @@
             }
         });
     </script>
+</form>
+<h1 align="left" >
+    <span  style="color:#FF0000	;">二、可视化分析</span>
+</h1>
+
+<form method="post" action="/scatter"  class="form">
+    <button id="scatter" style="color:#0000FF;font-size:30px;width:300px;height:50px;">散点图</button>
+    <h4>-------------------------------------</h4>
+</form>
+
+<form method="post" action="/province"  class="form">
+    <button id="province" style="color:#0000FF	;font-size:30px;width:300px;height:50px;">各省学生通过率</button>
 </form>
 </body>
 </html>
