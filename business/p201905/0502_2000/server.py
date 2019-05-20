@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 from tornado.web import Application
 import numpy as np
 
-
 plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
 
@@ -118,26 +117,100 @@ def get_3(xq, nj, grade):
     return 11111, 99999
 
 
+shi_pr = {'内蒙古自治区': '呼和浩特', '新疆维吾尔自治区': '乌鲁木齐', '西藏': '拉萨', '宁夏回族自治区': '银川', '广西壮族自治区': '南宁',
+          '香港特别行政区': '香港', '澳门特别行政区': '澳门', '黑龙江省': '哈尔滨', '吉林省': '长春', '辽宁省': '沈阳',
+          '河北省': '石家庄', '山西省': '太原', '青海省': '西宁', '.山东省': '济南', '河南省': '郑州', '江苏省': '南京',
+          '安徽省': '合肥', '浙江省': '杭州', '福建省': '福州', '江西省': '南昌', '湖南省': '长沙', '湖北省': '武汉',
+          '广东省': '广州', '台湾省': '台北', '海南省': '海口', '甘肃省': '兰州', '陕西省': '西安', '四川省': '成都',
+          '贵州省': '贵阳', '云南省': '昆明', '北京市': '北京', '天津市': '天津', '重庆市': '重庆', '上海市': '上海', '深圳市': '深圳'}
+
+shi_pr_re = {v: k for k, v in shi_pr.items()}
+
+
 # 全校各省学生二级的通过率，用中国地图散点图表示出来
 def get_province():
-    rows = {}
+    rows_lat = {}
+    rows_lon = {}
+    with open('weidu.txt', 'r', encoding='utf-8') as fr:
+        lines = fr.readlines()
+        for line in lines:
+            line_sp = line.split(',')
+            rows_lat[shi_pr_re[line_sp[0].replace('市', '')]] = line_sp[1].replace("\n", "")
+            rows_lon[shi_pr_re[line_sp[0].replace('市', '')]] = line_sp[2].replace("\n", "")
+
+    print(rows_lon)
+    print(rows_lat)
+
     values = []
     names = []
+    save = []
     for x, y in data.groupby(by='province'):
-        for x1, y1 in y.groupby(by='dengji'):
-            if x1 == '二级':
-                lelve = [i for i in y1['chengji'] if i > 60]
-                rate = len(lelve) / y1.shape[0]
-                rows[x] = "{:0.2f}".format(rate)
-                names.append(x)
-                values.append("{:0.2f}".format(rate))
+        try:
+            for x1, y1 in y.groupby(by='dengji'):
+                if x1 == '二级':
+                    lelve = [i for i in y1['chengji'] if i > 60]
+                    rate = len(lelve) / y1.shape[0]
+                    rows = {}
+                    rows['name'] = x
+                    rows['values'] = "{:0.2f}".format(rate)
+                    rows['lat'] = rows_lat[x.replace("\n", "")]
+                    rows['lon'] = rows_lon[x.replace("\n", "")]
+                    names.append(x)
+                    values.append("{:0.2f}".format(rate))
+                    save.append(rows)
+        except:
+            print(x)
+            continue
+
+    df = pd.DataFrame(save)
+    df.to_excel("province.xlsx", index=None)
 
     plt.figure(figsize=(20, 10))
     plt.bar(names, values, width=0.5)
     plt.xticks(rotation=36)
     plt.savefig("./static/images/各省二级通过率对比.png")
     print("save success ")
-    return rows
+
+
+def plot_province():
+    import numpy as np
+    import matplotlib
+
+    matplotlib.rcParams['toolbar'] = 'None'
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.basemap import Basemap
+    import pandas as pd
+
+    posi = pd.read_excel("province.xlsx")
+
+    lat = posi["lat"].values.tolist()  # 获取维度之维度值
+    lon = posi["lon"].values.tolist()  # 获取经度值
+    values = posi["values"].values.tolist()  # 获取经度值
+    size = (values / np.max(values)) * 100
+
+    map = Basemap(projection='stere',
+                  lat_0=35, lon_0=110,
+                  llcrnrlon=82.33,
+                  llcrnrlat=3.01,
+                  urcrnrlon=138.16,
+                  urcrnrlat=53.123, resolution='l', area_thresh=10000, rsphere=6371200.)
+
+    map.drawcoastlines()
+    map.drawcountries()
+    map.readshapefile("gadm36_CHN_shp/gadm36_CHN_0", 'states', drawbounds=True)
+    map.drawmapboundary()
+
+    parallels = np.arange(0., 90, 10.)
+    map.drawparallels(parallels, labels=[1, 0, 0, 0], fontsize=10)  # 绘制纬线
+
+    meridians = np.arange(80., 140., 10.)
+    map.drawmeridians(meridians, labels=[0, 0, 0, 1], fontsize=10)  # 绘制经线
+
+    x, y = map(lon, lat)
+
+    map.scatter(x, y, edgecolors='r', facecolors='r', marker='*', s=size)
+    plt.savefig("scatter.png")
+    plt.show()
 
 
 def scatter_plot():
@@ -243,7 +316,7 @@ class ProvinceHandler(tornado.web.RequestHandler):
 
 if __name__ == "__main__":
 
-    method = 'server'  # server
+    method = 'get_province'  # server
 
     if method == 'scatter_plot':
         scatter_plot()
