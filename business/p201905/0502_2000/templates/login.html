@@ -8,31 +8,26 @@
   <meta name="Description" content="">
   <title>NCRE考生成绩分析系统</title>
     <style type="text/css" rel="stylesheet">
-        .wrap{margin:0 auto;width:400px;}
+        .wrap{margin:0 auto;width:400px;height:200px;}
     </style>
 </head>
-<body  bgcolor="#00FFFF">
-    <div class="wrap">
+<body background="{{static_url('images/login.gif')}}">
+ <div class="wrap">
         <h1 align="center" >
             <span  style="color:#FF0000	;">NCRE考生成绩分析系统</span>
         </h1>
+        <br/>
+        <br/><br/><br/><br/>
+        <br/><br/><br/><br/>
         <form method="post" action="/user"  class="form">
             <p style="color:#FFFF00;font-size:30px;width:300px;height:50px;">用户名<br>
                 <input type="text" name="name" style="font-size:25px;width:300px;height:35px;"></p>
             <p style="color:#FFFF00;font-size:30px;width:300px;height:50px;">密码<br>
                 <input type="text" name="password" style="font-size:25px;width:300px;height:35px;"></p>
             <p><br></p>
-            <button type="submit" id="click" style="color:#0000FF	;font-size:25px;width:100px;height:40px;">登录</button>
+            <button  type="submit" id="click" style="color:#0000FF	;font-size:25px;width:100px;height:40px;align:center">登录</button>
 
         </form>
     </div>
-    <script language="JavaScript">
-                function showps(){
-                    if (this.forms.password.type="password") {
-                        document.getElementById("box").innerHTML="<input type=\"text\" name=\"password\"  value="+this.forms.password.value+">";
-                        document.getElementById("click").innerHTML="<a href=\"javascript:hideps()\">隐藏密码</a>"
-                    }
-                }
-    </script>
 </body>
 </html>
