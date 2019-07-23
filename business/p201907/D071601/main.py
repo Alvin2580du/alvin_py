@@ -45,9 +45,6 @@ def readLines(filename):
     return out
 
 
-stopwords = readLines('stopwords.txt')
-
-
 def plot_word_cloud(data_name, max_words):
     text = open('./results/{}.txt'.format(data_name), 'r', encoding='utf-8').read()
 
