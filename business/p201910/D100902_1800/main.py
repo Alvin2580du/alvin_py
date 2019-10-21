@@ -6,18 +6,17 @@ from collections import defaultdict
 from nltk.tokenize import word_tokenize
 from nltk.tag import pos_tag
 from collections import Counter, OrderedDict
-from sklearn.naive_bayes import MultinomialNB, GaussianNB
-from sklearn.externals import joblib
+from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import classification_report
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_curve, auc
-import matplotlib.pyplot as plt
 from sklearn.preprocessing import label_binarize
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import LinearSVC
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
+import sys
 
 stoplist = stopwords.words('english')
 
@@ -29,15 +28,7 @@ C.最后设计代码，提取自建的致股东信小型语料库词表中的候
 基于评价系统，对已经建立的情感词典从-5—+5进行分类和赋值
 
 ④利用python对赋值的情感词进行情感极性计算。
-
-⑤利用机器学习的SVM（支持向量机）技术、NB（朴素贝叶斯）、K-means等方法对相同的
-
-PMI, 是互信息(NMI)中的一种特例, 而互信息,是源于信息论中的一个概念,主要用于衡量2个信号的关联程度.至于PMI,是在文本处理中,
-用于计算两个词语之间的关联程度.比起传统的相似度计算, pmi的好处在于,从统计的角度发现词语共现的情况来分析出词语间是否存在语义相关 ,
- 或者主题相关的情况.
- 
-基本思想是：选用一组褒义词（Pwords）跟一组贬义词（Nwords）作为基准词。若把一个词语word1跟Pwords的点间互信息减
-去word1跟Nwords的点间互信息会得到一个差值，就可以根据该差值判断词语word1的情感倾向。
+⑤利用机器学习的SVM（支持向量机）技术、NB（朴素贝叶斯）、逻辑回归等方法对相同的
 
 """
 
@@ -411,6 +402,8 @@ if __name__ == '__main__':
         data = shuffle(data)
         data['senti2vec'] = data['senti'].apply(trans)
         n_classes = 3
+        fw = open('log.txt', 'w')
+        sys.stdout = fw
 
         for country, lines in data.groupby(by='country'):
             X_, y = lines['content'].values, lines['senti2vec'].values
@@ -430,7 +423,7 @@ if __name__ == '__main__':
             nb_clf.fit(train_x.toarray(), train_y)
             nb_score = nb_clf.predict(test_x.toarray())
             nb_roc_auc = get_roc(test_y, nb_score, n_classes)
-            print(nb_roc_auc)
+            print("roc:{}".format(nb_roc_auc))
             reports_nb = classification_report(test_y, nb_score, labels=[0, 1, 2])
             print(reports_nb)
             print('- -'*10)
@@ -440,19 +433,21 @@ if __name__ == '__main__':
             svm_clf = OneVsRestClassifier(LinearSVC(random_state=0))
             svm_score = svm_clf.fit(train_x, train_y).decision_function(test_x)
             svm_roc_auc = get_roc(test_y, svm_score, n_classes)
-            print(svm_roc_auc)
+            print("roc:{}".format(svm_roc_auc))
             y_pred = svm_clf.predict(test_x)
             reports_svm = classification_report(test_y, y_pred, labels=[0, 1, 2])
             print(reports_svm)
             print('- -'*10)
+
             # 逻辑回归
             print('{}-逻辑回归'.format(country))
             lr_clf = OneVsRestClassifier(LogisticRegression(random_state=0))
             lr_score = lr_clf.fit(train_x, train_y).decision_function(test_x)
             lr_roc_auc = get_roc(test_y, lr_score, n_classes)
-            print(lr_roc_auc)
+            print("roc:{}".format(lr_roc_auc))
             y_pred = lr_clf.predict(test_x)
             reports_lr = classification_report(test_y, y_pred, labels=[0, 1, 2])
             print(reports_lr)
             print('- -'*10)
 
+        fw.close()
