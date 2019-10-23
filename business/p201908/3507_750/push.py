@@ -1,9 +1,3 @@
-from sklearn.datasets import fetch_20newsgroups
-from gensim import corpora, models
-import en_core_web_sm
-from matplotlib import pyplot as plt
-from wordcloud import WordCloud
-import matplotlib.colors as mcolors
 import torch.optim as optim
 import math
 from tqdm import tqdm
@@ -19,59 +13,13 @@ import numpy as np
 from collections import Counter
 import pandas as pd
 
-# a small value
 EPSILON = 1e-9
 PIVOTS_DROPOUT = 0.5
 DOC_VECS_DROPOUT = 0.25
 DOC_WEIGHTS_INIT = 0.1
 
-# negative sampling power
 BETA = 0.75
-
-# i add some noise to the gradient
 ETA = 0.4
-
-
-def preprocess(docs, min_length, min_counts, max_counts):
-    """Tokenize, clean, and encode documents.
-
-    Arguments:
-        docs: A list of tuples (index, string), each string is a document.
-        nlp: A spaCy object, like nlp = spacy.load('en').
-        min_length: An integer, minimum document length.
-        min_counts: An integer, minimum count of a word.
-        max_counts: An integer, maximum count of a word.
-
-    Returns:
-        encoded_docs: A list of tuples (index, list), each list is a document
-            with words encoded by integer values.
-        decoder: A dict, integer -> word.
-        word_counts: A list of integers, counts of words that are in decoder.
-            word_counts[i] is the number of occurrences of word decoder[i]
-            in all documents in docs.
-    """
-
-    tokenized_docs = [(i, doc.split()) for i, doc in tqdm(docs)]
-    # remove short documents
-    n_short_docs = sum(1 for i, doc in tokenized_docs if len(doc) < min_length)
-    tokenized_docs = [(i, doc) for i, doc in tokenized_docs if len(doc) >= min_length]
-    print('number of removed short documents:', n_short_docs)
-
-    # remove some tokens
-    counts = _count_unique_tokens(tokenized_docs)
-    tokenized_docs = _remove_tokens(tokenized_docs, counts, min_counts, max_counts)
-    n_short_docs = sum(1 for i, doc in tokenized_docs if len(doc) < min_length)
-    tokenized_docs = [(i, doc) for i, doc in tokenized_docs if len(doc) >= min_length]
-    print('number of additionally removed short documents:', n_short_docs)
-
-    counts = _count_unique_tokens(tokenized_docs)
-    encoder, decoder, word_counts = _create_token_encoder(counts)
-
-    print('\nminimum word count number:', word_counts[-1])
-    print('this number can be less than MIN_COUNTS because of document removal')
-
-    encoded_docs = _encode(tokenized_docs, encoder)
-    return encoded_docs, decoder, word_counts
 
 
 def _count_unique_tokens(tokenized_docs):
@@ -86,10 +34,6 @@ def _encode(tokenized_docs, encoder):
 
 
 def _remove_tokens(tokenized_docs, counts, min_counts, max_counts):
-    """
-    Words with count < min_counts or count > max_counts
-    will be removed.
-    """
     total_tokens_count = sum(count for token, count in counts.most_common())
     print('total number of tokens:', total_tokens_count)
 
@@ -123,15 +67,12 @@ def _create_token_encoder(counts):
 
 
 def get_windows(doc, hws=5):
-
     length = len(doc)
     assert length > 2 * hws, 'doc is too short!'
 
     inside = [(w, doc[(i - hws):i] + doc[(i + 1):(i + hws + 1)])
               for i, w in enumerate(doc[hws:-hws], hws)]
 
-    # for words that are near the beginning or
-    # the end of a doc tuples are slightly different
     beginning = [(w, doc[:i] + doc[(i + 1):(2 * hws + 1)])
                  for i, w in enumerate(doc[:hws], 0)]
 
@@ -140,44 +81,29 @@ def get_windows(doc, hws=5):
 
     return beginning + inside + end
 
+
 class loss(nn.Module):
     def __init__(self, topics, word_vectors, unigram_distribution,
                  n_documents, loss_doc_weights, lambda_const=100.0, num_sampled=15):
         super(loss, self).__init__()
-
         self.topics = topics
         self.n_topics = topics.n_topics
         self.alpha = 1.0 / self.n_topics
         self.lambda_const = lambda_const
         self.weights = loss_doc_weights
 
-        # document distributions (logits) over the topics
         self.doc_weights = nn.Embedding(n_documents, self.n_topics)
         init.normal(self.doc_weights.weight, std=DOC_WEIGHTS_INIT)
 
         self.neg = negative_sampling_loss(word_vectors, unigram_distribution, num_sampled)
 
     def forward(self, doc_indices, pivot_words, target_words):
-        """
-        Arguments:
-            doc_indices: A long tensor of shape [batch_size].
-            pivot_words: A long tensor of shape [batch_size].
-            target_words: A long tensor of shape [batch_size, window_size].
-        Returns:
-            A pair of losses, their sum is going to be minimized.
-        """
-
-        # shape: [batch_size, n_topics]
         doc_weights = self.doc_weights(doc_indices)
 
-        # for reweighting loss
         w = Variable(self.weights[doc_indices.data])
         w /= w.sum()
         w *= w.size(0)
-
-        # shape: [batch_size, embedding_dim]
         doc_vectors = self.topics(doc_weights)
-
         neg_loss = self.neg(pivot_words, target_words, doc_vectors, w)
         dirichlet_loss = (w * F.log_softmax(doc_weights).sum(1)).mean()
         dirichlet_loss *= self.lambda_const * (1.0 - self.alpha)
@@ -186,24 +112,12 @@ class loss(nn.Module):
 
 
 class AliasMultinomial(object):
-    """
-    Fast sampling from a multinomial distribution.
-    https://hips.seas.harvard.edu/blog/2013/03/03/the-alias-method-efficient-sampling-with-many-discrete-outcomes/
-    """
-
     def __init__(self, probs):
-        """
-        probs: a float tensor with shape [K].
-            It represents probabilities of different outcomes.
-            There are K outcomes. Probabilities sum to one.
-        """
 
         K = len(probs)
         self.q = torch.zeros(K).cuda()
         self.J = torch.LongTensor([0] * K).cuda()
 
-        # sort the data into the outcomes with probabilities
-        # that are larger and smaller than 1/K
         smaller = []
         larger = []
         for kk, prob in enumerate(probs):
@@ -213,9 +127,6 @@ class AliasMultinomial(object):
             else:
                 larger.append(kk)
 
-        # loop though and create little binary mixtures that
-        # appropriately allocate the larger outcomes over the
-        # overall uniform mixture
         while len(smaller) > 0 and len(larger) > 0:
             small = smaller.pop()
             large = larger.pop()
@@ -232,8 +143,6 @@ class AliasMultinomial(object):
         self.J.clamp(0, K - 1)
 
     def draw(self, N):
-        """Draw N samples from the distribution."""
-
         K = self.J.size(0)
         r = torch.LongTensor(np.random.randint(0, K, size=N)).cuda()
         q = self.q.index_select(0, r)
@@ -247,96 +156,48 @@ class AliasMultinomial(object):
 class negative_sampling_loss(nn.Module):
 
     def __init__(self, word_vectors, word_distribution, num_sampled=10):
-        """
-        Arguments:
-            word_vectors: A float tensor of shape [vocab_size, embedding_dim].
-                A word representation like, for example, word2vec or GloVe.
-            word_distribution: A float tensor of shape [vocab_size]. A distribution
-                from which to sample negative words.
-            num_sampled: An integer, number of negative words to sample.
-        """
         super(negative_sampling_loss, self).__init__()
 
         vocab_size, embedding_dim = word_vectors.size()
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         self.embedding.weight.data = word_vectors
-
-        # 'AliasMultinomial' is a lot faster than torch.multinomial
         self.multinomial = AliasMultinomial(word_distribution)
-
         self.num_sampled = num_sampled
         self.embedding_dim = embedding_dim
         self.dropout1 = nn.Dropout(PIVOTS_DROPOUT)
         self.dropout2 = nn.Dropout(DOC_VECS_DROPOUT)
 
     def forward(self, pivot_words, target_words, doc_vectors, loss_doc_weights):
-        """
-        Arguments:
-            pivot_words: A long tensor of shape [batch_size].
-            target_words: A long tensor of shape [batch_size, window_size].
-                Windows around pivot words.
-            doc_vectors: A float tensor of shape [batch_size, embedding_dim].
-                Documents embeddings.
-            loss_doc_weights: A float tensor of shape [batch_size].
-
-        Returns:
-            A scalar.
-        """
-
         batch_size, window_size = target_words.size()
-        # shape: [batch_size, embedding_dim]
         pivot_vectors = self.embedding(pivot_words)
-        # shapes: [batch_size, embedding_dim]
         pivot_vectors = self.dropout1(pivot_vectors)
         doc_vectors = self.dropout2(doc_vectors)
         context_vectors = doc_vectors + pivot_vectors
-        # shape: [batch_size, window_size, embedding_dim]
         targets = self.embedding(target_words)
-        # shape: [batch_size, 1, embedding_dim]
         unsqueezed_context = context_vectors.unsqueeze(1)
-        # compute dot product between a context vector
-        # and each word vector in the window,
-        # shape: [batch_size, window_size]
+
         log_targets = (targets * unsqueezed_context).sum(2).sigmoid() \
             .clamp(min=EPSILON).log()
 
-        # sample negative words for each word in the window,
-        # shape: [batch_size*window_size*num_sampled]
         noise = self.multinomial.draw(batch_size * window_size * self.num_sampled)
         noise = Variable(noise).view(batch_size, window_size * self.num_sampled)
 
-        # shape: [batch_size, window_size*num_sampled, embedding_dim]
         noise = self.embedding(noise)
         noise = noise.view(batch_size, window_size, self.num_sampled, self.embedding_dim)
 
-        # shape: [batch_size, 1, 1, embedding_dim]
         unsqueezed_context = context_vectors.unsqueeze(1).unsqueeze(1)
 
-        # compute dot product between a context vector
-        # and each negative word's vector for each word in the window,
-        # then sum over negative words,
-        # shape: [batch_size, window_size]
         sum_log_sampled = (noise * unsqueezed_context).sum(3).neg().sigmoid() \
             .clamp(min=EPSILON).log().sum(2)
-
         neg_loss = log_targets + sum_log_sampled
-
-        # sum over the window, then take mean over the batch
-        # shape: []
         return (loss_doc_weights * neg_loss.sum(1)).mean().neg()
 
 
 class topic_embedding(nn.Module):
 
     def __init__(self, n_topics, embedding_dim):
-        """
-        Arguments:
-            embedding_dim: An integer.
-            n_topics: An integer.
-        """
         super(topic_embedding, self).__init__()
 
-        # initialize topic vectors by a random orthogonal matrix
         assert n_topics < embedding_dim
         topic_vectors = ortho_group.rvs(embedding_dim)
         topic_vectors = topic_vectors[0:n_topics]
@@ -346,23 +207,9 @@ class topic_embedding(nn.Module):
         self.n_topics = n_topics
 
     def forward(self, doc_weights):
-        """Embed a batch of documents.
-
-        Arguments:
-            doc_weights: A float tensor of shape [batch_size, n_topics],
-                document distributions (logits) over the topics.
-
-        Returns:
-            A float tensor of shape [batch_size, embedding_dim].
-        """
-
         doc_probs = F.softmax(doc_weights)
-        # shape: [batch_size, n_topics, 1]
         unsqueezed_doc_probs = doc_probs.unsqueeze(2)
-        # shape: [1, n_topics, embedding_dim]
         unsqueezed_topic_vectors = self.topic_vectors.unsqueeze(0)
-        # linear combination of topic vectors weighted by probabilities,
-        # shape: [batch_size, embedding_dim]
         doc_vectors = (unsqueezed_doc_probs * unsqueezed_topic_vectors).sum(1)
 
         return doc_vectors
@@ -375,29 +222,6 @@ def train(data, unigram_distribution, word_vectors,
           topics_weight_decay=1e-2,
           topics_lr=1e-3, doc_weights_lr=1e-3, word_vecs_lr=1e-3,
           save_every=10, grad_clip=5.0):
-    """Trains a lda2vec model. Saves the trained model and logs.
-
-    'data' consists of windows around words. Each row in 'data' contains:
-    id of a document, id of a word, 'window_size' words around the word.
-
-    Arguments:
-        data: A numpy config.ini array with shape [n_windows, window_size + 2].
-        unigram_distribution: A numpy float array with shape [vocab_size].
-        word_vectors: A numpy float array with shape [vocab_size, embedding_dim].
-        doc_weights_init: A numpy float array with shape [n_documents, n_topics] or None.
-        n_topics: An integer.
-        batch_size: An integer.
-        n_epochs: An integer.
-        lambda_const: A float number, strength of dirichlet prior.
-        num_sampled: An integer, number of negative words to sample.
-        topics_weight_decay: A float number, L2 regularization for topic vectors.
-        topics_lr: A float number, learning rate for topic vectors.
-        doc_weights_lr: A float number, learning rate for document weights.
-        word_vecs_lr: A float number, learning rate for word vectors.
-        save_every: An integer, save the model from time to time.
-        grad_clip: A float number, clip gradients by absolute value.
-    """
-
     n_windows = len(data)
     n_documents = len(np.unique(data[:, 0]))
     embedding_dim = word_vectors.shape[1]
@@ -408,9 +232,6 @@ def train(data, unigram_distribution, word_vectors,
     print('vocabulary size:', vocab_size)
     print('word embedding dim:', embedding_dim)
 
-    # each document has different length,
-    # so larger documents will have stronger gradient.
-    # to alleviate this problem i reweight loss
     doc_ids = data[:, 0]
     unique_docs, counts = np.unique(doc_ids, return_counts=True)
     weights = np.zeros((len(unique_docs),), 'float32')
@@ -419,12 +240,10 @@ def train(data, unigram_distribution, word_vectors,
         weights[j] = 1.0 / np.log(counts[i])
     weights = torch.FloatTensor(weights).cuda()
 
-    # prepare word distribution
     unigram_distribution = torch.FloatTensor(unigram_distribution ** BETA)
     unigram_distribution /= unigram_distribution.sum()
     unigram_distribution = unigram_distribution.cuda()
 
-    # create a data feeder
     dataset = SimpleDataset(torch.LongTensor(data))
     iterator = DataLoader(
         dataset, batch_size=batch_size, num_workers=4,
@@ -451,7 +270,7 @@ def train(data, unigram_distribution, word_vectors,
     optimizer = optim.Adam(params)
     n_batches = math.ceil(n_windows / batch_size)
     print('number of batches:', n_batches, '\n')
-    losses = []  # collect all losses here
+    losses = []
     doc_weights_shape = model.doc_weights.weight.size()
 
     model.train()
@@ -469,12 +288,10 @@ def train(data, unigram_distribution, word_vectors,
                 total_loss = neg_loss + dirichlet_loss
                 optimizer.zero_grad()
                 total_loss.backward()
-                # level of noise becomes lower as training goes on
                 sigma = ETA / epoch ** 0.55
                 noise = sigma * Variable(torch.randn(doc_weights_shape).cuda())
                 model.doc_weights.weight.grad += noise
 
-                # gradient clipping
                 for p in model.parameters():
                     p.grad = p.grad.clamp(min=-grad_clip, max=grad_clip)
 
@@ -520,90 +337,16 @@ class SimpleDataset(Dataset):
 if __name__ == '__main__':
     method = 'train'
 
-    if method == 'preprocess':
-        MIN_COUNTS = 10
-        MAX_COUNTS = 500
-        MIN_LENGTH = 15
-        HALF_WINDOW_SIZE = 5
-
-        data = pd.read_excel("dataAll.xlsx")
-        train_set = []
-        docs = data['content'].values
-
-        # store an index with a document
-        docs = [(i, doc) for i, doc in enumerate(docs)]
-        encoded_docs, decoder, word_counts = preprocess(docs, MIN_LENGTH, MIN_COUNTS, MAX_COUNTS)
-        # new ids will be created for the documents.
-        # create a way of restoring initial ids:
-        doc_decoder = {i: doc_id for i, (doc_id, doc) in enumerate(encoded_docs)}
-
-        data = []
-        # new ids are created here
-        for index, (_, doc) in tqdm(enumerate(encoded_docs)):
-            windows = get_windows(doc, HALF_WINDOW_SIZE)
-            # index represents id of a document,
-            # windows is a list of (word, window around this word),
-            # where word is in the document
-            data += [[index, w[0]] + w[1] for w in windows]
-
-        data = np.array(data, dtype='int64')
-        print(data.shape)
-
-        word_counts = np.array(word_counts)
-        unigram_distribution = word_counts / sum(word_counts)
-
-        vocab_size = len(decoder)
-        embedding_dim = 200
-
-        # train a skip-gram word2vec model
-        texts = [[str(j) for j in doc] for i, doc in encoded_docs]
-        model = models.Word2Vec(texts, size=embedding_dim, window=5, workers=4, sg=1, negative=15, iter=70)
-        model.init_sims(replace=True)
-
-        word_vectors = np.zeros((vocab_size, embedding_dim)).astype('float32')
-        num_continue = 0
-        for i in decoder:
-            try:
-                word_vectors[i] = model.wv[str(i)]
-            except:
-                num_continue += 1
-                continue
-        print("num_continue:{}".format(num_continue))
-        texts = [[decoder[j] for j in doc] for i, doc in encoded_docs]
-        dictionary = corpora.Dictionary(texts)
-        corpus = [dictionary.doc2bow(text) for text in texts]
-        num_topics = 12
-        lda_model = models.LdaModel(corpus, alpha=0.9, id2word=dictionary, num_topics=num_topics)
-        corpus_lda = lda_model[corpus]
-
-        doc_weights_init = np.zeros((len(corpus_lda), num_topics))
-        for i in tqdm(range(len(corpus_lda))):
-            topics = corpus_lda[i]
-            for j, prob in topics:
-                doc_weights_init[i, j] = prob
-
-        np.save('data.npy', data)
-        np.save('word_vectors.npy', word_vectors)
-        np.save('unigram_distribution.npy', unigram_distribution)
-        np.save('decoder.npy', decoder)
-        np.save('doc_decoder.npy', doc_decoder)
-        np.save('doc_weights_init.npy', doc_weights_init)
-
     if method == 'train':
         data = np.load('data.npy')
         unigram_distribution = np.load('unigram_distribution.npy')
         word_vectors = np.load('word_vectors.npy')
         doc_weights_init = np.load('doc_weights_init.npy')
 
-        # transform to logits
         doc_weights_init = np.log(doc_weights_init + 1e-4)
 
-        # make distribution softer
         temperature = 7.0
         doc_weights_init /= temperature
-
-        # if you want to train the model like in the original paper set doc_weights_init=None
-        # doc_weights_init = None
 
         num_topics = 12
         batch_size = 2048
@@ -627,27 +370,20 @@ if __name__ == '__main__':
         print('vocabulary size:', vocab_size)
         print('word embedding dim:', embedding_dim)
 
-        # each document has different length,
-        # so larger documents will have stronger gradient.
-        # to alleviate this problem i reweight loss
         doc_ids = data[:, 0]
         unique_docs, counts = np.unique(doc_ids, return_counts=True)
         weights = np.zeros((len(unique_docs),), 'float32')
         for i, j in enumerate(unique_docs):
-            # longer a document -> lower the document weight when computing loss
             weights[j] = 1.0 / np.log(counts[i])
         weights = torch.FloatTensor(weights).cuda()
-        # prepare word distribution
         unigram_distribution = torch.FloatTensor(unigram_distribution ** BETA)
         unigram_distribution /= unigram_distribution.sum()
         unigram_distribution = unigram_distribution.cuda()
 
-        # create a data feeder
         dataset = SimpleDataset(torch.LongTensor(data))
         iterator = DataLoader(dataset, batch_size=batch_size, num_workers=0, shuffle=True, pin_memory=True,
                               drop_last=False)
 
-        # create a lda2vec model
         topics = topic_embedding(num_topics, embedding_dim)
         word_vectors = torch.FloatTensor(word_vectors)
         model = loss(topics, word_vectors, unigram_distribution,
@@ -669,7 +405,7 @@ if __name__ == '__main__':
         optimizer = optim.Adam(params)
         n_batches = math.ceil(n_windows / batch_size)
         print('number of batches:', n_batches, '\n')
-        losses = []  # collect all losses here
+        losses = []
         doc_weights_shape = model.doc_weights.weight.size()
         print("doc_weights_shape", doc_weights_shape)
         model.train()
@@ -687,17 +423,14 @@ if __name__ == '__main__':
                 total_loss = neg_loss + dirichlet_loss
                 optimizer.zero_grad()
                 total_loss.backward()
-                # level of noise becomes lower as training goes on
                 sigma = ETA / epoch ** 0.55
                 noise = sigma * Variable(torch.randn(doc_weights_shape).cuda())
                 model.doc_weights.weight.grad += noise
 
-                # gradient clipping
                 for p in model.parameters():
                     p.grad = p.grad.clamp(min=-grad_clip, max=grad_clip)
                 optimizer.step()
                 n_samples = batch.size(0)
-                # running_neg_loss += neg_loss.data[0] * n_samples
                 running_neg_loss += neg_loss.item() * n_samples
                 running_dirichlet_loss += dirichlet_loss.item() * n_samples
 
@@ -714,22 +447,19 @@ if __name__ == '__main__':
         import numpy as np
         import torch
 
+
         def softmax(x):
-            # x has shape [batch_size, n_classes]
             e = np.exp(x)
             n = np.sum(e, 1, keepdims=True)
             return e / n
 
+
         dataset = pd.read_excel("dataAll.xlsx")
         train_set = []
         docs = dataset['content'].values
-        # store each document with an initial id
         docs = [(i, doc) for i, doc in enumerate(docs)]
-        # "integer -> word" decoder
         decoder = np.load('decoder.npy', allow_pickle=True)[()]
-        # for restoring document ids, "id used while training -> initial id"
         doc_decoder = np.load('doc_decoder.npy', allow_pickle=True)[()]
-        # original document categories
         targets = dataset['target']
         target_names = dataset['target_names']
         targets = np.array([targets[doc_decoder[i]] for i in range(len(doc_decoder))])
@@ -738,36 +468,68 @@ if __name__ == '__main__':
         doc_weights = state['doc_weights.weight'].cpu().clone().numpy()
         topic_vectors = state['topics.topic_vectors'].cpu().clone().numpy()
         resulted_word_vectors = state['neg.embedding.weight'].cpu().clone().numpy()
-        # distribution over the topics for each document
         topic_dist = softmax(doc_weights)
-        # vector representation of the documents
         doc_vecs = np.matmul(topic_dist, topic_vectors)
         similarity = np.matmul(topic_vectors, resulted_word_vectors.T)
         most_similar = similarity.argsort(axis=1)[:, -10:]
         saves = []
         averages = []
 
-        fw = open('LDA2vec model topicRestlts.txt', 'w', encoding='utf-8')
-        for j in range(num_topics):
-            topic_words = [decoder[i] for i in reversed(most_similar[j])]
-            topic_num = similarity[j].tolist()[::-1][-10:]
-            top_topics = []
-            print_topics = []
-            for x, y in zip(topic_words, topic_num):
-                top_topics.append((x, -y / 450))
-                print_topics.append('{}*{:0.3f}'.format(x, -y / 450))
 
-            fw.writelines(" ".join(print_topics) + '\n')
-            print(" ".join(print_topics))
-            #  tc代表计算了所有主题一致性指标之和
-            tc = sum([t[1] for t in top_topics])
-            averages.append(tc)
-            rows = {}
-            rows['# of topic'] = j
-            rows['topic coherence'] = "{:0.3f}".format(tc)
-            saves.append(rows)
+    if method == 'LDAdata':
+        import jieba
 
-        df = pd.DataFrame(saves)
-        df.to_csv("lda2vec coherence.csv", index=None)
+
+        def is_chinese(uchar):
+            if u'\u4e00' <= uchar <= u'\u9fa5':
+                return True
+            else:
+                return False
+
+
+        save = []
+        num = 0
+        for file in ['水果', '猪瘟', '猪肉', '鸡蛋']:
+            num += 1
+            data = pd.read_excel("{}.xlsx".format(file))
+            print(data.shape)
+            print(data.columns)
+            for x, y in data.iterrows():
+                cont = "{} {}".format(y['weibos'], y['zhuanfa'])
+                cont_cut = " ".join([i for i in jieba.lcut(cont) if len(i) > 1 and is_chinese(i)])
+                if len(cont_cut.split()) > 2:
+                    rows = {"content": cont_cut, 'target_names': file, 'target': num}
+                    save.append(rows)
+
+        df = pd.DataFrame(save)
+        df.to_excel("dataAll.xlsx", index=None)
         print(df.shape)
-        print("LDA2vec coherence 平均值：{}".format(sum(averages) / num_topics))
+
+    if method == 'LDA':
+        from gensim.corpora import Dictionary
+        from gensim.models import LdaModel
+        from gensim import models
+        from sklearn.utils import shuffle
+        data = shuffle(pd.read_excel("dataAll.xlsx"))
+
+        print(data.shape)
+
+        train_set = []
+        lines = data['content'].values
+
+        for line in lines:
+            train_set.append([i for i in line.split()])
+
+        dictionary = Dictionary(train_set)
+        corpus = [dictionary.doc2bow(text) for text in train_set]  # 构建稀疏向量
+        tfidf = models.TfidfModel(corpus)  # 统计tfidf
+        corpus_tfidf = tfidf[corpus]  # 得到每个文本的tfidf向量，稀疏矩阵
+        num_topics = 12
+        lda_model = LdaModel(corpus_tfidf, id2word=dictionary, num_topics=num_topics, iterations=10)
+        top_topics = lda_model.top_topics(corpus, coherence='u_mass', topn=12)
+        print(top_topics)
+
+        saves = []
+        averages = []
+        print_topics = []
+        fw = open('lda model topicRestlts.txt', 'w', encoding='utf-8')
